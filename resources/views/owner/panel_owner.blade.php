@@ -1,50 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Panel Owner</title>
-    @vite('resources/css/app.css')
-</head>
-<body class="bg-gray-100">
+@extends('layouts.app')
 
-<div class="flex min-h-screen">
+@section('title', 'Ringkasan Operasional')
 
-    {{-- Sidebar --}}
-    <aside class="w-64 bg-blue-700 text-white p-6 hidden md:block">
-        <h2 class="text-xl font-bold mb-8">Owner</h2>
+@section('sidebar')
+    @include('partials.sidebar_owner')
+@endsection
 
-        <ul class="space-y-4 text-sm">
-            <li>
-                <a href="{{ route('owner.panel') }}"
-                   class="block hover:text-blue-200 transition">
-                    Ringkasan Operasional
-                </a>
-            </li>
-            <li>
-                <a href="#" class="block hover:text-blue-200 transition">
-                    Laporan Penjualan
-                </a>
-            </li>
-            <li>
-                <a href="#" class="block hover:text-blue-200 transition">
-                    Monitoring Stok
-                </a>
-            </li>
-        </ul>
+@section('content')
 
-        <form method="POST" action="{{ route('logout') }}" class="mt-10">
-            @csrf
-            <button class="text-sm hover:text-blue-200">
-                Logout
-            </button>
-        </form>
-    </aside>
+<h1 class="text-2xl font-bold mb-8">
+    Ringkasan Operasional
+</h1>
 
-    {{-- Main Content --}}
-    <main class="flex-1 p-6 md:p-10">
-        @yield('content')
-    </main>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="text-sm text-gray-500 mb-2">
+            Total Transaksi Hari Ini
+        </h2>
+        <p class="text-2xl font-bold text-blue-700">
+            0
+        </p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="text-sm text-gray-500 mb-2">
+            Total Pendapatan Hari Ini
+        </h2>
+        <p class="text-2xl font-bold text-green-600">
+            Rp 0
+        </p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="text-sm text-gray-500 mb-2">
+            Bahan Baku Hampir Habis
+        </h2>
+        <p class="text-2xl font-bold text-red-600">
+            0
+        </p>
+    </div>
 
 </div>
 
-</body>
-</html>
+@endsection
