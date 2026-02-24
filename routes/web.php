@@ -34,6 +34,9 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
         Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+        Route::get('/archive', [UserManagementController::class, 'archive'])->name('archive');
+        Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
+
 
     });
 

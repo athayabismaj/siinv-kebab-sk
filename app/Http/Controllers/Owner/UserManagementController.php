@@ -86,4 +86,22 @@ class UserManagementController extends Controller
         return redirect()->route('owner.users.index')
             ->with('success', 'User berhasil dinonaktifkan.');
     }
+
+        public function archive() {
+        $users = User::onlyTrashed()
+            ->with('role')
+            ->paginate(10);
+
+        return view('owner.archives.user', compact('users'));
+    }
+
+    public function restore($id) {
+        $user = User::withTrashed()->findOrFail($id);
+
+        $user->restore();
+
+        return redirect()->route('owner.users.archive')
+            ->with('success', 'User berhasil diaktifkan kembali.');
+    }
+
 }
