@@ -13,6 +13,7 @@ return new class extends Migration {
             $table->string('name', 150);
             $table->decimal('price', 12, 2);
             $table->text('description')->nullable();
+            $table->string('image_path')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

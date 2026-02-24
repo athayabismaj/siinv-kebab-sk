@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name', 100);
             $table->string('username', 100)->unique();
+            $table->string('email', 150)->unique();
             $table->text('password');
             $table->foreignId('role_id')
                 ->constrained('roles')

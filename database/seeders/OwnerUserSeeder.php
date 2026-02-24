@@ -17,8 +17,9 @@ class OwnerUserSeeder extends Seeder
 
         if ($ownerRole) {
             DB::table('users')->insert([
-                'name' => 'Owner Kebab SK',
-                'username' => 'owner',
+                'name' => 'Jarwo',
+                'username' => 'Jarwo',
+                'email' => 'bantalasur@gmail.com', 
                 'password' => Hash::make('password123'),
                 'role_id' => $ownerRole->id,
                 'created_at' => Carbon::now(),

@@ -1,10 +1,10 @@
 <header class="bg-white dark:bg-slate-900
                border-b border-slate-200 dark:border-slate-800
-               h-16 flex items-center justify-between px-8">
+               h-16 flex items-center justify-between
+               px-6">
 
     <div class="flex items-center gap-4">
 
-        {{-- Hamburger Mobile --}}
         <button @click="sidebarOpen = true"
                 class="md:hidden p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -18,7 +18,7 @@
         </button>
 
         <h1 class="text-lg font-semibold text-slate-800 dark:text-white">
-            @yield('page-title', 'Dashboard')
+            @yield('page-title')
         </h1>
     </div>
 

@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Hash;
 
 class UserManagementController extends Controller
 {
+    /**
+     * List user aktif (admin & kasir saja)
+     */
     public function index()
     {
         $users = User::with('role')
@@ -21,6 +24,9 @@ class UserManagementController extends Controller
         return view('owner.user_management.index', compact('users'));
     }
 
+    /**
+     * Form tambah user
+     */
     public function create()
     {
         $roles = Role::whereIn('name', ['admin', 'kasir'])->get();
@@ -28,18 +34,29 @@ class UserManagementController extends Controller
         return view('owner.user_management.create', compact('roles'));
     }
 
+    /**
+     * Simpan user baru
+     */
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:100',
-            'username' => 'required|string|unique:users,username',
+            'username' => 'required|string|max:100|unique:users,username',
+            'email' => 'required|email|max:150|unique:users,email',
             'password' => 'required|min:6',
             'role_id' => 'required|exists:roles,id',
         ]);
 
+        // Pastikan tidak bisa membuat owner
+        $role = Role::findOrFail($request->role_id);
+        if ($role->name === 'owner') {
+            abort(403, 'Tidak diizinkan membuat role owner.');
+        }
+
         User::create([
             'name' => $request->name,
             'username' => $request->username,
+            'email' => $request->email,
             'password' => Hash::make($request->password),
             'role_id' => $request->role_id,
         ]);
@@ -48,28 +65,50 @@ class UserManagementController extends Controller
             ->with('success', 'User berhasil dibuat.');
     }
 
+    /**
+     * Form edit
+     */
     public function edit(User $user)
     {
+        // Tidak boleh edit owner
+        if ($user->role->name === 'owner') {
+            abort(403);
+        }
+
         $roles = Role::whereIn('name', ['admin', 'kasir'])->get();
 
         return view('owner.user_management.edit', compact('user', 'roles'));
     }
 
+    /**
+     * Update user
+     */
     public function update(Request $request, User $user)
     {
+        if ($user->role->name === 'owner') {
+            abort(403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:100',
-            'username' => 'required|string|unique:users,username,' . $user->id,
+            'username' => 'required|string|max:100|unique:users,username,' . $user->id,
+            'email' => 'required|email|max:150|unique:users,email,' . $user->id,
             'role_id' => 'required|exists:roles,id',
         ]);
+
+        $role = Role::findOrFail($request->role_id);
+        if ($role->name === 'owner') {
+            abort(403, 'Tidak diizinkan mengubah menjadi owner.');
+        }
 
         $data = [
             'name' => $request->name,
             'username' => $request->username,
+            'email' => $request->email,
             'role_id' => $request->role_id,
         ];
 
-        if ($request->password) {
+        if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
 
@@ -79,29 +118,50 @@ class UserManagementController extends Controller
             ->with('success', 'User berhasil diperbarui.');
     }
 
+    /**
+     * Soft delete
+     */
     public function destroy(User $user)
     {
-        $user->delete(); // Soft delete
+        if ($user->role->name === 'owner') {
+            abort(403);
+        }
+
+        $user->delete();
 
         return redirect()->route('owner.users.index')
             ->with('success', 'User berhasil dinonaktifkan.');
     }
 
-        public function archive() {
+    /**
+     * Halaman arsip
+     */
+    public function archive()
+    {
         $users = User::onlyTrashed()
+            ->whereHas('role', function ($q) {
+                $q->whereIn('name', ['admin', 'kasir']);
+            })
             ->with('role')
             ->paginate(10);
 
         return view('owner.archives.user', compact('users'));
     }
 
-    public function restore($id) {
+    /**
+     * Restore user
+     */
+    public function restore($id)
+    {
         $user = User::withTrashed()->findOrFail($id);
+
+        if ($user->role->name === 'owner') {
+            abort(403);
+        }
 
         $user->restore();
 
         return redirect()->route('owner.users.archive')
             ->with('success', 'User berhasil diaktifkan kembali.');
     }
-
 }

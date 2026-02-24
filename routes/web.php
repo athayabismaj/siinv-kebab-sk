@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Owner\UserManagementController;
 
 
@@ -10,6 +11,15 @@ Route::get('/', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.process');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+Route::get('/forgot-password', function () {
+    return view('auth.forgot');
+})->name('password.request');
+
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])
+    ->name('password.sendOtp');
+
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])
+    ->name('password.verifyOtp');
 
 /*
 |--------------------------------------------------------------------------
