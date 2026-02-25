@@ -11,8 +11,6 @@
     </div>
 
     <div class="flex items-center gap-4 text-xs">
-        <span>Version 1.0.0</span>
-
         @auth
             <span>|</span>
             <span class="capitalize">

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,21 +10,37 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
-<body class="bg-slate-100 dark:bg-slate-950">
+<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-200">
 
-<div x-data="{ sidebarOpen: false }" class="flex min-h-screen">
+<div 
+    x-data="{
+        sidebarOpen: false,
+        toggleSidebar() {
+            this.sidebarOpen = !this.sidebarOpen
+        }
+    }"
+    class="flex min-h-screen"
+>
+
+    {{-- MOBILE OVERLAY (PINDAH KE SINI, BUKAN DI SIDEBAR) --}}
+    <div 
+        x-show="sidebarOpen"
+        @click="sidebarOpen = false"
+        x-transition.opacity
+        class="fixed inset-0 bg-black/40 md:hidden z-40">
+    </div>
 
     {{-- SIDEBAR --}}
     @yield('sidebar')
 
     {{-- RIGHT SIDE --}}
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col min-h-screen">
 
         {{-- HEADER --}}
         @include('partials.header')
 
         {{-- CONTENT --}}
-        <main class="flex-1 p-8">
+        <main class="flex-1 p-6 md:p-8">
             @yield('content')
         </main>
 

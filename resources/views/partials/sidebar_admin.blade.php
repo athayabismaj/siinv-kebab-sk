@@ -25,10 +25,10 @@
     <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 text-sm">
 
         {{-- Dashboard --}}
-        <a href="{{ route('owner.panel') }}"
+        <a href="{{ route('admin.panel') }}"
            @click="sidebarOpen = false"
            class="flex items-center gap-3 px-4 py-3 rounded-lg transition
-           {{ request()->routeIs('owner.panel') 
+           {{ request()->routeIs('admin.panel') 
                 ? 'bg-blue-600 text-white' 
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
 
@@ -45,8 +45,9 @@
             Dashboard
         </a>
 
-        {{-- User Management --}}
-        <a href="{{ route('owner.users.index') }}"
+        
+        {{-- Manajemen Menu --}}
+        <a href="#"
            @click="sidebarOpen = false"
            class="flex items-center gap-3 px-4 py-3 rounded-lg transition
            {{ request()->routeIs('owner.users.*') 
@@ -62,10 +63,52 @@
                       d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-2.13a4 4 0 10-8 0 4 4 0 008 0z"/>
             </svg>
 
-            User Management
+            Manajemen Menu
         </a>
 
-        {{-- Laporan --}}
+
+        {{-- Manajemen Bahan --}}
+        <a href="#"
+           @click="sidebarOpen = false"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg transition
+           {{ request()->routeIs('owner.users.*') 
+                ? 'bg-blue-600 text-white' 
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="w-5 h-5"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.8"
+                      d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-2.13a4 4 0 10-8 0 4 4 0 008 0z"/>
+            </svg>
+
+            Manajemen Bahan
+        </a>
+
+
+        {{-- Manajemen Resep --}}
+        <a href="#"
+           @click="sidebarOpen = false"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg transition
+           {{ request()->routeIs('owner.users.*') 
+                ? 'bg-blue-600 text-white' 
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="w-5 h-5"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.8"
+                      d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-2.13a4 4 0 10-8 0 4 4 0 008 0z"/>
+            </svg>
+
+            Manajemen Resep
+        </a>
+
+        {{-- Restock & Adjustment --}}
         <a href="#"
            @click="sidebarOpen = false"
            class="flex items-center gap-3 px-4 py-3 rounded-lg
@@ -81,10 +124,10 @@
                       d="M9 17v-6m4 6V7m4 10V4M5 20h14"/>
             </svg>
 
-            Laporan Penjualan
+            Restock & Adjustment
         </a>
 
-        {{-- Monitoring --}}
+        {{-- Laporan --}}
         <a href="#"
            @click="sidebarOpen = false"
            class="flex items-center gap-3 px-4 py-3 rounded-lg
@@ -100,7 +143,7 @@
                       d="M20 13V7a2 2 0 00-2-2h-4l-2-2-2 2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6"/>
             </svg>
 
-            Monitoring Stok
+            Laporan
         </a>
 
         {{-- ARSIP --}}
@@ -143,19 +186,12 @@
                  x-cloak
                  class="mt-1 space-y-1 pl-10 text-sm">
 
-                <a href="{{ route('owner.users.archive') }}"
-                   @click="sidebarOpen = false"
-                   class="block px-3 py-2 rounded-md
-                          text-slate-500 dark:text-slate-400
-                          hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    User
-                </a>
                 <a href="#" 
                     @click="localStorage.setItem('sidebarOpen', true)" 
                     class="block px-3 py-2 rounded-md 
                         text-slate-500 dark:text-slate-400 
                         hover:bg-slate-100 dark:hover:bg-slate-800 transition"> 
-                    enu 
+                    Menu 
                 </a> 
                 <a href="#" @click="localStorage.setItem('sidebarOpen', true)" 
                     class="block px-3 py-2 rounded-md 
