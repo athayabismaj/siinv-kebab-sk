@@ -8,120 +8,188 @@
 
 @section('content')
 
-<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-    <h1 class="text-2xl font-bold">User Management</h1>
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+    <h1 class="text-xl font-semibold text-slate-800 dark:text-white">
+        User Management
+    </h1>
 
     <a href="{{ route('owner.users.create') }}"
-       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-center">
+       class="text-sm text-slate-500 hover:text-blue-600 transition">
         + Tambah User
     </a>
 </div>
 
-<div class="bg-white shadow rounded-xl overflow-hidden">
-
-    <div class="overflow-x-auto">
-
-        <table class="min-w-full text-sm">
-
-            <thead class="bg-gray-100 text-gray-700">
-                <tr>
-                    <th class="p-4 text-left">Nama</th>
-                    <th class="p-4 text-left hidden sm:table-cell">Username</th>
-                    <th class="p-4 text-left hidden md:table-cell">Role</th>
-                    <th class="p-4 text-left">Status</th>
-                    <th class="p-4 text-left hidden lg:table-cell">Dibuat</th>
-                    <th class="p-4 text-left">Aksi</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                @forelse($users as $user)
-                    <tr class="border-t hover:bg-gray-50 align-top">
-
-                        {{-- MOBILE STACKED INFO --}}
-                        <td class="p-4 font-medium">
-                            {{ $user->name }}
-
-                            {{-- Username mobile --}}
-                            <div class="text-xs text-gray-500 sm:hidden">
-                                {{ $user->username }}
-                            </div>
-
-                            {{-- Role mobile --}}
-                            <div class="text-xs text-gray-400 sm:hidden capitalize">
-                                {{ $user->role->name }}
-                            </div>
-                        </td>
-
-                        {{-- Username desktop --}}
-                        <td class="p-4 hidden sm:table-cell">
-                            {{ $user->username }}
-                        </td>
-
-                        {{-- Role desktop --}}
-                        <td class="p-4 capitalize hidden md:table-cell">
-                            {{ $user->role->name }}
-                        </td>
-
-                        {{-- Status --}}
-                        <td class="p-4">
-                            @if($user->deleted_at)
-                                <span class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded-full">
-                                    Nonaktif
-                                </span>
-                            @else
-                                <span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">
-                                    Aktif
-                                </span>
-                            @endif
-                        </td>
-
-                        {{-- Tanggal desktop --}}
-                        <td class="p-4 hidden lg:table-cell">
-                            {{ $user->created_at->format('d M Y') }}
-                        </td>
-
-                        {{-- Aksi --}}
-                        <td class="p-4">
-                            <div class="flex flex-col sm:flex-row gap-2">
-
-                                <a href="{{ route('owner.users.edit', $user->id) }}"
-                                   class="text-blue-600 hover:underline text-sm">
-                                    Edit
-                                </a>
-
-                                <form action="{{ route('owner.users.destroy', $user->id) }}"
-                                      method="POST">
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <button type="submit"
-                                            onclick="return confirm('Yakin ingin menonaktifkan user ini?')"
-                                            class="text-red-600 hover:underline text-sm">
-                                        Nonaktifkan
-                                    </button>
-                                </form>
-
-                            </div>
-                        </td>
-
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="p-6 text-center text-gray-500">
-                            Tidak ada data user.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-
-        </table>
-
+@if(session('success'))
+    <div class="mb-4 p-3 text-sm bg-green-50 text-green-700 
+                border border-green-200 rounded-lg">
+        {{ session('success') }}
     </div>
+@endif
+
+
+{{-- ================= MOBILE CARD VIEW ================= --}}
+<div class="space-y-4 sm:hidden">
+
+    @forelse($users as $user)
+        <div class="bg-white dark:bg-slate-900 
+                    border border-slate-200 dark:border-slate-800 
+                    rounded-xl p-4">
+
+            <div class="font-medium text-slate-800 dark:text-white">
+                {{ $user->name }}
+            </div>
+
+            <div class="text-xs text-slate-400 mt-1">
+                {{ $user->username }}
+            </div>
+
+            <div class="text-xs text-slate-400">
+                {{ $user->email }}
+            </div>
+
+            <div class="text-xs text-slate-400 capitalize">
+                {{ $user->role->name }}
+            </div>
+
+            <div class="mt-3 text-xs">
+                @if($user->deleted_at)
+                    <span class="text-slate-400">Nonaktif</span>
+                @else
+                    <span class="text-slate-600 dark:text-slate-300">Aktif</span>
+                @endif
+            </div>
+
+            <div class="mt-4 flex gap-4 text-sm">
+
+                <a href="{{ route('owner.users.edit', $user->id) }}"
+                   class="text-slate-500 hover:text-blue-600 transition">
+                    Edit
+                </a>
+
+                <a href="{{ route('owner.users.reset.form', $user->id) }}"
+                   class="text-slate-500 hover:text-blue-600 transition">
+                    Reset
+                </a>
+
+                <form action="{{ route('owner.users.destroy', $user->id) }}"
+                      method="POST">
+                    @csrf
+                    @method('DELETE')
+
+                    <button type="submit"
+                            onclick="return confirm('Yakin ingin menonaktifkan user ini?')"
+                            class="text-slate-500 hover:text-blue-600 transition">
+                        Nonaktifkan
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    @empty
+        <div class="text-center text-slate-400 text-sm py-8">
+            Tidak ada data user.
+        </div>
+    @endforelse
+
 </div>
 
+
+
+{{-- ================= DESKTOP TABLE VIEW ================= --}}
+<div class="hidden sm:block bg-white dark:bg-slate-900 
+            rounded-xl border border-slate-200 dark:border-slate-800">
+
+    <table class="min-w-full text-sm">
+
+        <thead class="text-xs uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+            <tr>
+                <th class="px-6 py-4 text-left">Nama</th>
+                <th class="px-6 py-4 text-left">Username</th>
+                <th class="px-6 py-4 text-left">Email</th>
+                <th class="px-6 py-4 text-left">Role</th>
+                <th class="px-6 py-4 text-left">Status</th>
+                <th class="px-6 py-4 text-left">Dibuat</th>
+                <th class="px-6 py-4 text-left">Aksi</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @forelse($users as $user)
+                <tr class="border-b border-slate-100 dark:border-slate-800">
+
+                    <td class="px-6 py-4 font-medium text-slate-800 dark:text-white">
+                        {{ $user->name }}
+                    </td>
+
+                    <td class="px-6 py-4 text-slate-500">
+                        {{ $user->username }}
+                    </td>
+
+                    <td class="px-6 py-4 text-slate-500">
+                        {{ $user->email }}
+                    </td>
+
+                    <td class="px-6 py-4 text-slate-500 capitalize">
+                        {{ $user->role->name }}
+                    </td>
+
+                    <td class="px-6 py-4 text-xs">
+                        @if($user->deleted_at)
+                            <span class="text-slate-400">Nonaktif</span>
+                        @else
+                            <span class="text-slate-600 dark:text-slate-300">Aktif</span>
+                        @endif
+                    </td>
+
+                    <td class="px-6 py-4 text-xs text-slate-400">
+                        {{ $user->created_at->format('d M Y') }}
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <div class="flex gap-4 text-sm">
+
+                            <a href="{{ route('owner.users.edit', $user->id) }}"
+                               class="text-slate-500 hover:text-blue-600 transition">
+                                Edit
+                            </a>
+
+                            <a href="{{ route('owner.users.reset.form', $user->id) }}"
+                               class="text-slate-500 hover:text-blue-600 transition">
+                                Reset
+                            </a>
+
+                            <form action="{{ route('owner.users.destroy', $user->id) }}"
+                                  method="POST">
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit"
+                                        onclick="return confirm('Yakin ingin menonaktifkan user ini?')"
+                                        class="text-slate-500 hover:text-blue-600 transition">
+                                    Nonaktifkan
+                                </button>
+                            </form>
+
+                        </div>
+                    </td>
+
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7" class="px-6 py-10 text-center text-slate-400 text-sm">
+                        Tidak ada data user.
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+
+    </table>
+
+</div>
+
+
 @if(method_exists($users, 'links'))
-    <div class="mt-6 flex justify-center sm:justify-start">
+    <div class="mt-6 text-sm">
         {{ $users->links() }}
     </div>
 @endif

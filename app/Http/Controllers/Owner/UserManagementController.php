@@ -118,11 +118,28 @@ class UserManagementController extends Controller
             ->with('success', 'User berhasil diperbarui.');
     }
 
-    /**
-     * Soft delete
-     */
-    public function destroy(User $user)
-    {
+
+
+    public function showResetForm(User $user){
+    return view('owner.user_management.forget_password', compact('user'));
+    }
+
+    public function resetPassword(Request $request, User $user) {
+        $request->validate([
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $user->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+        ]);
+
+        return redirect()->route('owner.users.index')
+            ->with('success', 'Password berhasil direset.');
+    }
+
+
+    /*** Soft delete ***/
+    public function destroy(User $user) {
         if ($user->role->name === 'owner') {
             abort(403);
         }
@@ -133,11 +150,8 @@ class UserManagementController extends Controller
             ->with('success', 'User berhasil dinonaktifkan.');
     }
 
-    /**
-     * Halaman arsip
-     */
-    public function archive()
-    {
+    /*** Halaman arsip ***/
+    public function archive() {
         $users = User::onlyTrashed()
             ->whereHas('role', function ($q) {
                 $q->whereIn('name', ['admin', 'kasir']);
@@ -148,8 +162,7 @@ class UserManagementController extends Controller
         return view('owner.archives.user', compact('users'));
     }
 
-    /**
-     * Restore user
+    /*** Restore user
      */
     public function restore($id)
     {

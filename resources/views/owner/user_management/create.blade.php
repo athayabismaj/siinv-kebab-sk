@@ -21,7 +21,9 @@
     @include('owner.user_management.partials.form', [
         'action' => route('owner.users.store'),
         'method' => 'POST',
-        'buttonText' => 'Simpan User'
+        'buttonText' => 'Simpan User',
+        'showPassword' => true,
+        'showConfirmPassword' => false
     ])
 
 </div>

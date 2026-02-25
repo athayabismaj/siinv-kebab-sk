@@ -1,3 +1,9 @@
+@php
+    $showPassword = $showPassword ?? false;
+    $showConfirmPassword = $showConfirmPassword ?? false;
+    $showRole = $showRole ?? true;
+@endphp
+
 <div class="bg-white dark:bg-slate-900 
             shadow-lg rounded-2xl 
             border border-slate-200 dark:border-slate-800 
@@ -46,15 +52,15 @@
                               focus:border-blue-500 outline-none transition">
             </div>
 
-            {{-- Password --}}
+            {{-- Email --}}
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                    Password
+                    Email
                 </label>
-                <input type="password"
-                       name="password"
-                       placeholder="{{ isset($user) ? 'Kosongkan jika tidak ingin mengubah' : 'Masukkan password' }}"
-                       {{ isset($user) ? '' : 'required' }}
+                <input type="email"
+                       name="email"
+                       value="{{ old('email', $user->email ?? '') }}"
+                       required
                        class="w-full px-4 py-2 rounded-xl
                               border border-slate-300 dark:border-slate-700
                               bg-white dark:bg-slate-800
@@ -63,29 +69,68 @@
                               focus:border-blue-500 outline-none transition">
             </div>
 
+            {{-- Password --}}
+            @if($showPassword)
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Password
+                    </label>
+                    <input type="password"
+                           name="password"
+                           required
+                           class="w-full px-4 py-2 rounded-xl
+                                  border border-slate-300 dark:border-slate-700
+                                  bg-white dark:bg-slate-800
+                                  text-slate-700 dark:text-white
+                                  focus:ring-2 focus:ring-blue-500
+                                  focus:border-blue-500 outline-none transition">
+                </div>
+            @endif
+
+            {{-- Confirm Password --}}
+            @if($showConfirmPassword)
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Konfirmasi Password
+                    </label>
+                    <input type="password"
+                           name="password_confirmation"
+                           required
+                           class="w-full px-4 py-2 rounded-xl
+                                  border border-slate-300 dark:border-slate-700
+                                  bg-white dark:bg-slate-800
+                                  text-slate-700 dark:text-white
+                                  focus:ring-2 focus:ring-blue-500
+                                  focus:border-blue-500 outline-none transition">
+                </div>
+            @endif
+
             {{-- Role --}}
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                    Role
-                </label>
-                <select name="role_id"
-                        required
-                        class="w-full px-4 py-2 rounded-xl
-                               border border-slate-300 dark:border-slate-700
-                               bg-white dark:bg-slate-800
-                               text-slate-700 dark:text-white
-                               focus:ring-2 focus:ring-blue-500
-                               focus:border-blue-500 outline-none transition">
+            @if($showRole)
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Role
+                    </label>
 
-                    @foreach($roles as $role)
-                        <option value="{{ $role->id }}"
-                            {{ old('role_id', $user->role_id ?? '') == $role->id ? 'selected' : '' }}>
-                            {{ ucfirst($role->name) }}
-                        </option>
-                    @endforeach
+                    <select name="role_id"
+                            required
+                            class="w-full px-4 py-2 rounded-xl
+                                   border border-slate-300 dark:border-slate-700
+                                   bg-white dark:bg-slate-800
+                                   text-slate-700 dark:text-white
+                                   focus:ring-2 focus:ring-blue-500
+                                   focus:border-blue-500 outline-none transition">
 
-                </select>
-            </div>
+                        @foreach($roles as $role)
+                            <option value="{{ $role->id }}"
+                                {{ old('role_id', $user->role_id ?? '') == $role->id ? 'selected' : '' }}>
+                                {{ ucfirst($role->name) }}
+                            </option>
+                        @endforeach
+
+                    </select>
+                </div>
+            @endif
 
         </div>
 

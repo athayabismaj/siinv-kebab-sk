@@ -21,7 +21,12 @@
     @include('owner.user_management.partials.form', [
         'action' => route('owner.users.update', $user->id),
         'method' => 'PUT',
-        'buttonText' => 'Update User'
+        'buttonText' => 'Update User',
+        'showPassword' => false,
+        'showConfirmPassword' => false,
+        'showRole' => true,
+        'roles' => $roles,
+        'user' => $user
     ])
 
 </div>

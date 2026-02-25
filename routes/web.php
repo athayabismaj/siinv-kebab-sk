@@ -43,6 +43,8 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
         Route::post('/', [UserManagementController::class, 'store'])->name('store');
         Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
+        Route::get('/{user}/reset-password', [UserManagementController::class, 'showResetForm'])->name('reset.form');
+        Route::post('/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('resetPassword');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         Route::get('/archive', [UserManagementController::class, 'archive'])->name('archive');
         Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
