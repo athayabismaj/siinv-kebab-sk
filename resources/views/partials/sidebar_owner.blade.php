@@ -155,7 +155,7 @@
                     class="block px-3 py-2 rounded-md 
                         text-slate-500 dark:text-slate-400 
                         hover:bg-slate-100 dark:hover:bg-slate-800 transition"> 
-                    enu 
+                    Menu 
                 </a> 
                 <a href="#" @click="localStorage.setItem('sidebarOpen', true)" 
                     class="block px-3 py-2 rounded-md 

@@ -14,7 +14,7 @@
                 border-b border-slate-200 dark:border-slate-800">
 
         <h2 class="text-lg font-semibold text-slate-800 dark:text-white">
-            Owner Panel
+            Admin Panel
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400">
             Kebab SK Management
