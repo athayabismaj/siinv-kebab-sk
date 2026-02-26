@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Owner\UserManagementController;
 
 
@@ -20,6 +21,16 @@ Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])
 
 Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])
     ->name('password.verifyOtp');
+
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('profile.password.form');
+    Route::put('/change-password', [ProfileController::class, 'changePassword'])->name('profile.password.update');
+});
+
 
 /*
 |--------------------------------------------------------------------------
