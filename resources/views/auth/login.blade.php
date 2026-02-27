@@ -106,7 +106,7 @@
             </div>
 
             <div class="text-right text-sm">
-                <a href="#" 
+                <a href="{{ route('password.request') }}"
                    class="text-slate-500 hover:text-blue-600 transition">
                     Forgot password?
                 </a>

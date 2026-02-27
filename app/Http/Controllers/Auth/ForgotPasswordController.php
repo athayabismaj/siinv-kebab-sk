@@ -10,18 +10,19 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
-class ForgotPasswordController extends Controller
-{
-    // Kirim OTP
-    public function sendOtp(Request $request)
-    {
+class ForgotPasswordController extends Controller {
+    
+    /*** KIRIM OTP ***/ 
+    public function sendOtp(Request $request) {
         $request->validate([
             'email' => 'required|email|exists:users,email',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        // Generate OTP 6 digit
+        // Hapus OTP lama
+        PasswordOtp::where('user_id', $user->id)->delete();
+
         $otp = random_int(100000, 999999);
 
         PasswordOtp::create([
@@ -30,24 +31,37 @@ class ForgotPasswordController extends Controller
             'expires_at' => Carbon::now()->addMinutes(5),
         ]);
 
-        // Kirim email
+        // Simpan email di session
+        session(['otp_email' => $user->email]);
+
+        // Untuk testing tanpa email:
+        // return back()->with('success', "OTP: $otp");
+
+        // Jika sudah siap kirim email:
         Mail::raw("Kode OTP Anda: $otp (berlaku 5 menit)", function ($message) use ($user) {
             $message->to($user->email)
                 ->subject('Reset Password OTP');
         });
 
-        return back()->with('success', 'OTP telah dikirim ke email.');
+        return redirect()->route('password.verify.form')
+            ->with('success', 'OTP telah dikirim ke email.');
     }
 
-    // Verifikasi OTP
+    /*** VERIFIKASI OTP ***/ 
+
     public function verifyOtp(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
             'otp' => 'required|digits:6',
         ]);
 
-        $user = User::where('email', $request->email)->firstOrFail();
+        $email = session('otp_email');
+
+        if (!$email) {
+            return redirect()->route('password.request');
+        }
+
+        $user = User::where('email', $email)->firstOrFail();
 
         $otpRecord = PasswordOtp::where('user_id', $user->id)
             ->where('used', false)
@@ -62,6 +76,10 @@ class ForgotPasswordController extends Controller
             return back()->withErrors(['otp' => 'OTP sudah kadaluarsa.']);
         }
 
+        if ($otpRecord->attempts >= 5) {
+            return back()->withErrors(['otp' => 'Terlalu banyak percobaan.']);
+        }
+
         if (!Hash::check($request->otp, $otpRecord->otp_hash)) {
             $otpRecord->increment('attempts');
             return back()->withErrors(['otp' => 'OTP salah.']);
@@ -69,6 +87,37 @@ class ForgotPasswordController extends Controller
 
         $otpRecord->update(['used' => true]);
 
-        return redirect()->route('password.reset.form', $user->id);
+        session()->forget('otp_email');
+        session(['password_reset_user_id' => $user->id]);
+
+        return redirect()->route('password.reset.form');
+    }
+
+ 
+    /*** RESET PASSWORD ***/  
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $userId = session('password_reset_user_id');
+
+        if (!$userId) {
+            return redirect()->route('password.request');
+        }
+
+        $user = User::findOrFail($userId);
+
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        PasswordOtp::where('user_id', $user->id)->delete();
+
+        session()->forget('password_reset_user_id');
+
+        return redirect()->route('login')
+            ->with('success', 'Password berhasil direset. Silakan login.');
     }
 }

@@ -12,6 +12,12 @@ Route::get('/', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.process');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+/*
+|--------------------------------------------------------------------------
+| FORGOT PASSWORD
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/forgot-password', function () {
     return view('auth.forgot');
 })->name('password.request');
@@ -19,10 +25,33 @@ Route::get('/forgot-password', function () {
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])
     ->name('password.sendOtp');
 
+Route::get('/verify-otp', function () {
+    if (!session('otp_email')) {
+        return redirect()->route('password.request');
+    }
+    return view('auth.verify_otp');
+})->name('password.verify.form');
+
 Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])
     ->name('password.verifyOtp');
 
+Route::get('/reset-password', function () {
+    if (!session('password_reset_user_id')) {
+        return redirect()->route('password.request');
+    }
+    return view('auth.reset_password');
+})->name('password.reset.form');
 
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])
+    ->name('password.reset');
+
+
+
+/*
+|--------------------------------------------------------------------------
+| USER PROFILE
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
