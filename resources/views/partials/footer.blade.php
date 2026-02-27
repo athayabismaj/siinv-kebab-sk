@@ -6,7 +6,7 @@
     <div>
         © {{ date('Y') }}
         <span class="font-medium text-slate-700 dark:text-slate-200">
-            Sistem Inventory
+            Sistem Inventory 
         </span> - Kebab SK
     </div>
 

@@ -1,35 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authentication | SK SmartPOS</title>
+    <title>Authentication | Sistem Inventory Kebab SK</title>
 
-    @vite('resources/css/app.css')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4">
+<body class="h-full bg-slate-100 flex items-center justify-center px-4">
 
     <div class="w-full max-w-md">
 
-        {{-- Card --}}
-        <div class="bg-white rounded-2xl shadow-xl p-8">
+        {{-- CARD --}}
+        <div class="bg-white rounded-2xl shadow-lg p-8">
 
-            {{-- Logo / Title --}}
-            <div class="text-center mb-6">
-                <h1 class="text-xl font-bold text-slate-800">
-                    SK SmartPOS & Inventory
+            {{-- BRAND --}}
+            <div class="text-center mb-8">
+                <h1 class="text-xl font-semibold text-slate-800">
+                    Sistem Inventory Kebab Sk
                 </h1>
             </div>
 
-            {{-- Content --}}
+            {{-- CONTENT --}}
             @yield('content')
 
         </div>
 
-        {{-- Footer --}}
+        {{-- FOOTER --}}
         <p class="text-center text-xs text-slate-400 mt-6">
-            © {{ date('Y') }} SK SmartPOS System
+            © {{ date('Y') }} Sistem Inventory Kebab SK
         </p>
 
     </div>

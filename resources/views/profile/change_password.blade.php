@@ -120,7 +120,7 @@
                                bg-blue-600 text-white
                                hover:bg-blue-700
                                transition">
-                    Simpan Password
+                    Simpan Perubahan
                 </button>
 
             </div>
