@@ -148,7 +148,7 @@
 
                             <button type="submit"
                                     onclick="return confirm('Aktifkan kembali bahan ini?')"
-                                    class="text-slate-500 hover:text-blue-600 transition">
+                                    class="text-blue-600 hover:underline transition">
                                 Aktifkan
                             </button>
                         </form>
