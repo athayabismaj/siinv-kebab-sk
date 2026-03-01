@@ -11,9 +11,10 @@ return new class extends Migration {
         Schema::create('ingredients', function (Blueprint $table) {
             $table->id();
             $table->string('name', 150);
-            $table->string('unit', 50);
-            $table->decimal('stock', 12, 2)->default(0);
-            $table->decimal('minimum_stock', 12, 2)->default(0);
+             $table->string('display_unit', 20);
+             $table->string('base_unit', 20);
+            $table->decimal('stock', 15, 2)->default(0);
+            $table->decimal('minimum_stock', 15, 2)->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
