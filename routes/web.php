@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Owner\UserManagementController;
+use App\Http\Controllers\Admin\IngredientController;
 
 
 
@@ -67,30 +68,55 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:owner'])->group(function () {
+Route::middleware(['auth', 'role:owner'])
+    ->prefix('owner')
+    ->name('owner.')
+    ->group(function () {
 
-    Route::get('/owner/panel', function () {
-        return view('owner.panel_owner');
-    })->name('owner.panel');
+        // ================= PANEL =================
+        Route::get('/panel', function () {
+            return view('owner.panel_owner');
+        })->name('panel');
 
+        // ================= USER MANAGEMENT =================
+        Route::prefix('users')->name('users.')->group(function () {
 
-    Route::prefix('owner/users')
-        ->name('owner.users.')
-        ->group(function () {
+            Route::get('/', [UserManagementController::class, 'index'])->name('index');
+            Route::get('/create', [UserManagementController::class, 'create'])->name('create');
+            Route::post('/', [UserManagementController::class, 'store'])->name('store');
+            Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
+            Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
 
-        Route::get('/', [UserManagementController::class, 'index'])->name('index');
-        Route::get('/create', [UserManagementController::class, 'create'])->name('create');
-        Route::post('/', [UserManagementController::class, 'store'])->name('store');
-        Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
-        Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
-        Route::get('/{user}/reset-password', [UserManagementController::class, 'showResetForm'])->name('reset.form');
-        Route::post('/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('resetPassword');
-        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
-        Route::get('/archive', [UserManagementController::class, 'archive'])->name('archive');
-        Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
+            Route::get('/{user}/reset-password',
+                [UserManagementController::class, 'showResetForm'])
+                ->name('reset.form');
 
+            Route::post('/{user}/reset-password',
+                [UserManagementController::class, 'resetPassword'])
+                ->name('resetPassword');
 
-    });
+            Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+
+            Route::get('/archive',
+                [UserManagementController::class, 'archive'])
+                ->name('archive');
+
+            Route::patch('/{id}/restore',
+                [UserManagementController::class, 'restore'])
+                ->name('restore');
+        });
+
+        // ================= INGREDIENT ARCHIVE =================
+        Route::prefix('ingredients')->name('ingredients.')->group(function () {
+
+            Route::get('/archive',
+                [IngredientController::class, 'archive'])
+                ->name('archive');
+
+            Route::patch('/{id}/restore',
+                [IngredientController::class, 'restore'])
+                ->name('restore');
+        });
 
 });
 
@@ -106,5 +132,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/panel', function () {
         return view('admin.panel_admin');
     })->name('admin.panel');
+
+    Route::resource('admin/ingredients',
+        IngredientController::class
+    )->names('admin.ingredients');
 
 });
