@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
@@ -15,34 +17,57 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        // ================= VALIDASI INPUT =================
+        $request->validate([
             'username' => 'required',
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // ================= CARI USER TERMASUK SOFT DELETE =================
+        $user = User::withTrashed()
+            ->where('username', $request->username)
+            ->first();
 
-            $request->session()->regenerate();
-            $user = Auth::user();
-
-            if ($user->role->name === 'owner') {
-                return redirect()->route('owner.panel');
-            }
-
-            if ($user->role->name === 'admin') {
-                return redirect()->route('admin.panel');
-            }
-
-            // Kasir tidak boleh akses web
-            Auth::logout();
+        // ================= USER TIDAK DITEMUKAN =================
+        if (!$user) {
             return back()->withErrors([
-                'username' => 'Role tidak diizinkan mengakses web.'
+                'username' => 'Username atau password salah.'
+            ])->withInput();
+        }
+
+        // ================= USER NONAKTIF =================
+        if ($user->trashed()) {
+            return back()->withErrors([
+                'username' => 'Akun Anda telah dinonaktifkan.'
             ]);
         }
 
-        return back()->withErrors([
-            'username' => 'Username atau password salah.'
-        ]);
+        // ================= PASSWORD SALAH =================
+        if (!Hash::check($request->password, $user->password)) {
+            return back()->withErrors([
+                'username' => 'Username atau password salah.'
+            ])->withInput();
+        }
+
+        // ================= LOGIN MANUAL =================
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        // ================= REDIRECT BERDASARKAN ROLE =================
+        switch ($user->role->name) {
+
+            case 'owner':
+                return redirect()->route('owner.panel');
+
+            case 'admin':
+                return redirect()->route('admin.panel');
+
+            default:
+                Auth::logout();
+                return back()->withErrors([
+                    'username' => 'Role tidak diizinkan mengakses web.'
+                ]);
+        }
     }
 
     public function logout(Request $request)
