@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Owner\UserManagementController;
 use App\Http\Controllers\Admin\IngredientController;
+use App\Http\Controllers\Admin\MenuController;
 
 
 
@@ -68,11 +69,7 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:owner'])
-    ->prefix('owner')
-    ->name('owner.')
-    ->group(function () {
-
+Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->group(function () {
         // ================= PANEL =================
         Route::get('/panel', function () {
             return view('owner.panel_owner');
@@ -86,36 +83,17 @@ Route::middleware(['auth', 'role:owner'])
             Route::post('/', [UserManagementController::class, 'store'])->name('store');
             Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
             Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
-
-            Route::get('/{user}/reset-password',
-                [UserManagementController::class, 'showResetForm'])
-                ->name('reset.form');
-
-            Route::post('/{user}/reset-password',
-                [UserManagementController::class, 'resetPassword'])
-                ->name('resetPassword');
-
+            Route::get('/{user}/reset-password',[UserManagementController::class, 'showResetForm'])->name('reset.form');
+            Route::post('/{user}/reset-password',[UserManagementController::class, 'resetPassword'])->name('resetPassword');
             Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
-
-            Route::get('/archive',
-                [UserManagementController::class, 'archive'])
-                ->name('archive');
-
-            Route::patch('/{id}/restore',
-                [UserManagementController::class, 'restore'])
-                ->name('restore');
+            Route::get('/archive',[UserManagementController::class, 'archive'])->name('archive');
+            Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
         });
 
         // ================= INGREDIENT ARCHIVE =================
         Route::prefix('ingredients')->name('ingredients.')->group(function () {
-
-            Route::get('/archive',
-                [IngredientController::class, 'archive'])
-                ->name('archive');
-
-            Route::patch('/{id}/restore',
-                [IngredientController::class, 'restore'])
-                ->name('restore');
+            Route::get('/archive',[IngredientController::class, 'archive'])->name('archive');
+            Route::patch('/{id}/restore',[IngredientController::class, 'restore'])->name('restore');
         });
 
 });
@@ -127,14 +105,32 @@ Route::middleware(['auth', 'role:owner'])
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
-    Route::get('/admin/panel', function () {
-        return view('admin.panel_admin');
-    })->name('admin.panel');
+        // ===== PANEL =====
+        Route::get('/panel', function () {
+            return view('admin.panel_admin');
+        })->name('panel');
 
-    Route::resource('admin/ingredients',
-        IngredientController::class
-    )->names('admin.ingredients');
+        // ===== INGREDIENTS =====
+        Route::prefix('ingredients')->name('ingredients.')->group(function () {
+                Route::get('/', [IngredientController::class, 'index'])->name('index');
+                Route::get('/create', [IngredientController::class, 'create'])->name('create');
+                Route::post('/', [IngredientController::class, 'store'])->name('store');
+                Route::get('/{ingredient}/edit', [IngredientController::class, 'edit'])->name('edit');
+                Route::put('/{ingredient}', [IngredientController::class, 'update'])->name('update');
+                Route::delete('/{ingredient}', [IngredientController::class, 'destroy'])->name('destroy');
+        });
 
+        // ===== MENUS =====
+        Route::prefix('menus')->name('menus.')->group(function () {
+            Route::get('/', [MenuController::class, 'index'])->name('index');
+            Route::get('/create', [MenuController::class, 'create'])->name('create');
+            Route::post('/', [MenuController::class, 'store'])->name('store');
+            Route::get('/{menu}/edit', [MenuController::class, 'edit'])->name('edit');
+            Route::put('/{menu}', [MenuController::class, 'update'])->name('update');
+            Route::delete('/{menu}', [MenuController::class, 'destroy'])->name('destroy');
+            Route::get('/archive', [MenuController::class, 'archive'])->name('archive');
+            Route::patch('/{id}/restore', [MenuController::class, 'restore'])->name('restore');
+        });
 });
