@@ -7,16 +7,20 @@
 
     <div class="flex items-center gap-4">
 
-        <button @click="toggleSidebar()"
-                class="md:hidden p-2 rounded-lg
-                       hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        <button 
+            @click="sidebarOpen = true"
+            class="md:hidden p-2 rounded-lg
+                hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+        >
             <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-6 h-6 text-slate-600 dark:text-slate-300"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                class="w-6 h-6 text-slate-600 dark:text-slate-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor">
                 <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 6h16M4 12h16M4 18h16"/>
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
         </button>
 

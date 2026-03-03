@@ -1,220 +1,165 @@
 <aside 
-    x-data="{ openArchive: false }"
+    x-data="{
+        openInventori: {{ request()->routeIs('admin.ingredients.*') || request()->routeIs('admin.ingredient-categories.*') ? 'true' : 'false' }},
+        openMenu: {{ request()->routeIs('admin.menus.*') || request()->routeIs('admin.menu-categories.*') || request()->routeIs('admin.recipes.*') ? 'true' : 'false' }},
+        openLaporan: false
+    }"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     class="fixed md:relative z-50
            w-64
            bg-white dark:bg-slate-900
            border-r border-slate-200 dark:border-slate-800
-           transform transition-transform duration-300
+           transform transition-transform duration-300 ease-in-out
            flex flex-col
-           h-screen">
+           min-h-screen md:min-h-full">
 
     {{-- HEADER --}}
     <div class="h-16 flex flex-col justify-center px-6
                 border-b border-slate-200 dark:border-slate-800">
 
-        <h2 class="text-lg font-semibold text-slate-800 dark:text-white">
-            Admin Panel
+        <h2 class="text-base font-semibold text-slate-800 dark:text-white">
+            Kebab SK
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400">
-            Kebab SK Management
+            Panel Admin
         </p>
     </div>
 
-    {{-- NAV --}}
-    <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 text-sm">
 
-        {{-- Dashboard --}}
+    {{-- NAVIGATION --}}
+    <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-6 text-sm">
+
+        {{-- DASHBOARD --}}
         <a href="{{ route('admin.panel') }}"
            @click="sidebarOpen = false"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg transition
-           {{ request()->routeIs('admin.panel') 
-                ? 'bg-blue-600 text-white' 
+           class="block px-4 py-3 rounded-xl transition font-medium
+           {{ request()->routeIs('admin.panel')
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-
-            {{-- Icon --}}
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-5 h-5"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M3 12l2-2 7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/>
-            </svg>
-
             Dashboard
         </a>
 
-        
-        {{-- Manajemen Menu --}}
-        <a href="{{ route('admin.menus.index') }}"
-           @click="sidebarOpen = false"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg transition
-           {{ request()->routeIs('owner.users.*') 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
 
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-5 h-5"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-2.13a4 4 0 10-8 0 4 4 0 008 0z"/>
-            </svg>
-
-            Manajemen Menu
-        </a>
-
-
-        {{-- Manajemen Bahan --}}
-        <a href="{{ route('admin.ingredients.index') }}"
-           @click="sidebarOpen = false"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg transition
-           {{ request()->routeIs('owner.users.*') 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-5 h-5"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-2.13a4 4 0 10-8 0 4 4 0 008 0z"/>
-            </svg>
-
-            Manajemen Bahan
-        </a>
-
-
-        {{-- Manajemen Resep --}}
-        <a href="#"
-           @click="sidebarOpen = false"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg transition
-           {{ request()->routeIs('owner.users.*') 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-5 h-5"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-2.13a4 4 0 10-8 0 4 4 0 008 0z"/>
-            </svg>
-
-            Manajemen Resep
-        </a>
-
-        {{-- Restock & Adjustment --}}
-        <a href="#"
-           @click="sidebarOpen = false"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg
-                  text-slate-600 dark:text-slate-300
-                  hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-5 h-5"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M9 17v-6m4 6V7m4 10V4M5 20h14"/>
-            </svg>
-
-            Restock & Adjustment
-        </a>
-
-        {{-- Laporan --}}
-        <a href="#"
-           @click="sidebarOpen = false"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg
-                  text-slate-600 dark:text-slate-300
-                  hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="w-5 h-5"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M20 13V7a2 2 0 00-2-2h-4l-2-2-2 2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6"/>
-            </svg>
-
-            Laporan
-        </a>
-
-        {{-- ARSIP --}}
+        {{-- ================= INVENTORI ================= --}}
         <div>
-            <button 
-                @click="openArchive = !openArchive"
-                class="w-full flex items-center justify-between px-4 py-3 rounded-lg
-                       text-slate-600 dark:text-slate-300
-                       hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <button @click="openInventori = !openInventori"
+                class="w-full flex justify-between items-center px-4 py-2 text-xs uppercase tracking-wider
+                       text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
 
-                <div class="flex items-center gap-3">
-
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="w-5 h-5"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.8"
-                              d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>
-                    </svg>
-
-                    Arsip Data
-                </div>
-
-                <svg :class="openArchive ? 'rotate-180' : ''"
-                     class="w-4 h-4 transition-transform"
-                     fill="none" stroke="currentColor"
-                     viewBox="0 0 24 24">
-                    <path stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 9l-7 7-7-7"/>
-                </svg>
+                <span>Inventori</span>
+                <span :class="openInventori ? 'rotate-180' : ''"
+                      class="transition-transform duration-200">⌄</span>
             </button>
 
-            <div x-show="openArchive"
+            <div x-show="openInventori"
                  x-collapse
                  x-cloak
-                 class="mt-1 space-y-1 pl-10 text-sm">
+                 class="mt-2 space-y-1">
 
-                <a href="#" 
-                    @click="localStorage.setItem('sidebarOpen', true)" 
-                    class="block px-3 py-2 rounded-md 
-                        text-slate-500 dark:text-slate-400 
-                        hover:bg-slate-100 dark:hover:bg-slate-800 transition"> 
-                    Menu 
-                </a> 
-                <a href="#" @click="localStorage.setItem('sidebarOpen', true)" 
-                    class="block px-3 py-2 rounded-md 
-                        text-slate-500 dark:text-slate-400 
-                        hover:bg-slate-100 dark:hover:bg-slate-800 transition"> 
-                Ingredients </a>
+                <a href="{{ route('admin.ingredient-categories.index') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.ingredient-categories.*')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Kategori Bahan
+                </a>
+
+                <a href="{{ route('admin.ingredients.index') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.ingredients.*')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Manajemen Bahan
+                </a>
+
+                <a href="#"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg
+                          text-slate-600 dark:text-slate-300
+                          hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    Restok & Penyesuaian
+                </a>
+
+            </div>
+        </div>
+
+
+        {{-- ================= MENU ================= --}}
+        <div>
+            <button @click="openMenu = !openMenu"
+                class="w-full flex justify-between items-center px-4 py-2 text-xs uppercase tracking-wider
+                       text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
+
+                <span>Manajemen Menu</span>
+                <span :class="openMenu ? 'rotate-180' : ''"
+                      class="transition-transform duration-200">⌄</span>
+            </button>
+
+            <div x-show="openMenu"
+                 x-collapse
+                 x-cloak
+                 class="mt-2 space-y-1">
+
+                <a href="{{ route('admin.menu-categories.index') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.menu-categories.*')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Kategori Menu
+                </a>
+
+                <a href="{{ route('admin.menus.index') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.menus.*')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Manajemen Menu
+                </a>
+
+                <a href="{{ route('admin.recipes.index') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.recipes.*')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Manajemen Resep
+                </a>
+
+            </div>
+        </div>
+
+
+        {{-- ================= PELAPORAN ================= --}}
+        <div>
+            <button @click="openLaporan = !openLaporan"
+                class="w-full flex justify-between items-center px-4 py-2 text-xs uppercase tracking-wider
+                       text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
+
+                <span>Pelaporan</span>
+                <span :class="openLaporan ? 'rotate-180' : ''"
+                      class="transition-transform duration-200">⌄</span>
+            </button>
+
+            <div x-show="openLaporan"
+                 x-collapse
+                 x-cloak
+                 class="mt-2 space-y-1">
+
+                <a href="#"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg
+                          text-slate-600 dark:text-slate-300
+                          hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    Laporan
+                </a>
 
             </div>
         </div>
 
     </nav>
-
-    {{-- FOOTER --}}
-    <div class="h-14 px-6 flex items-center
-                border-t border-slate-200 dark:border-slate-800">
-
-        <form method="POST" action="{{ route('logout') }}" class="w-full">
-            @csrf
-            <button class="w-full bg-red-500 hover:bg-red-600
-                           text-white text-sm py-2 rounded-lg transition">
-                Logout
-            </button>
-        </form>
-    </div>
 
 </aside>

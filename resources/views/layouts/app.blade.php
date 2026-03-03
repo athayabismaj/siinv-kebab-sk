@@ -10,19 +10,14 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
-<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-200">
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-200">
 
 <div 
-    x-data="{
-        sidebarOpen: false,
-        toggleSidebar() {
-            this.sidebarOpen = !this.sidebarOpen
-        }
-    }"
+    x-data="{ sidebarOpen: false }"
     class="flex min-h-screen"
 >
 
-    {{-- MOBILE OVERLAY (PINDAH KE SINI, BUKAN DI SIDEBAR) --}}
+    {{-- OVERLAY MOBILE --}}
     <div 
         x-show="sidebarOpen"
         @click="sidebarOpen = false"
@@ -31,10 +26,10 @@
     </div>
 
     {{-- SIDEBAR --}}
-    @yield('sidebar')
+    @include('partials.sidebar_admin')
 
-    {{-- RIGHT SIDE --}}
-    <div class="flex-1 flex flex-col min-h-screen">
+    {{-- RIGHT CONTENT --}}
+    <div class="flex-1 flex flex-col">
 
         {{-- HEADER --}}
         @include('partials.header')
