@@ -9,7 +9,6 @@
 
     $selectedUnit = old('display_unit', $ingredient->display_unit ?? '');
 
-    // Konversi stok dari base unit ke display unit saat edit
     $displayStock = old('stock');
     $displayMinimum = old('minimum_stock');
 
@@ -22,47 +21,100 @@
             $displayMinimum = $ingredient->minimum_stock;
         }
     }
+
+    $selectedCategory = old('category_id', $ingredient->category_id ?? '');
 @endphp
 
 
 <div class="bg-white dark:bg-slate-900
             border border-slate-200 dark:border-slate-800
-            rounded-2xl shadow-sm p-8">
+            rounded-2xl shadow-sm">
 
-    <form method="POST" action="{{ $action }}" class="space-y-10">
-        @csrf
+<form method="POST" action="{{ $action }}">
+@csrf
+@if($method === 'PUT')
+    @method('PUT')
+@endif
 
-        @if($method === 'PUT')
-            @method('PUT')
-        @endif
+<div class="p-8 space-y-10">
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    {{-- ================= BASIC INFO SECTION ================= --}}
+    <div class="space-y-6">
 
-            {{-- NAMA --}}
-            <div class="lg:col-span-3">
-                <label class="block text-sm text-slate-600 dark:text-slate-300 mb-2">
-                    Nama Bahan
-                </label>
-                <input type="text"
-                       name="name"
-                       value="{{ old('name', $ingredient->name ?? '') }}"
-                       required
-                       class="w-full px-4 py-3 rounded-xl
-                              border border-slate-300 dark:border-slate-700
-                              bg-white dark:bg-slate-800
-                              text-slate-800 dark:text-white
-                              focus:outline-none focus:ring-2
-                              focus:ring-blue-500 focus:border-blue-500
-                              transition">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+                Informasi Dasar
+            </h2>
+        </div>
 
-                @error('name')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+        {{-- Nama --}}
+        <div>
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
+                Nama Bahan
+            </label>
 
-            {{-- SATUAN --}}
+            <input type="text"
+                   name="name"
+                   value="{{ old('name', $ingredient->name ?? '') }}"
+                   required
+                   class="w-full px-4 py-3 rounded-xl
+                          border border-slate-300 dark:border-slate-700
+                          bg-white dark:bg-slate-800
+                          text-slate-800 dark:text-white
+                          focus:ring-2 focus:ring-blue-500
+                          focus:outline-none transition">
+
+            @error('name')
+                <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Kategori --}}
+        <div>
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
+                Kategori
+            </label>
+
+            <select name="category_id"
+                    class="w-full px-4 py-3 rounded-xl
+                           border border-slate-300 dark:border-slate-700
+                           bg-white dark:bg-slate-800
+                           text-slate-800 dark:text-white
+                           focus:ring-2 focus:ring-blue-500">
+
+                <option value="">Tanpa Kategori</option>
+
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}"
+                        {{ $selectedCategory == $category->id ? 'selected' : '' }}>
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+
+            </select>
+
+            @error('category_id')
+                <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+            @enderror
+        </div>
+
+    </div>
+
+
+    {{-- ================= STOCK SECTION ================= --}}
+    <div class="space-y-6">
+
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+                Informasi Stok
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            {{-- Satuan --}}
             <div>
-                <label class="block text-sm text-slate-600 dark:text-slate-300 mb-2">
+                <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
                     Satuan
                 </label>
 
@@ -72,9 +124,7 @@
                                border border-slate-300 dark:border-slate-700
                                bg-white dark:bg-slate-800
                                text-slate-800 dark:text-white
-                               focus:outline-none focus:ring-2
-                               focus:ring-blue-500 focus:border-blue-500
-                               transition">
+                               focus:ring-2 focus:ring-blue-500">
 
                     <option value="" disabled {{ $selectedUnit ? '' : 'selected' }}>
                         Pilih Satuan
@@ -90,15 +140,16 @@
                 </select>
 
                 @error('display_unit')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
                 @enderror
             </div>
 
-            {{-- STOK --}}
+            {{-- Stok --}}
             <div>
-                <label class="block text-sm text-slate-600 dark:text-slate-300 mb-2">
+                <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
                     Stok Saat Ini
                 </label>
+
                 <input type="number"
                        step="0.01"
                        name="stock"
@@ -108,20 +159,19 @@
                               border border-slate-300 dark:border-slate-700
                               bg-white dark:bg-slate-800
                               text-slate-800 dark:text-white
-                              focus:outline-none focus:ring-2
-                              focus:ring-blue-500 focus:border-blue-500
-                              transition">
+                              focus:ring-2 focus:ring-blue-500">
 
                 @error('stock')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
                 @enderror
             </div>
 
-            {{-- MINIMUM STOK --}}
+            {{-- Minimum --}}
             <div>
-                <label class="block text-sm text-slate-600 dark:text-slate-300 mb-2">
+                <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
                     Minimum Stok
                 </label>
+
                 <input type="number"
                        step="0.01"
                        name="minimum_stock"
@@ -131,41 +181,43 @@
                               border border-slate-300 dark:border-slate-700
                               bg-white dark:bg-slate-800
                               text-slate-800 dark:text-white
-                              focus:outline-none focus:ring-2
-                              focus:ring-blue-500 focus:border-blue-500
-                              transition">
+                              focus:ring-2 focus:ring-blue-500">
 
                 @error('minimum_stock')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
                 @enderror
             </div>
 
         </div>
 
-        {{-- BUTTON --}}
-        <div class="flex justify-end gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+    </div>
 
-            <a href="{{ route('admin.ingredients.index') }}"
-               class="px-6 py-3 rounded-xl
-                      bg-slate-200 dark:bg-slate-700
-                      text-slate-700 dark:text-slate-200
-                      text-sm
-                      hover:bg-slate-300 dark:hover:bg-slate-600
-                      transition">
-                Batal
-            </a>
+</div>
 
-            <button type="submit"
-                    class="px-8 py-3 rounded-xl
-                           bg-blue-600 text-white text-sm
-                           hover:bg-blue-700
-                           active:scale-[0.98]
-                           transition">
-                {{ $buttonText }}
-            </button>
 
-        </div>
+{{-- ================= FOOTER ACTION ================= --}}
+<div class="flex justify-between items-center
+            px-8 py-6
+            bg-slate-50 dark:bg-slate-800
+            border-t border-slate-200 dark:border-slate-700
+            rounded-b-2xl">
 
-    </form>
+    <a href="{{ route('admin.ingredients.index') }}"
+       class="text-sm text-slate-500 hover:text-blue-600 transition">
+        ← Kembali
+    </a>
 
+    <button type="submit"
+            class="px-6 py-2.5 rounded-xl
+                   bg-blue-600 text-white
+                   text-sm font-medium
+                   hover:bg-blue-700
+                   active:scale-[0.98]
+                   transition">
+        {{ $buttonText }}
+    </button>
+
+</div>
+
+</form>
 </div>

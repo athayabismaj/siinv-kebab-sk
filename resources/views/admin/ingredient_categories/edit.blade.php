@@ -8,22 +8,20 @@
 
 <div class="w-full">
 
-    {{-- HEADER --}}
     <div class="mb-10">
         <h1 class="text-2xl font-semibold text-slate-800 dark:text-white">
-            Edit Bahan
+            Edit Kategori
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Perbarui informasi bahan yang tersedia
+            Perbarui informasi kategori
         </p>
     </div>
 
-    @include('admin.ingredients.partials.form', [
-        'action' => route('admin.ingredients.update', $ingredient->id),
+    @include('admin.ingredient_categories.partials.form', [
+        'action' => route('admin.ingredient-categories.update', $ingredientCategory->id),
         'method' => 'PUT',
-        'buttonText' => 'Update Bahan',
-        'ingredient' => $ingredient,
-        'categories' => $categories
+        'buttonText' => 'Update Kategori',
+        'ingredientCategory' => $ingredientCategory
     ])
 
 </div>
