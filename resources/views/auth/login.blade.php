@@ -125,7 +125,7 @@
         </form>
 
         <div class="mt-10 text-center text-xs text-slate-400">
-            © {{ date('Y') }} Sistem Inventory Kebab SK
+            &copy; {{ date('Y') }} Sistem Inventory Kebab SK
         </div>
 
     </div>

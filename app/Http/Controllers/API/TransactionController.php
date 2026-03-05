@@ -33,7 +33,7 @@ class TransactionController extends Controller
         DB::beginTransaction();
 
         try {
-            $userId = (int) auth()->id();
+            $userId = (int) optional($request->user())->id;
             if ($userId <= 0) {
                 throw new \RuntimeException('User tidak terautentikasi.');
             }
