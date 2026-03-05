@@ -4,52 +4,79 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
+use App\Models\MenuCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
-    // ================= INDEX =================
+    /*
+    |--------------------------------------------------------------------------
+    | INDEX
+    |--------------------------------------------------------------------------
+    */
     public function index()
     {
-        $menus = Menu::latest()->paginate(10);
+        $menus = Menu::with(['category'])
+            ->withCount('variants')
+            ->orderBy('sort_order')
+            ->latest()
+            ->paginate(10);
+
         return view('admin.menus.index', compact('menus'));
     }
 
-    // ================= CREATE =================
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE
+    |--------------------------------------------------------------------------
+    */
     public function create()
     {
-        return view('admin.menus.create');
+        $categories = MenuCategory::orderBy('name')->get();
+
+        return view('admin.menus.create', compact('categories'));
     }
 
-    // ================= STORE =================
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE
+    |--------------------------------------------------------------------------
+    */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
+            'category_id' => 'required|exists:menu_categories,id',
             'name' => 'required|max:150|unique:menus,name',
-            'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'sort_order' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean'
         ]);
 
         $imagePath = null;
 
         if ($request->hasFile('image')) {
-
             $file = $request->file('image');
-
-            // Rename random + aman
             $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-
             $imagePath = $file->storeAs('menus', $filename, 'public');
         }
 
+        // Jika kosong → otomatis urutan terakhir + 1
+        $sortOrder = isset($validated['sort_order'])
+            ? (int) $validated['sort_order']
+            : (Menu::max('sort_order') + 1);
+
         Menu::create([
-            'name' => $request->name,
-            'price' => $request->price,
-            'description' => $request->description,
+            'category_id' => $validated['category_id'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
             'image_path' => $imagePath,
+            'sort_order' => $sortOrder ?? 0,
+            'is_active' => $request->boolean('is_active'),
         ]);
 
         return redirect()
@@ -57,34 +84,50 @@ class MenuController extends Controller
             ->with('success', 'Menu berhasil ditambahkan.');
     }
 
-    // ================= EDIT =================
+
+    /*
+    |--------------------------------------------------------------------------
+    | EDIT
+    |--------------------------------------------------------------------------
+    */
     public function edit(Menu $menu)
     {
-        return view('admin.menus.edit', compact('menu'));
+        $categories = MenuCategory::orderBy('name')->get();
+
+        return view('admin.menus.edit', compact('menu', 'categories'));
     }
 
-    // ================= UPDATE =================
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE
+    |--------------------------------------------------------------------------
+    */
     public function update(Request $request, Menu $menu)
     {
-        $request->validate([
+        $validated = $request->validate([
+            'category_id' => 'required|exists:menu_categories,id',
             'name' => 'required|max:150|unique:menus,name,' . $menu->id,
-            'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'sort_order' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean'
         ]);
 
         $data = [
-            'name' => $request->name,
-            'price' => $request->price,
-            'description' => $request->description,
+            'category_id' => $validated['category_id'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'sort_order' => isset($validated['sort_order'])
+                ? (int) $validated['sort_order']
+                : 0,
+            'is_active' => $request->boolean('is_active'),
         ];
 
         if ($request->hasFile('image')) {
 
-            // Hapus gambar lama
             if ($menu->image_path &&
                 Storage::disk('public')->exists($menu->image_path)) {
-
                 Storage::disk('public')->delete($menu->image_path);
             }
 
@@ -101,48 +144,60 @@ class MenuController extends Controller
             ->with('success', 'Menu berhasil diperbarui.');
     }
 
-    // ================= DESTROY =================
+
+    /*
+    |--------------------------------------------------------------------------
+    | DESTROY
+    |--------------------------------------------------------------------------
+    */
     public function destroy(Menu $menu)
     {
-        // Jika pernah dipakai transaksi → hanya soft delete
-        if (method_exists($menu, 'orderItems') && $menu->orderItems()->exists()) {
-
-            $menu->delete();
-
-            return redirect()
-                ->route('admin.menus.index')
-                ->with('success', 'Menu diarsipkan karena memiliki riwayat transaksi.');
-        }
-
-        // Jika belum pernah dipakai → hapus permanen + file
-        if ($menu->image_path &&
-            Storage::disk('public')->exists($menu->image_path)) {
-
-            Storage::disk('public')->delete($menu->image_path);
-        }
-
-        $menu->forceDelete();
+        $menu->delete();
 
         return redirect()
             ->route('admin.menus.index')
-            ->with('success', 'Menu berhasil dihapus permanen.');
+            ->with('success', 'Menu berhasil diarsipkan.');
     }
 
-    // ================= ARCHIVE =================
-    public function archive()
+
+    /*
+    |--------------------------------------------------------------------------
+    | ARCHIVE
+    |--------------------------------------------------------------------------
+    */
+    public function archive(Request $request)
     {
-        $menus = Menu::onlyTrashed()
-            ->latest()
-            ->paginate(10);
+        $query = Menu::onlyTrashed()
+            ->with(['category'])
+            ->withCount('variants');
 
-        return view('admin.menus.archive', compact('menus'));
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+
+        $menus = $query
+            ->latest('deleted_at')
+            ->paginate(10)
+            ->withQueryString();
+
+        $categories = MenuCategory::orderBy('name')->get();
+
+        return view('admin.menus.archive', compact('menus', 'categories'));
     }
 
-    // ================= RESTORE =================
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESTORE
+    |--------------------------------------------------------------------------
+    */
     public function restore($id)
     {
-        $menu = Menu::withTrashed()->findOrFail($id);
-
+        $menu = Menu::onlyTrashed()->findOrFail($id);
         $menu->restore();
 
         return redirect()
