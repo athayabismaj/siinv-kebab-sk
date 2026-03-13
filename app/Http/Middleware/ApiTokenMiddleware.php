@@ -15,7 +15,7 @@ class ApiTokenMiddleware
         if (! $bearerToken) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token autentikasi tidak ditemukan.',
+                'message' => 'Unauthorized',
             ], 401);
         }
 
@@ -29,7 +29,7 @@ class ApiTokenMiddleware
         if (! $apiToken || ! $apiToken->user || $apiToken->user->trashed()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token tidak valid.',
+                'message' => 'Unauthorized',
             ], 401);
         }
 
@@ -38,7 +38,7 @@ class ApiTokenMiddleware
 
             return response()->json([
                 'success' => false,
-                'message' => 'Token sudah kedaluwarsa.',
+                'message' => 'Unauthorized',
             ], 401);
         }
 

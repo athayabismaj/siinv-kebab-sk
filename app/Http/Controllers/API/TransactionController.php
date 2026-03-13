@@ -2,138 +2,134 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Models\MenuVariant;
-use App\Services\StockService;
+use App\Http\Requests\API\StoreTransactionRequest;
+use App\Models\PaymentMethod;
+use App\Services\ApiTransactionService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 class TransactionController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('throttle:30,1')->only('store');
+    use ApiResponse;
+
+    public function __construct(
+        private readonly ApiTransactionService $transactionService
+    ) {
     }
 
-    public function store(Request $request)
+    public function index(Request $request)
     {
-        $validated = $request->validate([
-            'payment_method_id' => 'required|integer|exists:payment_methods,id',
-            'paid_amount' => 'required|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.variant_id' => 'required|integer|exists:menu_variants,id',
-            'items.*.qty' => 'required|numeric|min:0.01',
-            'items.*.price' => 'nullable|numeric|min:0',
-            'note' => 'nullable|string|max:255',
+        $userId = $this->resolveUserId($request);
+        if ($userId <= 0) {
+            return $this->unauthorizedResponse();
+        }
+
+        $transactions = $this->transactionService->getHistory(
+            $userId,
+            $request->input('date'),
+            (int) $request->input('per_page', 15)
+        );
+
+        $data = $transactions->map(fn ($transaction) => [
+            'id' => $transaction->id,
+            'transaction_code' => $transaction->transaction_code,
+            'total_amount' => (float) $transaction->total_amount,
+            'status' => 'Sukses',
+            'created_at' => \Carbon\Carbon::parse($transaction->created_at)->isoFormat('D MMMM Y HH:mm'),
+            'items_count' => (int) $transaction->items_count,
         ]);
 
-        DB::beginTransaction();
+        return $this->successResponse('Berhasil mengambil riwayat transaksi', [
+            'current_page' => $transactions->currentPage(),
+            'last_page' => $transactions->lastPage(),
+            'data' => $data,
+        ]);
+    }
+
+    public function revenueSummary(Request $request)
+    {
+        $userId = $this->resolveUserId($request);
+        if ($userId <= 0) {
+            return $this->unauthorizedResponse();
+        }
+
+        $summary = $this->transactionService->getRevenueSummary($userId, $request->input('date'));
+
+        return $this->successResponse('Berhasil mengambil ringkasan pendapatan', $summary);
+    }
+
+    public function revenueTrend(Request $request)
+    {
+        $userId = $this->resolveUserId($request);
+        if ($userId <= 0) {
+            return $this->unauthorizedResponse();
+        }
+
+        $trend = $this->transactionService->getRevenueTrend($userId, $request->input('date'));
+
+        return $this->successResponse('Berhasil mengambil tren pendapatan', $trend);
+    }
+
+    public function store(StoreTransactionRequest $request)
+    {
+        if (! PaymentMethod::query()->whereNull('deleted_at')->exists()) {
+            return $this->errorResponse('Metode pembayaran belum tersedia.', [
+                'payment_method_id' => $request->input('payment_method_id'),
+            ], 422);
+        }
+
+        $validated = $request->validated();
+        $userId = $this->resolveUserId($request);
+        if ($userId <= 0) {
+            return $this->unauthorizedResponse();
+        }
+
+        $draft = $this->transactionService->buildCheckoutDraft($validated);
+        if (! $draft['ok']) {
+            return $this->errorResponse(
+                $draft['message'],
+                $draft['data'] ?? null,
+                $draft['status']
+            );
+        }
 
         try {
-            $userId = (int) optional($request->user())->id;
-            if ($userId <= 0) {
-                throw new \RuntimeException('User tidak terautentikasi.');
-            }
+            $result = $this->transactionService->createCheckoutTransaction(
+                $userId,
+                $draft,
+                $validated['note'] ?? null
+            );
 
-            $now = now();
-            $lineItems = [];
-            $totalAmount = 0.0;
-
-            foreach ($validated['items'] as $item) {
-                $variant = MenuVariant::query()->findOrFail((int) $item['variant_id']);
-
-                $qty = (float) $item['qty'];
-                $price = array_key_exists('price', $item) && $item['price'] !== null
-                    ? (float) $item['price']
-                    : (float) $variant->price;
-
-                $subtotal = $price * $qty;
-                $totalAmount += $subtotal;
-
-                $lineItems[] = [
-                    'variant_id' => (int) $item['variant_id'],
-                    'menu_id' => (int) $variant->menu_id,
-                    'qty' => $qty,
-                    'price' => $price,
-                    'subtotal' => $subtotal,
-                ];
-            }
-
-            $paidAmount = (float) $validated['paid_amount'];
-            if ($paidAmount < $totalAmount) {
-                throw new \RuntimeException('Nominal pembayaran kurang dari total transaksi.');
-            }
-
-            $transactionId = DB::table('transactions')->insertGetId([
-                'transaction_code' => $this->generateTransactionCode(),
-                'user_id' => $userId,
-                'total_amount' => $totalAmount,
-                'payment_method_id' => (int) $validated['payment_method_id'],
-                'paid_amount' => $paidAmount,
-                'change_amount' => $paidAmount - $totalAmount,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            foreach ($lineItems as $line) {
-                DB::table('transaction_details')->insert([
-                    'transaction_id' => $transactionId,
-                    'menu_id' => $line['menu_id'],
-                    'quantity' => $line['qty'],
-                    'price' => $line['price'],
-                    'subtotal' => $line['subtotal'],
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-
-                StockService::deductStock(
-                    $line['variant_id'],
-                    $line['qty'],
-                    $transactionId,
-                    $validated['note'] ?? null
-                );
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Transaksi berhasil',
-                'data' => [
-                    'transaction_id' => $transactionId,
-                    'total_amount' => round($totalAmount, 2),
-                    'paid_amount' => round($paidAmount, 2),
-                    'change_amount' => round($paidAmount - $totalAmount, 2),
-                ],
-            ], 201);
+            return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {
-            DB::rollBack();
-
             Log::error('Gagal memproses transaksi kasir.', [
+                'user_id' => $userId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
-            $isValidation = $e instanceof \Illuminate\Validation\ValidationException;
+            if ($e instanceof RuntimeException) {
+                return $this->errorResponse($e->getMessage(), null, 409);
+            }
 
-            return response()->json([
-                'success' => false,
-                'message' => $isValidation
-                    ? 'Validasi transaksi tidak valid.'
-                    : 'Transaksi gagal diproses. Silakan coba lagi.',
-            ], $isValidation ? 422 : 500);
+            if ($e instanceof QueryException) {
+                $sqlState = $e->errorInfo[0] ?? null;
+                $isDbTimeout = in_array($sqlState, ['57014', '55P03', '08006'], true);
+                if ($isDbTimeout) {
+                    return $this->errorResponse('Database sedang sibuk/tidak stabil. Silakan coba lagi.', null, 503);
+                }
+            }
+
+            return $this->errorResponse('Transaksi gagal diproses. Silakan coba lagi.', null, 500);
         }
     }
 
-    private function generateTransactionCode(): string
+    private function resolveUserId(Request $request): int
     {
-        do {
-            $code = 'TRX-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-        } while (DB::table('transactions')->where('transaction_code', $code)->exists());
-
-        return $code;
+        return (int) optional($request->user())->id;
     }
 }
