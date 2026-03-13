@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\QueryException;
+use Throwable;
 
 class LoginController extends Controller
 {
@@ -23,10 +25,18 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        // ================= CARI USER TERMASUK SOFT DELETE =================
-        $user = User::withTrashed()
-            ->where('username', $request->username)
-            ->first();
+        try {
+            // ================= CARI USER TERMASUK SOFT DELETE =================
+            $user = User::withTrashed()
+                ->where('username', $request->username)
+                ->first();
+        } catch (QueryException|Throwable $e) {
+            report($e);
+
+            return back()->withErrors([
+                'username' => 'Layanan database sedang bermasalah. Coba lagi beberapa saat.',
+            ])->withInput();
+        }
 
         // ================= USER TIDAK DITEMUKAN =================
         if (!$user) {

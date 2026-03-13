@@ -5,6 +5,10 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Owner\UserManagementController;
+use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
+use App\Http\Controllers\Owner\SalesReportController;
+use App\Http\Controllers\Owner\TransactionHistoryController;
+use App\Http\Controllers\Owner\StockMonitoringController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientCategoryController;
 use App\Http\Controllers\Admin\MenuController;
@@ -12,6 +16,9 @@ use App\Http\Controllers\Admin\MenuCategoryController;
 use App\Http\Controllers\Admin\MenuVariantController;
 use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\StockController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\TransactionController;
+use App\Http\Controllers\Admin\UsageReportController;
 
 
 
@@ -83,9 +90,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->group(function () {
         // ================= PANEL =================
-        Route::get('/panel', function () {
-            return view('owner.panel_owner');
-        })->name('panel');
+        Route::get('/panel', [OwnerDashboardController::class, 'index'])->name('panel');
 
         // ================= USER MANAGEMENT =================
         Route::prefix('users')->name('users.')->group(function () {
@@ -101,12 +106,31 @@ Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->grou
             Route::get('/archive',[UserManagementController::class, 'archive'])->name('archive');
             Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
         });
-
-        // ================= INGREDIENT ARCHIVE =================
-        Route::prefix('ingredients')->name('ingredients.')->group(function () {
-            Route::get('/archive',[IngredientController::class, 'archive'])->name('archive');
-            Route::patch('/{id}/restore',[IngredientController::class, 'restore'])->name('restore');
+        Route::prefix('stocks')->name('stocks.')->group(function () {
+            Route::get('/', [StockMonitoringController::class, 'index'])->name('index');
         });
+
+        Route::prefix('transactions')->name('transactions.')->group(function () {
+            Route::get('/', [TransactionHistoryController::class, 'index'])->name('index');
+            Route::get('/export', [TransactionHistoryController::class, 'export'])->name('export');
+            Route::get('/{transaction}', [TransactionHistoryController::class, 'show'])->name('show');
+        });
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/sales', [SalesReportController::class, 'index'])->name('sales');
+            Route::get('/sales/daily', [SalesReportController::class, 'daily'])->name('sales.daily');
+            Route::get('/sales/daily/export', [SalesReportController::class, 'exportDaily'])->name('sales.daily.export');
+            Route::get('/sales/monthly', [SalesReportController::class, 'monthly'])->name('sales.monthly');
+            Route::get('/sales/monthly/export', [SalesReportController::class, 'exportMonthly'])->name('sales.monthly.export');
+            Route::get('/sales/export', [SalesReportController::class, 'export'])->name('sales.export');
+            Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
+        });
+
+        Route::prefix('analytics')->name('analytics.')->group(function () {
+            Route::get('/menu', [SalesReportController::class, 'menuAnalysis'])->name('menu');
+        });
+
+
 
 });
 
@@ -120,9 +144,7 @@ Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->grou
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
         // ===== PANEL =====
-        Route::get('/panel', function () {
-            return view('admin.panel_admin');
-        })->name('panel');
+        Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
         // ===== INGREDIENT CATEGORIES =====
         Route::prefix('ingredient-categories')->name('ingredient-categories.')->group(function () {
@@ -195,4 +217,37 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
                 Route::get('/{variant}/edit', [RecipeController::class, 'edit'])->name('edit');
                 Route::put('/{variant}', [RecipeController::class, 'update'])->name('update');
         });
+
+        Route::prefix('transactions')->name('transactions.')->group(function () {
+            Route::get('/', [TransactionController::class, 'index'])->name('index');
+            Route::get('/{transaction}', [TransactionController::class, 'show'])->name('show');
+        });
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
+        });
+
+
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

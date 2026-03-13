@@ -6,25 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\StockLog;
+use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class StockController extends Controller
 {
-
-    /*
-    |--------------------------------------------------------------------------
-    | INDEX
-    |--------------------------------------------------------------------------
-    */
-
     public function index(Request $request)
     {
-
         $categoriesQuery = IngredientCategory::with([
             'ingredients' => function ($query) use ($request) {
-
                 if ($request->filled('search')) {
                     $this->applyNameSearch($query, $request->search);
                 }
@@ -33,25 +25,15 @@ class StockController extends Controller
             }
         ]);
 
-
-        // FILTER CATEGORY
         if ($request->filled('category')) {
-
-            $categoriesQuery->where(
-                'id',
-                $request->category
-            );
+            $categoriesQuery->where('id', $request->category);
         }
 
-
-        // PAGINATION CATEGORY
         $categories = $categoriesQuery
             ->orderBy('name')
             ->paginate(5)
             ->withQueryString();
 
-
-        // LIST CATEGORY UNTUK DROPDOWN + PENANDA STOK
         $allCategories = IngredientCategory::query()
             ->withCount('ingredients')
             ->withCount([
@@ -66,8 +48,6 @@ class StockController extends Controller
             ->orderBy('name')
             ->get();
 
-
-        // HITUNG STOK RENDAH (SELARAS DENGAN FILTER AKTIF)
         $lowStockQuery = Ingredient::query()
             ->whereColumn('stock', '<=', 'minimum_stock');
 
@@ -81,7 +61,6 @@ class StockController extends Controller
 
         $lowStockCount = $lowStockQuery->count();
 
-
         return view(
             'admin.stocks.index',
             compact(
@@ -92,29 +71,10 @@ class StockController extends Controller
         );
     }
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | RESTOCK FORM
-    |--------------------------------------------------------------------------
-    */
-
     public function restockForm(Ingredient $ingredient)
     {
-        return view(
-            'admin.stocks.restock',
-            compact('ingredient')
-        );
+        return view('admin.stocks.restock', compact('ingredient'));
     }
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | RESTOCK
-    |--------------------------------------------------------------------------
-    */
 
     public function restock(Request $request, Ingredient $ingredient)
     {
@@ -124,16 +84,10 @@ class StockController extends Controller
                 'note' => 'nullable|string|max:255'
             ]);
 
-            $quantityInBaseUnit = $this->convertToBaseUnit(
-                $ingredient->display_unit,
-                (float) $request->quantity
-            );
+            $quantityInBaseUnit = IngredientUnit::toBase((string) $ingredient->display_unit, (float) $request->quantity);
 
             DB::transaction(function () use ($request, $ingredient, $quantityInBaseUnit) {
-                $ingredient->increment(
-                    'stock',
-                    $quantityInBaseUnit
-                );
+                $ingredient->increment('stock', $quantityInBaseUnit);
 
                 StockLog::create([
                     'ingredient_id' => $ingredient->id,
@@ -145,10 +99,7 @@ class StockController extends Controller
 
             return redirect()
                 ->route('admin.stocks.index')
-                ->with(
-                    'success',
-                    'Restok berhasil dilakukan.'
-                );
+                ->with('success', 'Restok berhasil dilakukan.');
         } catch (\Throwable $e) {
             Log::error('Gagal restok bahan', [
                 'ingredient_id' => $ingredient->id,
@@ -162,29 +113,10 @@ class StockController extends Controller
         }
     }
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADJUST FORM
-    |--------------------------------------------------------------------------
-    */
-
     public function adjustForm(Ingredient $ingredient)
     {
-        return view(
-            'admin.stocks.adjust',
-            compact('ingredient')
-        );
+        return view('admin.stocks.adjust', compact('ingredient'));
     }
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADJUST
-    |--------------------------------------------------------------------------
-    */
 
     public function adjust(Request $request, Ingredient $ingredient)
     {
@@ -194,10 +126,7 @@ class StockController extends Controller
                 'note' => 'required|string|max:255'
             ]);
 
-            $newStockInBaseUnit = $this->convertToBaseUnit(
-                $ingredient->display_unit,
-                (float) $request->new_stock
-            );
+            $newStockInBaseUnit = IngredientUnit::toBase((string) $ingredient->display_unit, (float) $request->new_stock);
 
             if (round($newStockInBaseUnit, 2) === round((float) $ingredient->stock, 2)) {
                 return back()
@@ -206,9 +135,7 @@ class StockController extends Controller
             }
 
             DB::transaction(function () use ($request, $ingredient, $newStockInBaseUnit) {
-                $difference =
-                    $newStockInBaseUnit
-                    - $ingredient->stock;
+                $difference = $newStockInBaseUnit - $ingredient->stock;
 
                 $ingredient->update([
                     'stock' => $newStockInBaseUnit
@@ -224,10 +151,7 @@ class StockController extends Controller
 
             return redirect()
                 ->route('admin.stocks.index')
-                ->with(
-                    'success',
-                    'Penyesuaian stok berhasil.'
-                );
+                ->with('success', 'Penyesuaian stok berhasil.');
         } catch (\Throwable $e) {
             Log::error('Gagal penyesuaian stok', [
                 'ingredient_id' => $ingredient->id,
@@ -240,14 +164,6 @@ class StockController extends Controller
                 ->with('error', 'Terjadi kesalahan saat penyesuaian stok. Coba lagi.');
         }
     }
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOGS
-    |--------------------------------------------------------------------------
-    */
 
     public function logs(Request $request)
     {
@@ -275,10 +191,7 @@ class StockController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view(
-            'admin.stocks.logs',
-            compact('logs')
-        );
+        return view('admin.stocks.logs', compact('logs'));
     }
 
     private function applyNameSearch($query, string $search): void
@@ -295,14 +208,5 @@ class StockController extends Controller
         }
 
         $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
-    }
-
-    private function convertToBaseUnit(string $displayUnit, float $value): float
-    {
-        return match (strtolower(trim($displayUnit))) {
-            'kg' => $value * 1000,
-            'l' => $value * 1000,
-            default => $value,
-        };
     }
 }

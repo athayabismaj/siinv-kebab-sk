@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Ingredient;
 use App\Models\MenuVariant;
 use App\Models\StockLog;
+use Illuminate\Database\QueryException;
 use RuntimeException;
 
 class StockService
@@ -21,10 +22,21 @@ class StockService
             }
 
             // Lock row biar aman dari race condition saat checkout paralel.
-            $lockedIngredient = Ingredient::query()
-                ->whereKey($ingredient->id)
-                ->lockForUpdate()
-                ->firstOrFail();
+            try {
+                $lockedIngredient = Ingredient::query()
+                    ->whereKey($ingredient->id)
+                    ->lock('FOR UPDATE NOWAIT')
+                    ->firstOrFail();
+            } catch (QueryException $e) {
+                // PostgreSQL: 55P03 = lock_not_available
+                if (($e->errorInfo[0] ?? null) === '55P03') {
+                    throw new RuntimeException(
+                        "Stok {$ingredient->name} sedang diproses kasir lain. Coba lagi beberapa detik."
+                    );
+                }
+
+                throw $e;
+            }
 
             if ((float) $lockedIngredient->stock < $usedQty) {
                 throw new RuntimeException("Stok {$lockedIngredient->name} tidak cukup");

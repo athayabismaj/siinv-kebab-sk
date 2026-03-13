@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -18,7 +19,18 @@ class MenuController extends Controller
     */
     public function index()
     {
-        $menus = Menu::with(['category'])
+        $menus = Menu::query()
+            ->select([
+                'id',
+                'category_id',
+                'name',
+                'description',
+                'image_path',
+                'is_active',
+                'sort_order',
+                'created_at',
+            ])
+            ->with(['category:id,name'])
             ->withCount('variants')
             ->orderBy('sort_order')
             ->latest()
@@ -35,7 +47,14 @@ class MenuController extends Controller
     */
     public function create()
     {
-        $categories = MenuCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'menu_categories:list',
+            now()->addMinutes(2),
+            fn () => MenuCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
 
         return view('admin.menus.create', compact('categories'));
     }
@@ -92,7 +111,14 @@ class MenuController extends Controller
     */
     public function edit(Menu $menu)
     {
-        $categories = MenuCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'menu_categories:list',
+            now()->addMinutes(2),
+            fn () => MenuCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
 
         return view('admin.menus.edit', compact('menu', 'categories'));
     }
@@ -168,7 +194,17 @@ class MenuController extends Controller
     public function archive(Request $request)
     {
         $query = Menu::onlyTrashed()
-            ->with(['category'])
+            ->select([
+                'id',
+                'category_id',
+                'name',
+                'description',
+                'image_path',
+                'is_active',
+                'sort_order',
+                'deleted_at',
+            ])
+            ->with(['category:id,name'])
             ->withCount('variants');
 
         if ($request->filled('search')) {
@@ -184,7 +220,14 @@ class MenuController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $categories = MenuCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'menu_categories:list',
+            now()->addMinutes(2),
+            fn () => MenuCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
 
         return view('admin.menus.archive', compact('menus', 'categories'));
     }

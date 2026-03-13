@@ -5,42 +5,31 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
+use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class IngredientController extends Controller
 {
-    /*** Helper Konversi Unit */
-    private function convertToBaseUnit($unit, $value) {
-        return match($unit) {
-            'kg' => $value * 1000,
-            'g'  => $value,
-            'l'  => $value * 1000,
-            'ml' => $value,
-            'pcs'=> $value,
-            default => $value,
-        };
-    }
-
-    private function getBaseUnit($unit) {
-        return match($unit) {
-            'kg', 'g'  => 'g',
-            'l', 'ml'  => 'ml',
-            'pcs'      => 'pcs',
-            default    => $unit,
-        };
-    }
-
-    /*** INDEX + FILTER + SEARCH */
     public function index(Request $request)
     {
-        $query = Ingredient::with('category');
+        $query = Ingredient::query()
+            ->select([
+                'id',
+                'name',
+                'category_id',
+                'display_unit',
+                'base_unit',
+                'stock',
+                'minimum_stock',
+                'created_at',
+            ])
+            ->with('category:id,name');
 
-        // Filter kategori
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        // Search nama
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
@@ -48,19 +37,32 @@ class IngredientController extends Controller
         $ingredients = $query->latest()->paginate(10)
             ->withQueryString();
 
-        $categories = IngredientCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'ingredient_categories:list',
+            now()->addMinutes(2),
+            fn () => IngredientCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
 
         return view('admin.ingredients.index', compact('ingredients', 'categories'));
     }
 
-    /*** CREATE */
     public function create()
     {
-        $categories = IngredientCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'ingredient_categories:list',
+            now()->addMinutes(2),
+            fn () => IngredientCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
+
         return view('admin.ingredients.create', compact('categories'));
     }
 
-    /*** STORE */
     public function store(Request $request)
     {
         $request->validate([
@@ -71,21 +73,13 @@ class IngredientController extends Controller
             'minimum_stock' => 'required|numeric|min:0',
         ]);
 
-        $baseUnit = $this->getBaseUnit($request->display_unit);
-
         Ingredient::create([
             'name' => $request->name,
             'category_id' => $request->category_id,
             'display_unit' => $request->display_unit,
-            'base_unit' => $baseUnit,
-            'stock' => $this->convertToBaseUnit(
-                $request->display_unit,
-                $request->stock
-            ),
-            'minimum_stock' => $this->convertToBaseUnit(
-                $request->display_unit,
-                $request->minimum_stock
-            ),
+            'base_unit' => IngredientUnit::baseUnit((string) $request->display_unit),
+            'stock' => IngredientUnit::toBase((string) $request->display_unit, (float) $request->stock),
+            'minimum_stock' => IngredientUnit::toBase((string) $request->display_unit, (float) $request->minimum_stock),
         ]);
 
         return redirect()
@@ -93,14 +87,20 @@ class IngredientController extends Controller
             ->with('success', 'Bahan berhasil ditambahkan.');
     }
 
-    /*** EDIT */
     public function edit(Ingredient $ingredient)
     {
-        $categories = IngredientCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'ingredient_categories:list',
+            now()->addMinutes(2),
+            fn () => IngredientCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
+
         return view('admin.ingredients.edit', compact('ingredient', 'categories'));
     }
 
-    /*** UPDATE */
     public function update(Request $request, Ingredient $ingredient)
     {
         $request->validate([
@@ -111,21 +111,13 @@ class IngredientController extends Controller
             'minimum_stock' => 'required|numeric|min:0',
         ]);
 
-        $baseUnit = $this->getBaseUnit($request->display_unit);
-
         $ingredient->update([
             'name' => $request->name,
             'category_id' => $request->category_id,
             'display_unit' => $request->display_unit,
-            'base_unit' => $baseUnit,
-            'stock' => $this->convertToBaseUnit(
-                $request->display_unit,
-                $request->stock
-            ),
-            'minimum_stock' => $this->convertToBaseUnit(
-                $request->display_unit,
-                $request->minimum_stock
-            ),
+            'base_unit' => IngredientUnit::baseUnit((string) $request->display_unit),
+            'stock' => IngredientUnit::toBase((string) $request->display_unit, (float) $request->stock),
+            'minimum_stock' => IngredientUnit::toBase((string) $request->display_unit, (float) $request->minimum_stock),
         ]);
 
         return redirect()
@@ -133,7 +125,6 @@ class IngredientController extends Controller
             ->with('success', 'Bahan berhasil diperbarui.');
     }
 
-    /*** DESTROY */
     public function destroy(Ingredient $ingredient)
     {
         $ingredient->delete();
@@ -143,10 +134,20 @@ class IngredientController extends Controller
             ->with('success', 'Bahan dinonaktifkan.');
     }
 
-    /*** ARCHIVE */
     public function archive(Request $request)
     {
-        $query = Ingredient::onlyTrashed()->with('category');
+        $query = Ingredient::onlyTrashed()
+            ->select([
+                'id',
+                'name',
+                'category_id',
+                'display_unit',
+                'base_unit',
+                'stock',
+                'minimum_stock',
+                'deleted_at',
+            ])
+            ->with('category:id,name');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -161,27 +162,25 @@ class IngredientController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $categories = IngredientCategory::orderBy('name')->get();
+        $categories = Cache::remember(
+            'ingredient_categories:list',
+            now()->addMinutes(2),
+            fn () => IngredientCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
 
-        $view = $request->routeIs('owner.*')
-            ? 'owner.ingredients.archive'
-            : 'admin.ingredients.archive';
-
-        return view($view, compact('ingredients', 'categories'));
+        return view('admin.ingredients.archive', compact('ingredients', 'categories'));
     }
 
-    /*** RESTORE */
-    public function restore(Request $request, $id)
+    public function restore($id)
     {
         $ingredient = Ingredient::onlyTrashed()->findOrFail($id);
         $ingredient->restore();
 
-        $routeName = $request->routeIs('owner.*')
-            ? 'owner.ingredients.archive'
-            : 'admin.ingredients.archive';
-
         return redirect()
-            ->route($routeName)
+            ->route('admin.ingredients.archive')
             ->with('success', 'Bahan berhasil diaktifkan kembali.');
     }
 }
