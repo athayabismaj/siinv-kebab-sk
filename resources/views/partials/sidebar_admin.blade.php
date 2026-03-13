@@ -2,8 +2,8 @@
     x-data="{
         openInventori: {{ request()->routeIs('admin.ingredients.*') || request()->routeIs('admin.ingredient-categories.*') || request()->routeIs('admin.stocks.*') ? 'true' : 'false' }},
         openMenu: {{ request()->routeIs('admin.menus.*') || request()->routeIs('admin.menu-categories.*') || request()->routeIs('admin.recipes.*') || request()->routeIs('admin.menu-variants.*') ? 'true' : 'false' }},
-        openKasir: false,
-        openLaporan: {{ request()->routeIs('admin.stocks.logs') ? 'true' : 'false' }}
+        openKasir: {{ request()->routeIs('admin.transactions.*') ? 'true' : 'false' }},
+        openLaporan: {{ request()->routeIs('admin.reports.*') ? 'true' : 'false' }}
     }"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     class="fixed md:relative z-50
@@ -159,15 +159,13 @@
             </button>
 
             <div x-show="openKasir" x-collapse x-cloak class="mt-2 space-y-1">
-                <a href="#"
-                   @click.prevent
-                   class="block px-4 py-2 rounded-lg text-slate-400 dark:text-slate-500 cursor-not-allowed">
-                    Transaksi (Segera)
-                </a>
-                <a href="#"
-                   @click.prevent
-                   class="block px-4 py-2 rounded-lg text-slate-400 dark:text-slate-500 cursor-not-allowed">
-                    Detail Transaksi (Segera)
+                <a href="{{ route('admin.transactions.index') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.transactions.*')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Monitoring Transaksi
                 </a>
             </div>
         </div>
@@ -183,18 +181,17 @@
             </button>
 
             <div x-show="openLaporan" x-collapse x-cloak class="mt-2 space-y-1">
-                <a href="#"
-                   @click.prevent
-                   class="block px-4 py-2 rounded-lg text-slate-400 dark:text-slate-500 cursor-not-allowed">
-                    Laporan Pemakaian (Segera)
-                </a>
-
-                <a href="#"
-                   @click.prevent
-                   class="block px-4 py-2 rounded-lg text-slate-400 dark:text-slate-500 cursor-not-allowed">
-                    Laporan Penjualan (Segera)
+                <a href="{{ route('admin.reports.usage') }}"
+                   @click="sidebarOpen = false"
+                   class="block px-4 py-2 rounded-lg transition
+                   {{ request()->routeIs('admin.reports.usage')
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
+                    Laporan Pemakaian
                 </a>
             </div>
         </div>
     </nav>
 </aside>
+
+
