@@ -23,3 +23,42 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# ============================================================
+# SECURITY HEADERS
+# ============================================================
+<IfModule mod_headers.c>
+    # Prevent Clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Enable XSS filter in older browsers
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Control referrer info
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Remove PHP version header
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
+</IfModule>
+
+# ============================================================
+# BLOCK ACCESS TO SENSITIVE FILES
+# ============================================================
+<FilesMatch "^\.env|\.env\..+|composer\.(json|lock)|package(-lock)?\.json|webpack\.mix\.js|artisan$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Block .git directory
+<IfModule mod_rewrite.c>
+    RewriteRule ^(\.git|\.github|\.gitignore|\.gitattributes) - [F,L]
+</IfModule>
+
+# Block PHP execution in uploads/storage directories
+<IfModule mod_rewrite.c>
+    RewriteRule ^storage/.*\.php$ - [F,L]
+</IfModule>

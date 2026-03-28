@@ -6,26 +6,37 @@
 
 @section('content')
 
+{{-- ════ HEADER ════ --}}
 <div class="mb-8">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold text-slate-800 dark:text-white">
-                Arsip Menu
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Daftar menu yang dinonaktifkan dan bisa diaktifkan kembali.
-            </p>
-        </div>
 
+    <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+        <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <span class="text-slate-600 dark:text-slate-300">Menu & Resep</span>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <a href="{{ route('admin.menus.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Manajemen Menu</a>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <span class="text-slate-600 dark:text-slate-300">Arsip</span>
+    </nav>
+
+    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">
+        Arsip Menu
+    </h1>
+
+    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
+        Daftar menu yang dinonaktifkan dan dapat diaktifkan kembali kapan saja.
+    </p>
+
+    <div class="flex flex-wrap gap-3">
         <a href="{{ route('admin.menus.index') }}"
-           class="inline-flex items-center px-4 py-2 rounded-xl
-                  border border-slate-300 dark:border-slate-700
-                  text-sm text-slate-700 dark:text-slate-200
-                  hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[13px] font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Kembali ke Menu Aktif
         </a>
     </div>
+
 </div>
+
 
 @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl

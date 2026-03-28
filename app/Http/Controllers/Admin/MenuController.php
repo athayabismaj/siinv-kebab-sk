@@ -80,7 +80,7 @@ class MenuController extends Controller
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $filename = Str::uuid() . '.' . $file->extension(); // extension from MIME, not filename
             $imagePath = $file->storeAs('menus', $filename, 'public');
         }
 
@@ -158,7 +158,7 @@ class MenuController extends Controller
             }
 
             $file = $request->file('image');
-            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $filename = Str::uuid() . '.' . $file->extension(); // extension from MIME, not filename
 
             $data['image_path'] = $file->storeAs('menus', $filename, 'public');
         }

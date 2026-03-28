@@ -6,15 +6,29 @@
 
 <div class="space-y-8">
 
-    {{-- ================= HEADER ================= --}}
-    <div>
-        <h1 class="text-2xl font-semibold text-slate-800 dark:text-white">
+{{-- ════ HEADER ════ --}}
+<div class="mb-8">
+
+    <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+        <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <span class="text-slate-600 dark:text-slate-300">Menu & Resep</span>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <span class="text-slate-600 dark:text-slate-300">Manajemen Resep</span>
+    </nav>
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
             Manajemen Resep
         </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400">
-            Kelola komposisi bahan pada setiap variant menu
-        </p>
     </div>
+    
+    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
+        Kelola komposisi bahan pada setiap varian menu. Pastikan setiap varian memiliki resep yang akurat untuk otomasi pengurangan stok.
+    </p>
+
+</div>
+
 
 
     {{-- ================= ALERT ================= --}}

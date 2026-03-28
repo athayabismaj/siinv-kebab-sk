@@ -216,7 +216,14 @@ class AuthController extends Controller
             'used' => false,
         ]);
 
-        Mail::to($user->email)->send(new OtpMail($otp));
+        try {
+            Mail::to($user->email)->send(new OtpMail($otp));
+        } catch (\Throwable $mailError) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim email OTP. Silakan coba beberapa saat lagi.',
+            ], 503);
+        }
 
         return response()->json([
             'success' => true,

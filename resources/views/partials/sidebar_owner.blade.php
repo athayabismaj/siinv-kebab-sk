@@ -5,101 +5,97 @@
         openManajemen: {{ request()->routeIs('owner.users.*') ? 'true' : 'false' }}
     }"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
-    class="fixed top-0 left-0 md:relative z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out flex flex-col min-h-screen md:min-h-full">
+    class="fixed top-0 left-0 md:relative z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out flex flex-col md:h-full"
+    style="height: 100dvh;">
 
     <div class="h-16 flex flex-col justify-center px-6 border-b border-slate-200 dark:border-slate-800">
         <h2 class="text-base font-semibold text-slate-800 dark:text-white">Kebab SK</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400">Panel Owner</p>
     </div>
 
-    <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-5 text-sm">
-        <a href="{{ route('owner.panel') }}"
-           @click="sidebarOpen = false"
-           class="block px-4 py-3 rounded-xl transition font-medium {{ request()->routeIs('owner.panel') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            Dashboard
-        </a>
+    <nav class="flex-1 overflow-y-auto px-4 py-4 md:py-6 space-y-4 md:space-y-6 text-sm">
 
-        <a href="{{ route('owner.stocks.index') }}"
-           @click="sidebarOpen = false"
-           class="block px-4 py-3 rounded-xl transition font-medium {{ request()->routeIs('owner.stocks.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            Monitoring Stok
-        </a>
-
+        {{-- BERANDA --}}
         <div>
-            <button @click="openLaporan = !openLaporan"
-                    class="w-full flex justify-between items-center px-4 py-2 text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
-                <span>Laporan</span>
-                <span :class="openLaporan ? 'rotate-180' : ''" class="transition-transform duration-200">v</span>
-            </button>
+            <p class="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">Beranda</p>
+            <div class="space-y-1">
+                <a href="{{ route('owner.panel') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.panel') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ route('owner.stocks.index') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.stocks.*') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    <span>Monitoring Stok</span>
+                </a>
+            </div>
+        </div>
 
-            <div x-show="openLaporan" x-collapse x-cloak class="mt-2 space-y-2">
-                <div class="px-2">
-                    <p class="px-2 py-1 text-[11px] uppercase tracking-wider text-slate-400">Laporan Penjualan</p>
-                    <div class="space-y-1 mt-1">
-                        <a href="{{ route('owner.reports.sales.daily') }}"
-                           @click="sidebarOpen = false"
-                           class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.reports.sales') || request()->routeIs('owner.reports.sales.daily') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                            Harian
-                        </a>
-                        <a href="{{ route('owner.reports.sales.monthly') }}"
-                           @click="sidebarOpen = false"
-                           class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.reports.sales.monthly') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                            Bulanan
-                        </a>
-                    </div>
-                </div>
-
+        {{-- PENJUALAN --}}
+        <div>
+            <p class="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">Penjualan</p>
+            <div class="space-y-1">
+                <a href="{{ route('owner.reports.sales') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.reports.sales') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"></path></svg>
+                    <span>Laporan Penjualan</span>
+                </a>
                 <a href="{{ route('owner.transactions.index') }}"
-                   @click="sidebarOpen = false"
-                   class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.transactions.*') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                    Riwayat Transaksi
-                </a>
-
-                <a href="{{ route('owner.reports.usage') }}"
-                   @click="sidebarOpen = false"
-                   class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.reports.usage') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                    Laporan Pemakaian
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.transactions.*') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    <span>Riwayat Transaksi</span>
                 </a>
             </div>
         </div>
 
+        {{-- ANALISIS --}}
         <div>
-            <button @click="openAnalisis = !openAnalisis"
-                    class="w-full flex justify-between items-center px-4 py-2 text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
-                <span>Analisis</span>
-                <span :class="openAnalisis ? 'rotate-180' : ''" class="transition-transform duration-200">v</span>
-            </button>
-
-            <div x-show="openAnalisis" x-collapse x-cloak class="mt-2 space-y-1">
+            <p class="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">Analisis</p>
+            <div class="space-y-1">
                 <a href="{{ route('owner.analytics.menu') }}"
-                   @click="sidebarOpen = false"
-                   class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.analytics.menu') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                    Analisis Menu
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.analytics.menu') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <span>Analisis Menu</span>
+                </a>
+                <a href="{{ route('owner.reports.usage') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.reports.usage') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>Pemakaian Bahan</span>
                 </a>
             </div>
         </div>
 
+        {{-- KEUANGAN --}}
         <div>
-            <button @click="openManajemen = !openManajemen"
-                    class="w-full flex justify-between items-center px-4 py-2 text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
-                <span>Manajemen</span>
-                <span :class="openManajemen ? 'rotate-180' : ''" class="transition-transform duration-200">v</span>
-            </button>
-
-            <div x-show="openManajemen" x-collapse x-cloak class="mt-2 space-y-1">
-                <a href="{{ route('owner.users.index') }}"
-                   @click="sidebarOpen = false"
-                   class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.users.index') || request()->routeIs('owner.users.create') || request()->routeIs('owner.users.edit') || request()->routeIs('owner.users.reset.*') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                    Daftar User
-                </a>
-
-                <a href="{{ route('owner.users.archive') }}"
-                   @click="sidebarOpen = false"
-                   class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('owner.users.archive') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-                    Arsip User
+            <p class="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">Keuangan</p>
+            <div class="space-y-1">
+                <a href="{{ route('owner.reports.closing.index') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.reports.closing.*') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <span>Tutup Buku</span>
                 </a>
             </div>
         </div>
+
+        {{-- PENGGUNA --}}
+        <div>
+            <p class="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">Pengguna</p>
+            <div class="space-y-1">
+                <a href="{{ route('owner.users.index') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.users.index') || request()->routeIs('owner.users.create') || request()->routeIs('owner.users.edit') || request()->routeIs('owner.users.reset.*') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <span>Daftar User</span>
+                </a>
+                <a href="{{ route('owner.users.archive') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-xl transition font-medium {{ request()->routeIs('owner.users.archive') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    <span>Arsip User</span>
+                </a>
+            </div>
+        </div>
+
     </nav>
 </aside>
+
 

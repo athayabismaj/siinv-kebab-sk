@@ -40,7 +40,7 @@ class TransactionController extends Controller
             'transaction_code' => $transaction->transaction_code,
             'total_amount' => (float) $transaction->total_amount,
             'status' => 'Sukses',
-            'created_at' => \Carbon\Carbon::parse($transaction->created_at)->isoFormat('D MMMM Y HH:mm'),
+            'created_at' => \Carbon\Carbon::parse($transaction->created_at)->utc()->setTimezone('Asia/Jakarta')->isoFormat('D MMMM Y HH:mm'),
             'items_count' => (int) $transaction->items_count,
         ]);
 
@@ -133,3 +133,7 @@ class TransactionController extends Controller
         return (int) optional($request->user())->id;
     }
 }
+
+
+
+

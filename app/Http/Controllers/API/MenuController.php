@@ -33,7 +33,7 @@ class MenuController extends Controller
             ->orderBy('name');
 
         if ($request->filled('search')) {
-            $search = trim((string) $request->search);
+            $search = mb_substr(trim((string) $request->search), 0, 100);
             $query->where('name', 'like', "%{$search}%");
         }
 

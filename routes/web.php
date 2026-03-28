@@ -118,12 +118,14 @@ Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->grou
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/sales', [SalesReportController::class, 'index'])->name('sales');
-            Route::get('/sales/daily', [SalesReportController::class, 'daily'])->name('sales.daily');
-            Route::get('/sales/daily/export', [SalesReportController::class, 'exportDaily'])->name('sales.daily.export');
-            Route::get('/sales/monthly', [SalesReportController::class, 'monthly'])->name('sales.monthly');
-            Route::get('/sales/monthly/export', [SalesReportController::class, 'exportMonthly'])->name('sales.monthly.export');
             Route::get('/sales/export', [SalesReportController::class, 'export'])->name('sales.export');
+            
+            // Tutup Buku (Closing)
+            Route::get('/closing', [SalesReportController::class, 'closingIndex'])->name('closing.index');
+            Route::post('/closing', [SalesReportController::class, 'closePeriod'])->name('closing.store');
+
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
+            Route::get('/usage/export', [UsageReportController::class, 'export'])->name('usage.export');
         });
 
         Route::prefix('analytics')->name('analytics.')->group(function () {
@@ -225,6 +227,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
+            Route::get('/usage/export', [UsageReportController::class, 'export'])->name('usage.export');
         });
 
 

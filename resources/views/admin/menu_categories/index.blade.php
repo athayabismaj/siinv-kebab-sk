@@ -6,30 +6,35 @@
 
 @section('content')
 
-{{-- ================= HEADER ================= --}}
-<div class="mb-10">
+{{-- ════ HEADER ════ --}}
+<div class="mb-8">
 
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
+    <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+        <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <span class="text-slate-600 dark:text-slate-300">Menu & Resep</span>
+        <span class="text-slate-200 dark:text-slate-700">/</span>
+        <span class="text-slate-600 dark:text-slate-300">Kategori Menu</span>
+    </nav>
 
-        <div>
-            <h1 class="text-2xl font-semibold text-slate-800 dark:text-white">
-                Kategori Menu
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Kelola pengelompokan menu untuk sistem POS
-            </p>
-        </div>
+    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">
+        Kategori Menu
+    </h1>
+    
+    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
+        Kelola pengelompokan menu untuk sistem POS. Kategori memudahkan kasir menemukan menu yang tepat saat transaksi.
+    </p>
 
+    <div class="flex flex-wrap gap-3">
         <a href="{{ route('admin.menu-categories.create') }}"
-           class="px-5 py-2.5 rounded-xl
-                  bg-blue-600 text-white text-sm font-medium
-                  hover:bg-blue-700 transition">
-            + Tambah Kategori
+           class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold rounded-xl active:scale-95 transition-all shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+            Tambah Kategori
         </a>
-
     </div>
 
 </div>
+
 
 
 {{-- SUCCESS --}}

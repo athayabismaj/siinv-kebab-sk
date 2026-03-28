@@ -28,15 +28,22 @@
 
 <div class="space-y-6 max-w-full overflow-x-hidden">
 
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <div>
-            <h1 class="text-xl md:text-2xl font-semibold text-slate-800 dark:text-white">
-                Monitoring Transaksi
-            </h1>
-            <p class="text-sm text-slate-500">
-                Data transaksi kasir per hari ({{ $activeDate->translatedFormat('d M Y') }})
-            </p>
-        </div>
+    {{-- ════ HEADER ════ --}}
+    <div class="mb-2">
+        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+            <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+            <span class="text-slate-200 dark:text-slate-700">/</span>
+            <span class="text-slate-600 dark:text-slate-300">Kasir</span>
+            <span class="text-slate-200 dark:text-slate-700">/</span>
+            <span class="text-slate-600 dark:text-slate-300">Monitoring Transaksi</span>
+        </nav>
+
+        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1">
+            Monitoring Transaksi
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+            Data transaksi kasir per hari — {{ $activeDate->translatedFormat('d M Y') }}
+        </p>
     </div>
 
     <form method="GET" action="{{ route($routePrefix.'.index') }}" class="space-y-3">
@@ -124,7 +131,7 @@
                         <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Kasir</span><span class="font-medium text-right">{{ $trx->user->name ?? '-' }}</span></p>
                         <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Pembayaran</span><span class="font-medium text-right">{{ $trx->paymentMethod->name ?? '-' }}</span></p>
                         <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Total</span><span class="font-semibold text-right">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</span></p>
-                        <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Waktu</span><span class="font-medium text-right">{{ $trx->created_at->format('d M Y H:i') }}</span></p>
+                        <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Waktu</span><span class="font-medium text-right">{{ $trx->created_at->copy()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->format('d M Y H:i') }}</span></p>
                         <a href="{{ route($routePrefix.'.show', $trx->id) }}" class="inline-block text-sm text-blue-600 hover:underline">Detail</a>
                     </div>
                 @endforeach
@@ -153,7 +160,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 font-medium">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
-                                <td class="px-6 py-4 text-slate-500">{{ $trx->created_at->format('d M Y H:i') }}</td>
+                                <td class="px-6 py-4 text-slate-500">{{ $trx->created_at->copy()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->format('d M Y H:i') }}</td>
                                 <td class="px-6 py-4 text-right">
                                     <a href="{{ route($routePrefix.'.show', $trx->id) }}" class="text-blue-600 hover:underline">Detail</a>
                                 </td>
@@ -208,3 +215,6 @@
 </div>
 
 @endsection
+
+
+

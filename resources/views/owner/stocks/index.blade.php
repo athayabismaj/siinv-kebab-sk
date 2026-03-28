@@ -23,62 +23,41 @@
 
 <div class="space-y-8">
 
-    {{-- ================= HEADER ================= --}}
-    <div class="space-y-6">
+    {{-- ════ HEADER ════ --}}
+    <div class="mb-2">
 
-        <div>
-            <h1 class="text-2xl font-semibold text-slate-800 dark:text-white">
+        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+            <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+            <span class="text-slate-200 dark:text-slate-700">/</span>
+            <span class="text-slate-600 dark:text-slate-300">Monitoring Stok</span>
+        </nav>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+            <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
                 Monitoring Stok
             </h1>
 
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Pantau stok bahan secara real-time (read only)
-            </p>
+            {{-- STAT CHIPS inline --}}
+            <div class="flex gap-2 flex-wrap shrink-0">
+                <span class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200">
+                    Total: {{ $summary['total'] }}
+                </span>
+                <span class="px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-bold text-amber-700 dark:text-amber-300">
+                    Rendah: {{ $summary['low'] }}
+                </span>
+                <span class="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs font-bold text-red-700 dark:text-red-300">
+                    Habis: {{ $summary['out'] }}
+                </span>
+            </div>
         </div>
-
-        {{-- ================= STAT CARDS ================= --}}
-        <div class="grid grid-cols-3 gap-3 md:max-w-md">
-
-            <div class="px-4 py-3 text-center rounded-xl
-                        bg-white dark:bg-slate-900
-                        border border-slate-200 dark:border-slate-800">
-
-                <p class="text-[11px] uppercase text-slate-500">Total</p>
-
-                <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                    {{ number_format($summary['total']) }}
-                </p>
-            </div>
-
-            <div class="px-4 py-3 text-center rounded-xl
-                        bg-amber-50 dark:bg-amber-900/10
-                        border border-amber-200 dark:border-amber-900/40">
-
-                <p class="text-[11px] uppercase text-amber-700 dark:text-amber-300">
-                    Rendah
-                </p>
-
-                <p class="text-lg font-semibold text-amber-700 dark:text-amber-300">
-                    {{ number_format($summary['low']) }}
-                </p>
-            </div>
-
-            <div class="px-4 py-3 text-center rounded-xl
-                        bg-red-50 dark:bg-red-900/10
-                        border border-red-200 dark:border-red-900/40">
-
-                <p class="text-[11px] uppercase text-red-700 dark:text-red-300">
-                    Habis
-                </p>
-
-                <p class="text-lg font-semibold text-red-700 dark:text-red-300">
-                    {{ number_format($summary['out']) }}
-                </p>
-            </div>
-
-        </div>
+        
+        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
+            Pantau ketersediaan stok bahan secara real-time. Halaman ini hanya untuk pemantauan (read only).
+        </p>
 
     </div>
+
+
 
 
     {{-- ================= ALERT ================= --}}
