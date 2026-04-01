@@ -9,6 +9,7 @@ use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\SalesReportController;
 use App\Http\Controllers\Owner\TransactionHistoryController;
 use App\Http\Controllers\Owner\StockMonitoringController;
+use App\Http\Controllers\Owner\CashflowController as OwnerCashflowController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientCategoryController;
 use App\Http\Controllers\Admin\MenuController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UsageReportController;
+use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
 
 
 
@@ -126,6 +128,8 @@ Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->grou
 
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
             Route::get('/usage/export', [UsageReportController::class, 'export'])->name('usage.export');
+            Route::get('/cashflow', [OwnerCashflowController::class, 'index'])->name('cashflow');
+            Route::get('/cashflow/export', [OwnerCashflowController::class, 'export'])->name('cashflow.export');
         });
 
         Route::prefix('analytics')->name('analytics.')->group(function () {
@@ -228,6 +232,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
             Route::get('/usage/export', [UsageReportController::class, 'export'])->name('usage.export');
+            Route::get('/cashflow', [AdminCashflowController::class, 'index'])->name('cashflow');
+            Route::get('/cashflow/input', [AdminCashflowController::class, 'create'])->name('cashflow.create');
+            Route::post('/cashflow/input', [AdminCashflowController::class, 'store'])->name('cashflow.store');
+            Route::get('/cashflow/export', [AdminCashflowController::class, 'export'])->name('cashflow.export');
         });
 
 

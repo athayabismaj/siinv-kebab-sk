@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
 use App\Models\PaymentMethod;
 use App\Services\ApiTransactionService;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +41,7 @@ class TransactionController extends Controller
             'transaction_code' => $transaction->transaction_code,
             'total_amount' => (float) $transaction->total_amount,
             'status' => 'Sukses',
-            'created_at' => \Carbon\Carbon::parse($transaction->created_at)->utc()->setTimezone('Asia/Jakarta')->isoFormat('D MMMM Y HH:mm'),
+            'created_at' => $this->formatCreatedAt($transaction->created_at),
             'items_count' => (int) $transaction->items_count,
         ]);
 
@@ -132,8 +133,17 @@ class TransactionController extends Controller
     {
         return (int) optional($request->user())->id;
     }
+
+    private function formatCreatedAt(mixed $createdAt): string
+    {
+        $timezone = config('app.timezone', 'Asia/Jakarta');
+
+        try {
+            return Carbon::parse($createdAt, 'UTC')
+                ->setTimezone($timezone)
+                ->isoFormat('D MMMM Y HH:mm');
+        } catch (Throwable) {
+            return Carbon::now($timezone)->isoFormat('D MMMM Y HH:mm');
+        }
+    }
 }
-
-
-
-

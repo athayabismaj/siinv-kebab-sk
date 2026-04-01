@@ -3,24 +3,49 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
-use App\Models\Transaction;
-use App\Models\TransactionDetail;
+use App\Services\Owner\SalesReportQueryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class SalesReportController extends Controller
 {
+    public function __construct(
+        private readonly SalesReportQueryService $queryService
+    ) {}
+
     public function index(Request $request)
     {
         $type = $request->input('type', 'daily');
+        if (!in_array($type, ['daily', 'weekly', 'monthly'], true)) {
+            $type = 'daily';
+        }
         $data = ['type' => $type];
 
         switch ($type) {
+            case 'weekly':
+                $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
+                $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
+                $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
+                $summary = $this->queryService->buildWeeklySummary($weekAnchor);
+                $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd);
+                $data = array_merge($data, [
+                    'selectedWeekStart' => $selectedWeekStart,
+                    'selectedWeekEnd' => $selectedWeekEnd,
+                    'totalRevenue' => $summary['totalRevenue'],
+                    'totalTransactions' => $summary['totalTransactions'],
+                    'avgTransaction' => $summary['avgTransaction'],
+                    'weeklyBreakdown' => $summary['weeklyBreakdown'],
+                    'topMenu' => $analytics['topMenu'],
+                    'leastMenu' => $analytics['leastMenu'],
+                    'contributions' => $analytics['contributions'],
+                    'totalMenuSold' => $analytics['totalMenuSold'],
+                ]);
+                break;
+
             case 'monthly':
                 $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
-                $summary = $this->buildMonthlySummary($selectedMonth);
-                $analytics = $this->buildPeriodMenuAnalytics($selectedMonth->startOfMonth(), $selectedMonth->copy()->endOfMonth());
+                $summary = $this->queryService->buildMonthlySummary($selectedMonth);
+                $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedMonth->startOfMonth(), $selectedMonth->copy()->endOfMonth());
                 $data = array_merge($data, [
                     'selectedMonth' => $selectedMonth,
                     'totalRevenue' => $summary['totalRevenue'],
@@ -34,30 +59,11 @@ class SalesReportController extends Controller
                 ]);
                 break;
 
-            case 'yearly':
-                $selectedYear = (int) $request->input('year', date('Y'));
-                $startOfYear = Carbon::create($selectedYear, 1, 1)->startOfDay();
-                $endOfYear = Carbon::create($selectedYear, 12, 31)->endOfDay();
-                $summary = $this->buildYearlySummary($selectedYear);
-                $analytics = $this->buildPeriodMenuAnalytics($startOfYear, $endOfYear);
-                $data = array_merge($data, [
-                    'selectedYear' => $selectedYear,
-                    'totalRevenue' => $summary['totalRevenue'],
-                    'totalTransactions' => $summary['totalTransactions'],
-                    'avgTransaction' => $summary['avgTransaction'],
-                    'monthlyBreakdown' => $summary['monthlyBreakdown'],
-                    'topMenu' => $analytics['topMenu'],
-                    'leastMenu' => $analytics['leastMenu'],
-                    'contributions' => $analytics['contributions'],
-                    'totalMenuSold' => $analytics['totalMenuSold'],
-                ]);
-                break;
-
             case 'daily':
             default:
                 $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-                $summary = $this->buildDailySummary($selectedDate);
-                $analytics = $this->buildPeriodMenuAnalytics($selectedDate, $selectedDate);
+                $summary = $this->queryService->buildDailySummary($selectedDate);
+                $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate);
                 $data = array_merge($data, [
                     'selectedDate' => $selectedDate,
                     'totalRevenue' => $summary['totalRevenue'],
@@ -88,7 +94,7 @@ class SalesReportController extends Controller
 
         $preview = null;
         if (!$isClosed) {
-            $preview = $this->buildMonthlySummary($thisMonth);
+            $preview = $this->queryService->buildMonthlySummary($thisMonth);
         }
 
         return view('owner.reports.closing_index', [
@@ -115,8 +121,8 @@ class SalesReportController extends Controller
 
         // Hitung data final
         $summary = $request->period_type === 'monthly' 
-            ? $this->buildMonthlySummary($date)
-            : $this->buildYearlySummary($date->year);
+            ? $this->queryService->buildMonthlySummary($date)
+            : $this->queryService->buildYearlySummary($date->year);
 
         \App\Models\PeriodClosing::create([
             'period_type' => $request->period_type,
@@ -132,16 +138,56 @@ class SalesReportController extends Controller
 
     public function menuAnalysis(Request $request)
     {
-        $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-        $analytics = $this->buildPeriodMenuAnalytics($selectedDate, $selectedDate);
+        $type = $request->input('type', 'daily');
+        if (!in_array($type, ['daily', 'weekly', 'monthly'], true)) {
+            $type = 'daily';
+        }
 
-        return view('owner.analytics.menu', [
-            'selectedDate' => $selectedDate,
-            'topMenu' => $analytics['topMenu'],
-            'leastMenu' => $analytics['leastMenu'],
-            'contributions' => $analytics['contributions'],
-            'totalMenuSold' => $analytics['totalMenuSold'],
-        ]);
+        $data = ['type' => $type];
+
+        if ($type === 'weekly') {
+            $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
+            $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
+            $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
+            $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false);
+
+            $data = array_merge($data, [
+                'selectedWeekStart' => $selectedWeekStart,
+                'selectedWeekEnd' => $selectedWeekEnd,
+                'topMenu' => $analytics['topMenu'],
+                'leastMenu' => $analytics['leastMenu'],
+                'contributions' => $analytics['contributions'],
+                'totalMenuSold' => $analytics['totalMenuSold'],
+            ]);
+        } elseif ($type === 'monthly') {
+            $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
+            $analytics = $this->queryService->buildPeriodMenuAnalytics(
+                $selectedMonth->copy()->startOfMonth(),
+                $selectedMonth->copy()->endOfMonth(),
+                false
+            );
+
+            $data = array_merge($data, [
+                'selectedMonth' => $selectedMonth,
+                'topMenu' => $analytics['topMenu'],
+                'leastMenu' => $analytics['leastMenu'],
+                'contributions' => $analytics['contributions'],
+                'totalMenuSold' => $analytics['totalMenuSold'],
+            ]);
+        } else {
+            $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
+            $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
+
+            $data = array_merge($data, [
+                'selectedDate' => $selectedDate,
+                'topMenu' => $analytics['topMenu'],
+                'leastMenu' => $analytics['leastMenu'],
+                'contributions' => $analytics['contributions'],
+                'totalMenuSold' => $analytics['totalMenuSold'],
+            ]);
+        }
+
+        return view('owner.analytics.menu', $data);
     }
 
     public function export(Request $request)
@@ -149,8 +195,8 @@ class SalesReportController extends Controller
         $type = $request->input('type', 'daily');
 
         return match ($type) {
+            'weekly' => $this->exportWeekly($request),
             'monthly' => $this->exportMonthly($request),
-            // 'yearly' => $this->exportYearly($request), // Add if needed
             default => $this->exportDaily($request),
         };
     }
@@ -158,8 +204,8 @@ class SalesReportController extends Controller
     public function exportDaily(Request $request)
     {
         $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-        $summary = $this->buildDailySummary($selectedDate);
-        $analytics = $this->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
+        $summary = $this->queryService->buildDailySummary($selectedDate);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
 
         $filename = 'laporan-penjualan-harian-' . $selectedDate->toDateString() . '.csv';
 
@@ -193,7 +239,7 @@ class SalesReportController extends Controller
     public function exportMonthly(Request $request)
     {
         $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
-        $summary = $this->buildMonthlySummary($selectedMonth);
+        $summary = $this->queryService->buildMonthlySummary($selectedMonth);
 
         $filename = 'laporan-penjualan-bulanan-' . $selectedMonth->format('Y-m') . '.csv';
 
@@ -223,126 +269,41 @@ class SalesReportController extends Controller
         ]);
     }
 
-    private function buildDailySummary(Carbon $selectedDate): array
+    public function exportWeekly(Request $request)
     {
-        $transactionsQuery = Transaction::query()
-            ->whereDate('created_at', '=', $selectedDate->toDateString());
+        $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
+        $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
+        $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
+        $summary = $this->queryService->buildWeeklySummary($weekAnchor);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false);
 
-        $totalTransactions = (clone $transactionsQuery)->count();
-        $totalRevenue = (float) (clone $transactionsQuery)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
+        $filename = 'laporan-penjualan-mingguan-' . $selectedWeekStart->toDateString() . '-sampai-' . $selectedWeekEnd->toDateString() . '.csv';
 
-        $menuStats = $this->buildPeriodMenuStats($selectedDate, $selectedDate);
+        return response()->streamDownload(function () use ($selectedWeekStart, $selectedWeekEnd, $summary, $analytics) {
+            $output = fopen('php://output', 'w');
+            fwrite($output, "\xEF\xBB\xBF");
 
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'totalMenuSold' => (int) $menuStats->sum('total_qty'),
-        ];
-    }
+            fputcsv($output, ['Jenis Laporan', 'Mingguan']);
+            fputcsv($output, ['Periode', $selectedWeekStart->format('Y-m-d') . ' s/d ' . $selectedWeekEnd->format('Y-m-d')]);
+            fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
+            fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
+            fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
+            fputcsv($output, []);
 
-    private function buildMonthlySummary(Carbon $selectedMonth): array
-    {
-        $query = Transaction::query()
-            ->whereYear('created_at', $selectedMonth->year)
-            ->whereMonth('created_at', $selectedMonth->month);
+            fputcsv($output, ['Menu', 'Qty', 'Kontribusi (%)', 'Penjualan']);
+            foreach ($analytics['contributions'] as $item) {
+                fputcsv($output, [
+                    $item->menu_name,
+                    (int) $item->total_qty,
+                    (float) $item->contribution,
+                    (float) $item->total_sales,
+                ]);
+            }
 
-        $totalTransactions = (clone $query)->count();
-        $totalRevenue = (float) (clone $query)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
-
-        $dailyBreakdown = DB::table('transactions')
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as trx_count, SUM(total_amount) as revenue')
-            ->whereYear('created_at', $selectedMonth->year)
-            ->whereMonth('created_at', $selectedMonth->month)
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date', 'asc')
-            ->get();
-
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'dailyBreakdown' => $dailyBreakdown,
-        ];
-    }
-
-    private function buildYearlySummary(int $year): array
-    {
-        $query = Transaction::query()
-            ->whereYear('created_at', $year);
-
-        $totalTransactions = (clone $query)->count();
-        $totalRevenue = (float) (clone $query)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
-
-        $monthlyBreakdown = DB::table('transactions')
-            ->selectRaw('EXTRACT(MONTH FROM created_at) as month, COUNT(*) as trx_count, SUM(total_amount) as revenue')
-            ->whereYear('created_at', $year)
-            ->groupBy(DB::raw('EXTRACT(MONTH FROM created_at)'))
-            ->orderBy('month', 'asc')
-            ->get();
-
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'monthlyBreakdown' => $monthlyBreakdown,
-        ];
-    }
-
-    private function buildPeriodMenuAnalytics(Carbon $start, Carbon $end, bool $limitTopTen = true): array
-    {
-        $menuStats = $this->buildPeriodMenuStats($start, $end);
-        $totalMenuSold = (int) $menuStats->sum('total_qty');
-
-        $contributions = $menuStats
-            ->map(function ($item) use ($totalMenuSold) {
-                $qty = (int) $item->total_qty;
-                $item->contribution = $totalMenuSold > 0
-                    ? round(($qty / $totalMenuSold) * 100, 1)
-                    : 0;
-
-                return $item;
-            })
-            ->sortByDesc('contribution');
-
-        if ($limitTopTen) {
-            $contributions = $contributions->take(10);
-        }
-
-        return [
-            'topMenu' => $menuStats->first(),
-            'leastMenu' => $menuStats
-                ->sortBy([
-                    ['total_qty', 'asc'],
-                    ['total_sales', 'asc'],
-                ])
-                ->first(),
-            'contributions' => $contributions->values(),
-            'totalMenuSold' => $totalMenuSold,
-        ];
-    }
-
-    private function buildPeriodMenuStats(Carbon $start, Carbon $end)
-    {
-        return TransactionDetail::query()
-            ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
-            ->leftJoin('menus', 'menus.id', '=', 'transaction_details.menu_id')
-            ->whereDate('transactions.created_at', '>=', $start->toDateString())
-            ->whereDate('transactions.created_at', '<=', $end->toDateString())
-            ->selectRaw('transaction_details.menu_id, COALESCE(menus.name, ?) as menu_name, SUM(transaction_details.quantity) as total_qty, SUM(transaction_details.subtotal) as total_sales', ['Menu Terhapus'])
-            ->groupBy('transaction_details.menu_id', 'menus.name')
-            ->orderByDesc('total_qty')
-            ->orderByDesc('total_sales')
-            ->get();
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     private function resolveSelectedDate(string $dateInput): Carbon

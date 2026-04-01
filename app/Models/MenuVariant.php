@@ -10,12 +10,16 @@ class MenuVariant extends Model
         'menu_id',
         'name',
         'price',
+        'cost_price',
+        'sell_price',
         'is_available',
         'sort_order',
     ];
 
     protected $casts = [
-        'price' => 'integer',
+        'price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
+        'sell_price' => 'decimal:2',
         'sort_order' => 'integer',
         'is_available' => 'boolean',
     ];

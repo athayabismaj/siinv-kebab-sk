@@ -8,29 +8,22 @@
 @endphp
 
 <div class="space-y-8">
-
-    {{-- ════ 1. HEADER (Konsisten & Modern) ════ --}}
     <div class="mb-8">
-        
-        {{-- Breadcrumb --}}
         <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
             <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
             <span class="text-slate-200 dark:text-slate-700">/</span>
             <span class="text-slate-600 dark:text-slate-300">Analisis Penjualan</span>
         </nav>
 
-        {{-- Judul --}}
         <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">
             Analisis Penjualan
         </h1>
 
-        {{-- Deskripsi Halaman (Copywriting Santai & Informatif) --}}
         <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
             Pantau performa omzet, jumlah transaksi, dan pergerakan menu terlaris secara mendetail.<br class="hidden sm:block mt-1">
-            Gunakan tab di bawah untuk beralih antara laporan harian, bulanan, atau tahunan.
+            Gunakan tab di bawah untuk beralih antara laporan harian, mingguan, atau bulanan.
         </p>
 
-        {{-- Indikator Periode (Modern Pill Badge) --}}
         <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-blue-50/50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg shadow-sm">
             <span class="relative flex h-2 w-2">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -38,83 +31,70 @@
             </span>
             <span class="text-[11px] sm:text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
                 @if($type === 'daily')
-                    Laporan Harian: 
+                    Laporan Harian:
                     <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedDate->format('d M Y') }}</span>
-                @elseif($type === 'monthly')
-                    Laporan Bulanan: 
-                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedMonth->format('F Y') }}</span>
+                @elseif($type === 'weekly')
+                    Laporan Mingguan:
+                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedWeekStart->format('d M Y') }} - {{ $selectedWeekEnd->format('d M Y') }}</span>
                 @else
-                    Laporan Tahunan: 
-                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedYear }}</span>
+                    Laporan Bulanan:
+                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedMonth->translatedFormat('F Y') }}</span>
                 @endif
             </span>
         </div>
-        
     </div>
 
-    {{-- ═══ CONTROLS (Layout Konsisten dengan Riwayat Transaksi) ═══ --}}
-        <div class="flex flex-col lg:flex-row gap-3 w-full mb-6 relative z-10">
-            
-            {{-- 1. Quick Tabs (Gaya Segmented Control - Ukuran Presisi) --}}
-            <div class="w-full lg:w-auto flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shrink-0">
-                @foreach(['daily' => 'Harian', 'monthly' => 'Bulanan', 'yearly' => 'Tahunan'] as $key => $label)
-                    <a href="{{ route('owner.reports.sales', ['type' => $key]) }}"
-                       class="flex-1 lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 text-center
-                       {{ $type === $key ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
-            </div>
-
-            {{-- 2. Date Selector (Flex-1) & Export Button --}}
-            <div class="flex flex-col sm:flex-row gap-3 flex-1">
-                
-                {{-- Date Selector (Lebih Ramping) --}}
-                <div class="flex-1 flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-                    <svg class="w-5 h-5 text-slate-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    
-                    @if($type === 'daily')
-                        <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
-                            <input type="hidden" name="type" value="daily">
-                            <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" onchange="this.form.submit()"
-                                   class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                        </form>
-                    @elseif($type === 'monthly')
-                        <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
-                            <input type="hidden" name="type" value="monthly">
-                            <input type="month" name="month" value="{{ $selectedMonth->format('Y-m') }}" onchange="this.form.submit()"
-                                   class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                        </form>
-                    @else   
-                        <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
-                            <input type="hidden" name="type" value="yearly">
-                            <select name="year" onchange="this.form.submit()"
-                                    class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none cursor-pointer">
-                                @for($y = date('Y'); $y >= date('Y') - 5; $y--)
-                                    <option value="{{ $y }}" {{ $selectedYear == $y ? 'selected' : '' }}>{{ $y }}</option>
-                                @endfor
-                            </select>
-                        </form>
-                    @endif
-                </div>
-
-                {{-- Export Button (Ukuran Tinggi Persis Sama) --}}
-                <a href="{{ route('owner.reports.sales.export', ['type' => $type, 'date' => request('date'), 'month' => request('month'), 'year' => request('year')]) }}"
-                   class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-white active:scale-95 transition-all shadow-sm shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Export Data
+    <div class="flex flex-col lg:flex-row gap-3 w-full mb-6 relative z-10">
+        <div class="w-full lg:w-auto flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shrink-0">
+            @foreach(['daily' => 'Harian', 'weekly' => 'Mingguan', 'monthly' => 'Bulanan'] as $key => $label)
+                <a href="{{ route('owner.reports.sales', ['type' => $key]) }}"
+                    class="flex-1 lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 text-center
+                    {{ $type === $key ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                    {{ $label }}
                 </a>
-            </div>
+            @endforeach
         </div>
 
-    {{-- ════ 2. STATS CARDS ════ --}}
+        <div class="flex flex-col sm:flex-row gap-3 flex-1">
+            <div class="flex-1 flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                <svg class="w-5 h-5 text-slate-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+
+                @if($type === 'daily')
+                    <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
+                        <input type="hidden" name="type" value="daily">
+                        <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" onchange="this.form.submit()"
+                            class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
+                    </form>
+                @elseif($type === 'weekly')
+                    <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
+                        <input type="hidden" name="type" value="weekly">
+                        <input type="date" name="week_date" value="{{ $selectedWeekStart->toDateString() }}" onchange="this.form.submit()"
+                            class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
+                    </form>
+                @else
+                    <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
+                        <input type="hidden" name="type" value="monthly">
+                        <input type="month" name="month" value="{{ $selectedMonth->format('Y-m') }}" onchange="this.form.submit()"
+                            class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
+                    </form>
+                @endif
+            </div>
+
+            <a href="{{ route('owner.reports.sales.export', ['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month')]) }}"
+                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-white active:scale-95 transition-all shadow-sm shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Export Data
+            </a>
+        </div>
+    </div>
+
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         @php
             $stats = [
-                ['label' => 'Total Omzet', 'value' => number_format($totalRevenue, 0, ',', '.'), 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2', 'color' => 'blue', 'unit' => 'Rp'],
+                ['label' => 'Omzet', 'value' => number_format($totalRevenue, 0, ',', '.'), 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2', 'color' => 'blue', 'unit' => 'Rp'],
                 ['label' => 'Jumlah Transaksi', 'value' => number_format($totalTransactions), 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', 'color' => 'emerald', 'unit' => 'kali'],
-                ['label' => 'Rerata Transaksi', 'value' => number_format($avgTransaction, 0, ',', '.'), 'icon' => 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6', 'color' => 'violet', 'unit' => 'Rp'],
-                ['label' => 'Item Terjual', 'value' => number_format($totalMenuSold), 'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5', 'color' => 'orange', 'unit' => 'item']
+                ['label' => 'Rata-rata Transaksi', 'value' => number_format($avgTransaction, 0, ',', '.'), 'icon' => 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6', 'color' => 'violet', 'unit' => 'Rp'],
+                ['label' => 'Item Terjual', 'value' => number_format($totalMenuSold), 'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5', 'color' => 'orange', 'unit' => 'item'],
             ];
         @endphp
 
@@ -136,15 +116,8 @@
         @endforeach
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════════════
-         3. ANALYTICS + BREAKDOWN
-    ══════════════════════════════════════════════════════════════════════════ --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {{-- ─── LEFT SIDEBAR ─── --}}
         <div class="lg:col-span-1 space-y-5">
-
-            {{-- Top Menu Card --}}
             <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-5 flex items-center gap-2">
                     <span class="w-4 h-1 bg-blue-500 rounded-full"></span>
@@ -152,7 +125,11 @@
                 </p>
                 @if($topMenu)
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 shrink-0 rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-2xl ring-1 ring-blue-100 dark:ring-slate-700">🏆</div>
+                        <div class="w-12 h-12 shrink-0 rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center ring-1 ring-blue-100 dark:ring-slate-700">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"></path>
+                            </svg>
+                        </div>
                         <div class="min-w-0">
                             <p class="text-base font-black text-slate-900 dark:text-white leading-tight truncate">{{ $topMenu->menu_name }}</p>
                             <div class="flex flex-wrap items-center gap-2 mt-2">
@@ -166,7 +143,6 @@
                 @endif
             </div>
 
-            {{-- Andil Penjualan --}}
             <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-5 flex items-center gap-2">
                     <span class="w-4 h-1 bg-emerald-500 rounded-full"></span>
@@ -176,7 +152,7 @@
                     @forelse($contributions->take(5) as $idx => $item)
                         @php
                             $colors = ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-orange-500', 'bg-rose-500'];
-                            $color  = $colors[$idx % count($colors)];
+                            $color = $colors[$idx % count($colors)];
                         @endphp
                         <div>
                             <div class="flex justify-between items-baseline mb-1.5">
@@ -197,17 +173,17 @@
             </div>
         </div>
 
-        {{-- ─── MAIN TABLE ─── --}}
         <div class="lg:col-span-2">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-
-                {{-- Table Header --}}
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div>
                         <p class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">
-                            @if($type === 'daily') Breakdown Menu &bull; {{ $selectedDate->format('d M Y') }}
-                            @elseif($type === 'monthly') Rincian Harian &bull; {{ $selectedMonth->translatedFormat('F Y') }}
-                            @else Rincian Tahunan &bull; {{ $selectedYear }}
+                            @if($type === 'daily')
+                                Breakdown Menu | {{ $selectedDate->format('d M Y') }}
+                            @elseif($type === 'weekly')
+                                Rincian Mingguan | {{ $selectedWeekStart->format('d M') }} - {{ $selectedWeekEnd->format('d M Y') }}
+                            @else
+                                Rincian Harian | {{ $selectedMonth->translatedFormat('F Y') }}
                             @endif
                         </p>
                         <p class="text-[10px] text-slate-400 mt-0.5" id="pagination-info"></p>
@@ -215,7 +191,6 @@
                     <div class="flex items-center gap-2" id="pagination-controls"></div>
                 </div>
 
-                {{-- Table Body --}}
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left" id="breakdown-table">
                         <thead class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
@@ -227,7 +202,7 @@
                                 </tr>
                             @else
                                 <tr>
-                                    <th class="px-6 py-3">{{ $type === 'monthly' ? 'Tanggal' : 'Bulan' }}</th>
+                                    <th class="px-6 py-3">Tanggal</th>
                                     <th class="px-6 py-3 text-center">Transaksi</th>
                                     <th class="px-6 py-3 text-right">Omzet</th>
                                 </tr>
@@ -248,10 +223,10 @@
                                 @empty
                                     <tr><td colspan="3" class="px-6 py-20 text-center text-slate-400 italic text-sm">Belum ada transaksi pada periode ini.</td></tr>
                                 @endforelse
-                            @elseif($type === 'monthly')
-                                @forelse($dailyBreakdown as $row)
+                            @elseif($type === 'weekly')
+                                @forelse($weeklyBreakdown as $row)
                                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                        <td class="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ date('d M Y', strtotime($row->date)) }}</td>
+                                        <td class="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ \Carbon\Carbon::parse($row->date)->translatedFormat('d M Y') }}</td>
                                         <td class="px-6 py-4 text-center">
                                             <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold text-slate-500 dark:text-slate-400 text-xs">{{ number_format($row->trx_count) }} trx</span>
                                         </td>
@@ -262,11 +237,10 @@
                                 @empty
                                     <tr><td colspan="3" class="px-6 py-20 text-center text-slate-400 italic text-sm">Tidak ada data untuk periode ini.</td></tr>
                                 @endforelse
-                            @else {{-- YEARLY --}}
-                                @php $months = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember']; @endphp
-                                @forelse($monthlyBreakdown as $row)
+                            @else
+                                @forelse($dailyBreakdown as $row)
                                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                        <td class="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ $months[(int)$row->month] }}</td>
+                                        <td class="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ \Carbon\Carbon::parse($row->date)->translatedFormat('d M Y') }}</td>
                                         <td class="px-6 py-4 text-center">
                                             <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold text-slate-500 dark:text-slate-400 text-xs">{{ number_format($row->trx_count) }} trx</span>
                                         </td>
@@ -281,10 +255,6 @@
                         </tbody>
                     </table>
                 </div>
-
-                {{-- Pagination Footer --}}
-                <div class="px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-slate-50/30 dark:bg-slate-800/10" id="pagination-footer" style="display:none!important">
-                </div>
             </div>
         </div>
     </div>
@@ -295,7 +265,7 @@
 <script>
 (function() {
     const PER_PAGE = 20;
-    const body     = document.getElementById('table-body');
+    const body = document.getElementById('table-body');
     if (!body) return;
 
     const allRows = Array.from(body.querySelectorAll('tr'));
@@ -307,15 +277,14 @@
     function render(page) {
         currentPage = page;
         const start = (page - 1) * PER_PAGE;
-        const end   = start + PER_PAGE;
+        const end = start + PER_PAGE;
 
         allRows.forEach((row, i) => {
-            row.style.display = (i >= start && i < end) ? '' : 'none';
+            row.style.display = i >= start && i < end ? '' : 'none';
         });
 
-        // Info text
         const info = document.getElementById('pagination-info');
-        if (info) info.textContent = `Menampilkan ${start + 1}–${Math.min(end, allRows.length)} dari ${allRows.length} data`;
+        if (info) info.textContent = `Menampilkan ${start + 1}-${Math.min(end, allRows.length)} dari ${allRows.length} data`;
 
         renderControls();
     }
@@ -330,7 +299,7 @@
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
                 : disabled
                     ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800',
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
         ].join(' ');
         if (!disabled) el.addEventListener('click', () => render(page));
         return el;
@@ -341,28 +310,29 @@
         if (!ctrl) return;
         ctrl.innerHTML = '';
 
-        // Prev
-        ctrl.appendChild(btn('‹', currentPage - 1, currentPage === 1));
+        ctrl.appendChild(btn('<', currentPage - 1, currentPage === 1));
 
-        // Pages
         const range = [];
         for (let p = 1; p <= totalPages; p++) {
-            if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) range.push(p);
-            else if (range[range.length - 1] !== '…') range.push('…');
+            if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
+                range.push(p);
+            } else if (range[range.length - 1] !== '...') {
+                range.push('...');
+            }
         }
+
         range.forEach(p => {
-            if (p === '…') {
+            if (p === '...') {
                 const s = document.createElement('span');
                 s.className = 'px-1 text-slate-300 dark:text-slate-700 text-xs';
-                s.textContent = '…';
+                s.textContent = '...';
                 ctrl.appendChild(s);
             } else {
                 ctrl.appendChild(btn(p, p, false, p === currentPage));
             }
         });
 
-        // Next
-        ctrl.appendChild(btn('›', currentPage + 1, currentPage === totalPages));
+        ctrl.appendChild(btn('>', currentPage + 1, currentPage === totalPages));
     }
 
     render(1);

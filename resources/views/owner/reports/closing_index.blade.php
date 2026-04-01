@@ -3,7 +3,6 @@
 @section('content')
 <div class="space-y-8 max-w-full overflow-x-hidden">
 
-    {{-- ════ 1. HEADER (Konsisten & Modern) ════ --}}
     <div class="mb-8">
         
         {{-- Breadcrumb --}}
@@ -41,7 +40,6 @@
         
     </div>
 
-    {{-- ════ ALERTS ════ --}}
     @if(session('success'))
         <div class="flex items-center gap-3 p-4 mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-sm font-medium shadow-sm">
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -56,10 +54,8 @@
         </div>
     @endif
 
-    {{-- ════ 2. MAIN CONTENT ════ --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {{-- ─── KIRI: Form Tutup Buku ─── --}}
         <div class="lg:col-span-1 space-y-6">
             <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
                 
@@ -126,7 +122,6 @@
             </div>
         </div>
 
-{{-- ─── KANAN: Tabel Riwayat Tutup Buku ─── --}}
         {{-- Perbaikan: Tambahkan self-start agar tingginya nge-pas dengan data --}}
         <div class="lg:col-span-2 self-start">
             {{-- Perbaikan: Hapus h-full dan flex-col --}}

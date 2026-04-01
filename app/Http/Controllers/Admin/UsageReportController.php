@@ -12,7 +12,8 @@ class UsageReportController extends Controller
 {
     public function index(Request $request)
     {
-        [$dateFrom, $dateTo] = $this->resolveDateRange($request);
+        $type = $this->resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = $this->resolveDateRange($request, $type);
         $search = trim((string) $request->input('search', ''));
 
         $baseQuery = StockLog::query()
@@ -54,33 +55,30 @@ class UsageReportController extends Controller
         ];
 
         $todayDate = now()->startOfDay();
-        $type = request('type', 'daily');
 
-        if ($type === 'yearly') {
-            $prevFrom = $dateFrom->copy()->subYear()->startOfYear()->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subYear()->endOfYear()->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addYear()->startOfYear()->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addYear()->endOfYear()->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addYear()->startOfYear()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y'); 
-            $inputType = 'number';
-
-        } elseif ($type === 'monthly') {
+        if ($type === 'monthly') {
             $prevFrom = $dateFrom->copy()->subMonth()->startOfMonth()->format('Y-m-d');
             $prevTo = $dateFrom->copy()->subMonth()->endOfMonth()->format('Y-m-d');
             $nextFrom = $dateFrom->copy()->addMonth()->startOfMonth()->format('Y-m-d');
             $nextTo = $dateFrom->copy()->addMonth()->endOfMonth()->format('Y-m-d');
             $isFuture = $dateFrom->copy()->addMonth()->startOfMonth()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m'); 
+            $inputValue = $dateFrom->format('Y-m');
             $inputType = 'month';
+        } elseif ($type === 'weekly') {
+            $prevFrom = $dateFrom->copy()->subWeek()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
+            $prevTo = $dateFrom->copy()->subWeek()->endOfWeek(Carbon::SUNDAY)->format('Y-m-d');
+            $nextFrom = $dateFrom->copy()->addWeek()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
+            $nextTo = $dateFrom->copy()->addWeek()->endOfWeek(Carbon::SUNDAY)->format('Y-m-d');
+            $isFuture = $dateFrom->copy()->addWeek()->startOfWeek(Carbon::MONDAY)->isAfter($todayDate);
+            $inputValue = $dateFrom->format('Y-m-d');
+            $inputType = 'date';
         } else {
-            $type = 'daily';
             $prevFrom = $dateFrom->copy()->subDay()->format('Y-m-d');
-            $prevTo = $prevFrom;
+            $prevTo = $dateFrom->copy()->subDay()->format('Y-m-d');
             $nextFrom = $dateFrom->copy()->addDay()->format('Y-m-d');
-            $nextTo = $nextFrom;
+            $nextTo = $dateFrom->copy()->addDay()->format('Y-m-d');
             $isFuture = $dateFrom->copy()->addDay()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m-d'); 
+            $inputValue = $dateFrom->format('Y-m-d');
             $inputType = 'date';
         }
 
@@ -110,7 +108,8 @@ class UsageReportController extends Controller
 
     public function export(Request $request)
     {
-        [$dateFrom, $dateTo] = $this->resolveDateRange($request);
+        $type = $this->resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = $this->resolveDateRange($request, $type);
         $search = trim((string) $request->input('search', ''));
 
         $query = StockLog::query()
@@ -171,22 +170,47 @@ class UsageReportController extends Controller
         ]);
     }
 
-    private function resolveDateRange(Request $request): array
+    private function resolveDateRange(Request $request, string $type): array
     {
         $today = now()->startOfDay();
+        if (! $request->filled('date_from') || ! $request->filled('date_to')) {
+            if ($type === 'monthly') {
+                $from = $today->copy()->startOfMonth();
+                $to = $today->copy()->endOfMonth();
+            } elseif ($type === 'weekly') {
+                $from = $today->copy()->startOfWeek(Carbon::MONDAY);
+                $to = $today->copy()->endOfWeek(Carbon::SUNDAY);
+            } else {
+                $from = $today->copy();
+                $to = $today->copy();
+            }
+
+            if ($to->greaterThan($today)) {
+                $to = $today->copy();
+            }
+
+            return [$from, $to];
+        }
 
         $from = $request->filled('date_from')
             ? Carbon::parse($request->input('date_from'))->startOfDay()
-            : ($request->filled('date') ? Carbon::parse($request->input('date'))->startOfDay() : $today);
+            : $today;
 
         $to = $request->filled('date_to')
             ? Carbon::parse($request->input('date_to'))->startOfDay()
-            : ($request->filled('date') ? Carbon::parse($request->input('date'))->startOfDay() : $today);
+            : $today;
 
         if ($from->greaterThan($today)) $from = $today;
         if ($to->greaterThan($today))   $to   = $today;
         if ($from->greaterThan($to)) [$from, $to] = [$to, $from];
 
         return [$from, $to];
+    }
+
+    private function resolveType(string $type): string
+    {
+        return in_array($type, ['daily', 'weekly', 'monthly'], true)
+            ? $type
+            : 'daily';
     }
 }

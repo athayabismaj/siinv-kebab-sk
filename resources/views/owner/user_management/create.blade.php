@@ -10,7 +10,6 @@
 {{-- Perbaikan: max-w-3xl mx-auto dihapus, diganti w-full biar merentang ke samping --}}
 <div class="space-y-8 w-full">
 
-    {{-- ════ HEADER ════ --}}
     <div class="mb-8">
         <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
             <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
@@ -29,7 +28,6 @@
         </p>
     </div>
 
-    {{-- ════ FORM PARTIAL ════ --}}
     @include('owner.user_management.partials.form', [
         'action' => route('owner.users.store'),
         'method' => 'POST',

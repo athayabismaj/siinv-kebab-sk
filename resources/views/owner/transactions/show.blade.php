@@ -10,7 +10,6 @@
 
 <div class="space-y-8 max-w-7xl mx-auto">
 
-    {{-- ═══ HEADER ═══ --}}
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
             <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
@@ -24,7 +23,7 @@
             <p class="text-slate-400 dark:text-slate-500 text-sm mt-3 flex items-center gap-2 flex-wrap">
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                 <span class="font-mono font-bold text-slate-700 dark:text-slate-300 break-all">{{ $transaction->transaction_code }}</span>
-                <span class="text-slate-300 dark:text-slate-700">•</span>
+                <span class="text-slate-300 dark:text-slate-700">|||||||||||||||</span>
                 <span>{{ $transaction->created_at->translatedFormat('d F Y, H:i') }}</span>
             </p>
         </div>
@@ -43,7 +42,6 @@
         </div>
     </div>
 
-    {{-- ═══ STATUS & INFO CARDS ═══ --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {{-- Status Pembayaran --}}
         <div class="relative bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 overflow-hidden group">
@@ -112,7 +110,6 @@
         </div>
     </div>
 
-    {{-- ═══ ITEM LIST ═══ --}}
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
             <h2 class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
@@ -199,7 +196,6 @@
         </div>
     </div>
 
-    {{-- ═══ PAYMENT SUMMARY ═══ --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {{-- Ringkasan Pembayaran --}}
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">

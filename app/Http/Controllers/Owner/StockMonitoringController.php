@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StockMonitoringController extends Controller
 {
@@ -20,7 +21,11 @@ class StockMonitoringController extends Controller
             ->orderBy('name');
 
         if ($search !== '') {
-            $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
+            if (DB::getDriverName() === 'pgsql') {
+                $query->where('name', 'ILIKE', '%' . $search . '%');
+            } else {
+                $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
+            }
         }
 
         if (! empty($category)) {
@@ -36,10 +41,18 @@ class StockMonitoringController extends Controller
             ->orderBy('name')
             ->get();
 
+        $summaryRow = Ingredient::query()
+            ->selectRaw('
+                COUNT(*) as total,
+                SUM(CASE WHEN stock <= minimum_stock THEN 1 ELSE 0 END) as low,
+                SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out
+            ')
+            ->first();
+
         $summary = [
-            'total' => Ingredient::query()->count(),
-            'low' => Ingredient::query()->whereColumn('stock', '<=', 'minimum_stock')->count(),
-            'out' => Ingredient::query()->where('stock', '<=', 0)->count(),
+            'total' => (int) ($summaryRow->total ?? 0),
+            'low' => (int) ($summaryRow->low ?? 0),
+            'out' => (int) ($summaryRow->out ?? 0),
         ];
 
         return view('owner.stocks.index', compact(

@@ -32,23 +32,44 @@
             @enderror
         </div>
 
-        {{-- Harga --}}
+        {{-- Harga Modal --}}
         <div>
             <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
-                Harga
+                Harga Modal
             </label>
 
             <input type="number"
-                   name="price"
+                   name="cost_price"
                    min="0"
                    required
-                   value="{{ old('price', $menuVariant->price ?? 0) }}"
+                   value="{{ old('cost_price', $menuVariant->cost_price ?? 0) }}"
                    class="w-full px-4 py-3 rounded-xl
                           border border-slate-300 dark:border-slate-700
                           bg-white dark:bg-slate-800
                           focus:ring-2 focus:ring-blue-500">
 
-            @error('price')
+            @error('cost_price')
+                <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Harga Jual --}}
+        <div>
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
+                Harga Jual
+            </label>
+
+            <input type="number"
+                   name="sell_price"
+                   min="0"
+                   required
+                   value="{{ old('sell_price', $menuVariant->sell_price ?? $menuVariant->price ?? 0) }}"
+                   class="w-full px-4 py-3 rounded-xl
+                          border border-slate-300 dark:border-slate-700
+                          bg-white dark:bg-slate-800
+                          focus:ring-2 focus:ring-blue-500">
+
+            @error('sell_price')
                 <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
             @enderror
         </div>
@@ -94,7 +115,7 @@
 
     <a href="{{ route('admin.menu-variants.index', $menu->id) }}"
        class="text-sm text-slate-500 hover:text-blue-600 transition">
-        ← Kembali
+        &larr; Kembali
     </a>
 
     <button type="submit"

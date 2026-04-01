@@ -23,7 +23,6 @@
 
 <div class="space-y-8">
 
-    {{-- ════ HEADER ════ --}}
     <div class="mb-2">
 
         <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">

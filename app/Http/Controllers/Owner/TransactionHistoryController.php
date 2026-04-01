@@ -5,57 +5,33 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
-use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
+use App\Services\Owner\TransactionHistoryQueryService;
+use App\Services\Shared\PeriodFilterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class TransactionHistoryController extends Controller
 {
+    public function __construct(
+        private readonly TransactionHistoryQueryService $queryService,
+        private readonly PeriodFilterService $periodFilter
+    ) {}
+
     public function index(Request $request)
     {
-        [$dateFrom, $dateTo] = $this->resolveDateRange($request);
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
+        $filters = $request->only(['search', 'user_id', 'payment_method_id']);
 
-        $listQuery = Transaction::query()
-            ->select([
-                'id',
-                'transaction_code',
-                'user_id',
-                'payment_method_id',
-                'total_amount',
-                'paid_amount',
-                'change_amount',
-                'created_at',
-            ])
-            ->with(['user:id,name,username', 'paymentMethod:id,name'])
-            ->withCount('details')
+        $listQuery = $this->queryService
+            ->applyFilters(
+                $this->queryService->baseListQuery($dateFrom, $dateTo),
+                $filters
+            )
             ->latest();
 
-        $this->applyFilters($listQuery, $request, $dateFrom, $dateTo);
-
-        $summaryQuery = Transaction::query();
-        $this->applyFilters($summaryQuery, $request, $dateFrom, $dateTo);
-
-        $totalTransactions = (clone $summaryQuery)->count();
-        $totalRevenue = (float) (clone $summaryQuery)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
-
-        $topCashierQuery = Transaction::query();
-        $this->applyFilters($topCashierQuery, $request, $dateFrom, $dateTo);
-
-        $topCashierRow = $topCashierQuery
-            ->with('user:id,name')
-            ->selectRaw('user_id, COUNT(*) as trx_count')
-            ->groupBy('user_id')
-            ->orderByDesc('trx_count')
-            ->first();
-
-        $topCashierName = '-';
-        if ($topCashierRow && $topCashierRow->user_id) {
-            $topCashierName = optional($topCashierRow->user)->name ?? '-';
-        }
+        $summary = $this->queryService->summary($dateFrom, $dateTo, $filters);
+        $topCashierName = $this->queryService->topCashierName($dateFrom, $dateTo, $filters);
 
         $transactions = $listQuery
             ->paginate(10)
@@ -67,34 +43,8 @@ class TransactionHistoryController extends Controller
         $paymentMethods = $this->paymentMethods();
         $cashiers = $this->cashiers();
 
-        $type = $request->input('type', 'daily');
-        $todayDate = now()->startOfDay();
-
-        if ($type === 'yearly') {
-            $prevFrom = $dateFrom->copy()->subYear()->startOfYear()->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subYear()->endOfYear()->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addYear()->startOfYear()->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addYear()->endOfYear()->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addYear()->startOfYear()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y'); 
-            $inputType = 'number';
-        } elseif ($type === 'monthly') {
-            $prevFrom = $dateFrom->copy()->subMonth()->startOfMonth()->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subMonth()->endOfMonth()->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addMonth()->startOfMonth()->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addMonth()->endOfMonth()->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addMonth()->startOfMonth()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m'); 
-            $inputType = 'month';
-        } else {
-            $prevFrom = $dateFrom->copy()->subDay()->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subDay()->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addDay()->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addDay()->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addDay()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m-d'); 
-            $inputType = 'date';
-        }
+        [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
+            $this->periodFilter->buildNavigator($type, $dateFrom);
 
         return view('owner.transactions.index', [
             'transactions'       => $transactions,
@@ -103,9 +53,9 @@ class TransactionHistoryController extends Controller
             'cashiers'           => $cashiers,
             'dateFrom'           => $dateFrom,
             'dateTo'             => $dateTo,
-            'totalTransactions'  => $totalTransactions,
-            'totalRevenue'       => $totalRevenue,
-            'avgTransaction'     => $avgTransaction,
+            'totalTransactions'  => $summary['total_transactions'],
+            'totalRevenue'       => $summary['total_revenue'],
+            'avgTransaction'     => $summary['avg_transaction'],
             'topCashierName'     => $topCashierName,
             'type'               => $type,
             'prevFrom'           => $prevFrom,
@@ -120,24 +70,15 @@ class TransactionHistoryController extends Controller
 
     public function export(Request $request)
     {
-        [$dateFrom, $dateTo] = $this->resolveDateRange($request);
-
-        $query = Transaction::query()
-            ->select([
-                'id',
-                'transaction_code',
-                'user_id',
-                'payment_method_id',
-                'total_amount',
-                'paid_amount',
-                'change_amount',
-                'created_at',
-            ])
-            ->with(['user:id,name,username', 'paymentMethod:id,name'])
-            ->withCount('details')
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
+        $filters = $request->only(['search', 'user_id', 'payment_method_id']);
+        $query = $this->queryService
+            ->applyFilters(
+                $this->queryService->baseListQuery($dateFrom, $dateTo),
+                $filters
+            )
             ->latest();
-
-        $this->applyFilters($query, $request, $dateFrom, $dateTo);
 
         $rows = $query->get();
 
@@ -210,50 +151,4 @@ class TransactionHistoryController extends Controller
         );
     }
 
-    private function applyFilters(Builder $query, Request $request, Carbon $dateFrom, Carbon $dateTo): void
-    {
-        if ($request->filled('search')) {
-            $search = trim((string) $request->input('search'));
-            $query->where(function ($q) use ($search) {
-                $q->where('transaction_code', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', "%{$search}%")
-                            ->orWhere('username', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($request->filled('user_id')) {
-            $query->where('user_id', (int) $request->input('user_id'));
-        }
-
-        if ($request->filled('payment_method_id')) {
-            $query->where('payment_method_id', (int) $request->input('payment_method_id'));
-        }
-
-        $query->whereDate('created_at', '>=', $dateFrom->toDateString())
-              ->whereDate('created_at', '<=', $dateTo->toDateString());
-    }
-
-    private function resolveDateRange(Request $request): array
-    {
-        $today = now()->startOfDay();
-
-        $from = $request->filled('date_from')
-            ? Carbon::parse($request->input('date_from'))->startOfDay()
-            : $today;
-
-        $to = $request->filled('date_to')
-            ? Carbon::parse($request->input('date_to'))->startOfDay()
-            : $today;
-
-        // Prevent future dates
-        if ($from->greaterThan($today)) $from = $today;
-        if ($to->greaterThan($today))   $to   = $today;
-
-        // Ensure from <= to
-        if ($from->greaterThan($to)) [$from, $to] = [$to, $from];
-
-        return [$from, $to];
-    }
 }

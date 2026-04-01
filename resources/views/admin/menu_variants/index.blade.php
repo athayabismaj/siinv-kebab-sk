@@ -6,7 +6,6 @@
 
 @section('content')
 
-{{-- ════ HEADER ════ --}}
 <div class="mb-8">
 
     <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
@@ -24,7 +23,7 @@
     </h1>
 
     <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
-        Kelola varian dari <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $menu->name }}</span>. Setiap varian dapat memiliki harga dan ketersediaan tersendiri.
+        Kelola varian dari <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $menu->name }}</span>. Setiap varian memiliki harga modal dan harga jual.
     </p>
 
     <div class="flex flex-wrap gap-3">
@@ -42,8 +41,6 @@
 
 </div>
 
-
-
 @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl
                 bg-emerald-50 text-emerald-700
@@ -52,8 +49,6 @@
     </div>
 @endif
 
-
-{{-- ================= MOBILE VIEW ================= --}}
 <div class="space-y-4 md:hidden">
 
 @forelse($variants as $variant)
@@ -69,8 +64,11 @@
                     {{ $variant->name }}
                 </div>
 
+                <div class="text-xs text-slate-500 mt-1">
+                    Modal: Rp {{ number_format($variant->cost_price ?? 0, 0, ',', '.') }}
+                </div>
                 <div class="text-sm text-slate-500 mt-1">
-                    Rp {{ number_format($variant->price, 0, ',', '.') }}
+                    Jual: Rp {{ number_format($variant->sell_price ?? $variant->price, 0, ',', '.') }}
                 </div>
             </div>
 
@@ -123,8 +121,6 @@
 
 </div>
 
-
-{{-- ================= DESKTOP VIEW ================= --}}
 <div class="hidden md:block
             bg-white dark:bg-slate-900
             rounded-2xl border border-slate-200 dark:border-slate-800
@@ -135,7 +131,8 @@
 <thead class="text-xs uppercase text-slate-400 border-b">
 <tr>
     <th class="px-6 py-4 text-left">Nama</th>
-    <th class="px-6 py-4 text-left">Harga</th>
+    <th class="px-6 py-4 text-left">Harga Modal</th>
+    <th class="px-6 py-4 text-left">Harga Jual</th>
     <th class="px-6 py-4 text-left">Status</th>
     <th class="px-6 py-4 text-left">Urutan</th>
     <th class="px-6 py-4 text-left">Aksi</th>
@@ -154,7 +151,11 @@
 </td>
 
 <td class="px-6 py-6 text-slate-600 dark:text-slate-300">
-    Rp {{ number_format($variant->price, 0, ',', '.') }}
+    Rp {{ number_format($variant->cost_price ?? 0, 0, ',', '.') }}
+</td>
+
+<td class="px-6 py-6 text-slate-600 dark:text-slate-300">
+    Rp {{ number_format($variant->sell_price ?? $variant->price, 0, ',', '.') }}
 </td>
 
 <td class="px-6 py-6">
@@ -202,7 +203,7 @@
 
 @empty
 <tr>
-    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+    <td colspan="6" class="px-6 py-12 text-center text-slate-500">
         Belum ada variant.
     </td>
 </tr>
@@ -213,11 +214,10 @@
 
 </div>
 
-
 <div class="mt-8">
     <a href="{{ route('admin.menus.index') }}"
        class="text-sm text-slate-500 hover:text-blue-600 transition">
-        ← Kembali ke Menu
+        &larr; Kembali ke Menu
     </a>
 </div>
 

@@ -26,7 +26,8 @@ class MenuVariantController extends Controller {
     public function store(Request $request, Menu $menu) {
         $validated = $request->validate([
             'name' => 'required|string|max:150',
-            'price' => 'required|numeric|min:0',
+            'cost_price' => 'required|numeric|min:0',
+            'sell_price' => 'required|numeric|min:0',
             'sort_order' => 'nullable|numeric|min:0',
             'is_available' => 'nullable|boolean',
         ]);
@@ -38,7 +39,10 @@ class MenuVariantController extends Controller {
 
         $menu->variants()->create([
             'name' => $validated['name'],
-            'price' => (int) $validated['price'],
+            // price tetap dipakai sistem transaksi lama, disamakan dengan sell_price.
+            'price' => $validated['sell_price'],
+            'cost_price' => $validated['cost_price'],
+            'sell_price' => $validated['sell_price'],
             'sort_order' => $sortOrder ?? 0,
             'is_available' => $request->boolean('is_available'),
         ]);
@@ -63,14 +67,17 @@ class MenuVariantController extends Controller {
 
         $validated = $request->validate([
             'name' => 'required|string|max:150',
-            'price' => 'required|numeric|min:0',
+            'cost_price' => 'required|numeric|min:0',
+            'sell_price' => 'required|numeric|min:0',
             'sort_order' => 'nullable|numeric|min:0',
             'is_available' => 'nullable|boolean',
         ]);
 
         $menuVariant->update([
             'name' => $validated['name'],
-            'price' => (int) $validated['price'],
+            'price' => $validated['sell_price'],
+            'cost_price' => $validated['cost_price'],
+            'sell_price' => $validated['sell_price'],
             'sort_order' => isset($validated['sort_order'])
                 ? (int) $validated['sort_order']
                 : $menuVariant->sort_order,
