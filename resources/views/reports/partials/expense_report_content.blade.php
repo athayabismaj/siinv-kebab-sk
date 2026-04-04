@@ -1,184 +1,249 @@
-﻿@php
+﻿@extends('layouts.app')
+
+@section('title', 'Laporan Pengeluaran')
+
+@section('content')
+@php
     $routePrefix = $routePrefix ?? 'admin.reports';
     $canInput = $canInput ?? false;
-
     $hasActiveFilters = request()->filled('date_from') || request()->filled('date_to') || request('type', 'daily') !== 'daily';
 @endphp
 
-<div class="space-y-8 max-w-full overflow-x-hidden">
-    <div class="mb-8">
-        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
-            <span class="text-slate-600 dark:text-slate-300">Keuangan</span>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Laporan Pengeluaran</span>
+<div class="w-full space-y-6 overflow-x-hidden pb-10">
+    
+    {{-- ================= HEADER & BREADCRUMB ================= --}}
+    <div class="mb-4">
+        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+            <span class="text-slate-500 dark:text-slate-400">Keuangan</span>
+            <span class="text-slate-300 dark:text-slate-600">/</span>
+            <span class="text-blue-600 dark:text-blue-400">Laporan Pengeluaran</span>
         </nav>
 
-        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">
-            Laporan Pengeluaran
-        </h1>
+        <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8">
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+                    Laporan Pengeluaran
+                </h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                    Pantau pengeluaran operasional harian, mingguan, dan bulanan. Pemasukan kotor dihitung otomatis dari transaksi.
+                </p>
+            </div>
 
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
-            Pemasukan dihitung otomatis dari transaksi menu (pemasukan kotor). Halaman ini fokus memantau pengeluaran operasional harian, mingguan, dan bulanan.
-        </p>
-
-        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-blue-50/50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg shadow-sm">
-            <span class="text-[11px] sm:text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
-                Periode Data:
-                <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $dateFrom->format('d M Y') }}</span>
-                @if(!$dateFrom->isSameDay($dateTo))
-                    <span class="mx-0.5 text-slate-400 normal-case">-</span>
-                    <span class="text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $dateTo->format('d M Y') }}</span>
-                @endif
-            </span>
+            {{-- BADGE PERIODE DATA --}}
+            <div class="shrink-0 flex items-start">
+                <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 border border-blue-100/50 dark:bg-blue-500/10 dark:border-blue-800/30 shadow-sm">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    <span class="text-[11px] font-bold tracking-wide text-blue-700 dark:text-blue-400 uppercase">
+                        Periode Data:
+                        <span class="font-medium text-slate-700 dark:text-slate-300 ml-1">{{ $dateFrom->format('d M Y') }}</span>
+                        @if(!$dateFrom->isSameDay($dateTo))
+                            <span class="mx-0.5 text-slate-400">-</span>
+                            <span class="font-medium text-slate-700 dark:text-slate-300">{{ $dateTo->format('d M Y') }}</span>
+                        @endif
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
 
+    {{-- ================= ALERT SUCCESS ================= --}}
     @if(session('success'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-300 shadow-sm">
+            <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
             {{ session('success') }}
         </div>
     @endif
 
-    <form method="GET" action="{{ route($routePrefix.'.cashflow') }}" id="filter-form" class="relative group z-10 mb-6">
-        <div class="flex flex-col gap-3">
-            <input type="hidden" name="type" id="hidden_type" value="{{ $type }}">
-            <input type="hidden" name="date_from" id="hidden_date_from" value="{{ $dateFrom->toDateString() }}">
-            <input type="hidden" name="date_to" id="hidden_date_to" value="{{ $dateTo->toDateString() }}">
+    {{-- ================= FILTER SECTION (Minimalist Full Width) ================= --}}
+    <form method="GET" action="{{ route($routePrefix.'.cashflow') }}" id="filter-form" class="relative z-10 py-2 mb-2">
+        <input type="hidden" name="type" id="hidden_type" value="{{ $type }}">
+        <input type="hidden" name="date_from" id="hidden_date_from" value="{{ $dateFrom->toDateString() }}">
+        <input type="hidden" name="date_to" id="hidden_date_to" value="{{ $dateTo->toDateString() }}">
 
-            <div class="flex flex-col lg:flex-row gap-3 w-full">
-                <div class="w-full lg:w-auto flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shrink-0 overflow-x-auto no-scrollbar justify-start sm:justify-center">
-                    <button type="button" onclick="changeType('daily')" class="flex-1 min-w-[80px] lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 {{ $type === 'daily' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
-                    <button type="button" onclick="changeType('weekly')" class="flex-1 min-w-[80px] lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 {{ $type === 'weekly' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
-                    <button type="button" onclick="changeType('monthly')" class="flex-1 min-w-[80px] lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 {{ $type === 'monthly' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
-                </div>
-
-                <div class="flex-1 flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-1 w-full min-w-0">
-                    <a href="{{ route($routePrefix.'.cashflow', array_merge(request()->except(['page','date_from','date_to']), ['type' => $type, 'date_from' => $prevFrom, 'date_to' => $prevTo])) }}" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all shrink-0">&#8249;</a>
-
-                    <div class="flex-1 flex px-3">
-                        <input type="{{ $inputType }}" value="{{ $inputValue }}" onchange="updateDateRange(this, '{{ $type }}')" class="w-full text-center bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none dark:[color-scheme:dark]">
-                    </div>
-
-                    @if($isFuture)
-                        <div class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-300 dark:text-slate-700 cursor-not-allowed shrink-0">&#8250;</div>
-                    @else
-                        <a href="{{ route($routePrefix.'.cashflow', array_merge(request()->except(['page','date_from','date_to']), ['type' => $type, 'date_from' => $nextFrom, 'date_to' => $nextTo])) }}" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all shrink-0">&#8250;</a>
-                    @endif
-                </div>
-
-                <div class="flex gap-2 shrink-0">
-                    @if($canInput)
-                        <a href="{{ route('admin.reports.cashflow.create') }}" class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm">
-                            + Input
-                        </a>
-                    @endif
-                    <a href="{{ route($routePrefix.'.cashflow.export', request()->query()) }}" class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-white transition-all shadow-sm">
-                        Export
-                    </a>
-                </div>
+        <div class="flex flex-col lg:flex-row gap-3 w-full items-center justify-between">
+            
+            <div class="flex w-full lg:w-auto rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
+                <button type="button" onclick="changeType('daily')" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
+                <button type="button" onclick="changeType('weekly')" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
+                <button type="button" onclick="changeType('monthly')" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
             </div>
 
-            <div class="flex flex-col md:flex-row gap-3 w-full">
+            <div class="flex-1 flex items-center px-1 w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
+                <a href="{{ route($routePrefix.'.cashflow', array_merge(request()->except(['page','date_from','date_to']), ['type' => $type, 'date_from' => $prevFrom, 'date_to' => $prevTo])) }}" 
+                   class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                </a>
 
+                <input type="{{ $inputType }}" value="{{ $inputValue }}" onchange="updateDateRange(this, '{{ $type }}')" 
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+
+                @if($isFuture)
+                    <span class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </span>
+                @else
+                    <a href="{{ route($routePrefix.'.cashflow', array_merge(request()->except(['page','date_from','date_to']), ['type' => $type, 'date_from' => $nextFrom, 'date_to' => $nextTo])) }}" 
+                       class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </a>
+                @endif
+            </div>
+
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 justify-end">
+                
                 @if($hasActiveFilters)
-                    <a href="{{ route($routePrefix.'.cashflow') }}" class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-500/10">
+                    <a href="{{ route($routePrefix.'.cashflow') }}" class="mr-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-red-500 transition-colors">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
                         Reset
+                    </a>
+                @endif
+                
+                <a href="{{ route($routePrefix.'.cashflow.export', request()->query()) }}" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 h-[38px] bg-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    Export
+                </a>
+
+                @if($canInput)
+                    <a href="{{ route('admin.reports.cashflow.create') }}" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-5 h-[38px] bg-blue-600 text-white text-[13px] font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        Input Pengeluaran
                     </a>
                 @endif
             </div>
         </div>
     </form>
 
+    {{-- ================= SUMMARY CARDS ================= --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[2rem] text-center">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Omzet</p>
-            <p class="text-2xl font-black text-slate-900 dark:text-white">Rp {{ number_format($salesRevenue, 0, ',', '.') }}</p>
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Omzet Kotor</p>
+            <p class="text-xl font-bold text-slate-900 dark:text-white">Rp {{ number_format($salesRevenue, 0, ',', '.') }}</p>
         </div>
 
-        <div class="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[2rem] text-center">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Jumlah Log</p>
-            <p class="text-2xl font-black text-slate-900 dark:text-white">{{ number_format($expenseCount, 0, ',', '.') }}</p>
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Jumlah Log</p>
+            <div class="flex items-baseline gap-1.5">
+                <p class="text-xl font-bold text-slate-900 dark:text-white">{{ number_format($expenseCount, 0, ',', '.') }}</p>
+                <span class="text-xs font-medium text-slate-400">Entri</span>
+            </div>
         </div>
-        <div class="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[2rem] text-center">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Pengeluaran</p>
-            <p class="text-2xl font-black text-rose-600">Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
+
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1.5">Total Pengeluaran</p>
+            <p class="text-xl font-bold text-rose-600 dark:text-rose-400">- Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
         </div>
-        <div class="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[2rem] text-center">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Pemasukan Bersih</p>
-            <p class="text-2xl font-black {{ $netCash >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">Rp {{ number_format($netCash, 0, ',', '.') }}</p>
+
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] font-bold {{ $netCash >= 0 ? 'text-emerald-500' : 'text-rose-500' }} uppercase tracking-widest mb-1.5">Pemasukan Bersih</p>
+            <p class="text-xl font-bold {{ $netCash >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                Rp {{ number_format($netCash, 0, ',', '.') }}
+            </p>
         </div>
     </div>
 
-    @forelse($groupedEntries as $date => $items)
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-            <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-                <h2 class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">{{ \Carbon\Carbon::parse($date)->translatedFormat('d F Y') }}</h2>
-                <span class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-300">{{ $items->count() }} data</span>
-            </div>
+    {{-- ================= DATA GROUP ================= --}}
+    <div class="space-y-6">
+        @forelse($groupedEntries as $date => $items)
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                
+                <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/30">
+                    <h2 class="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
+                        {{ \Carbon\Carbon::parse($date)->translatedFormat('d F Y') }}
+                    </h2>
+                    <span class="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 shadow-sm">
+                        {{ $items->count() }} Data
+                    </span>
+                </div>
 
-            <div class="md:hidden p-4 space-y-3">
-                @foreach($items as $entry)
-                    <div class="rounded-xl border border-slate-100 dark:border-slate-800 p-4 space-y-2">
-                        <div class="flex justify-between items-start gap-3">
-                            <p class="font-bold text-slate-800 dark:text-white text-sm">{{ $entry->source ?: '-' }}</p>
-                            <p class="font-black text-rose-600 text-sm">- Rp {{ number_format((float) $entry->amount, 0, ',', '.') }}</p>
+                <div class="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    @foreach($items as $entry)
+                        <div class="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+                            <div class="flex justify-between items-start gap-3 mb-1.5">
+                                <div>
+                                    <p class="font-bold text-slate-900 dark:text-white text-sm">{{ $entry->source ?: '-' }}</p>
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mt-0.5">
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        {{ $entry->created_at?->format('H:i') }}
+                                        <span class="text-slate-300 dark:text-slate-600">•</span>
+                                        {{ $entry->creator->name ?? 'System' }}
+                                    </div>
+                                </div>
+                                <p class="font-bold text-rose-600 text-sm whitespace-nowrap">- Rp {{ number_format((float) $entry->amount, 0, ',', '.') }}</p>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{{ $entry->note ?: 'Tidak ada catatan' }}</p>
                         </div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">{{ $entry->note ?: 'Tanpa catatan' }}</p>
-                        <div class="text-[11px] text-slate-400">Input: {{ $entry->creator->name ?? '-' }} | {{ $entry->created_at?->format('H:i') }}</div>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
 
-            <div class="hidden md:block overflow-x-auto">
-                <table class="min-w-full text-sm text-left">
-                    <thead class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
-                        <tr>
-                            <th class="px-6 py-3">Kategori</th>
-                            <th class="px-6 py-3">Catatan</th>
-                            <th class="px-6 py-3">Input Oleh</th>
-                            <th class="px-6 py-3">Waktu</th>
-                            <th class="px-6 py-3 text-right">Nominal</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
-                        @foreach($items as $entry)
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                <td class="px-6 py-4 font-semibold text-slate-800 dark:text-white">{{ $entry->source ?: '-' }}</td>
-                                <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ $entry->note ?: '-' }}</td>
-                                <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ $entry->creator->name ?? '-' }}</td>
-                                <td class="px-6 py-4 text-slate-400 dark:text-slate-500 text-xs">{{ $entry->created_at?->format('H:i') }}</td>
-                                <td class="px-6 py-4 text-right font-black text-rose-600">- Rp {{ number_format((float) $entry->amount, 0, ',', '.') }}</td>
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20">
+                            <tr>
+                                <th class="px-6 py-3.5">Kategori & Catatan</th>
+                                <th class="px-6 py-3.5 w-48">Diinput Oleh</th>
+                                <th class="px-6 py-3.5 text-right w-48">Nominal Pengeluaran</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
+                            @foreach($items as $entry)
+                                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-900 dark:text-white">{{ $entry->source ?: '-' }}</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ $entry->note ?: 'Tidak ada catatan' }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-slate-600 dark:text-slate-300 font-medium">{{ $entry->creator->name ?? 'System' }}</div>
+                                        <div class="text-xs text-slate-400">{{ $entry->created_at?->format('H:i') }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-bold text-rose-600 dark:text-rose-500">
+                                        - Rp {{ number_format((float) $entry->amount, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    @empty
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-16 text-center">
-            <p class="text-slate-400 text-sm font-medium">Tidak ada data pengeluaran pada periode ini.</p>
-        </div>
-    @endforelse
+        @empty
+            <div class="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-16 text-center shadow-sm">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-4 border border-slate-100 dark:border-slate-700">
+                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </div>
+                <p class="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Belum ada data pengeluaran pada periode ini.</p>
+            </div>
+        @endforelse
+    </div>
 
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-xs text-slate-400 dark:text-slate-500 text-center sm:text-left">
-            Halaman <span class="font-bold text-slate-700 dark:text-slate-200">{{ $entries->currentPage() }}</span>
-            dari <span class="font-bold text-slate-700 dark:text-slate-200">{{ $entries->lastPage() }}</span>
-            | Total <span class="font-bold text-slate-700 dark:text-slate-200">{{ $entries->total() }}</span> data
-        </p>
-        <div class="flex items-center justify-center gap-1.5">
-            @if ($entries->onFirstPage())
-                <span class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 dark:text-slate-700 cursor-not-allowed">&lt; Prev</span>
-            @else
-                <a href="{{ $entries->previousPageUrl() }}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">&lt; Prev</a>
-            @endif
-            @if ($entries->hasMorePages())
-                <a href="{{ $entries->nextPageUrl() }}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors">Next &gt;</a>
-            @else
-                <span class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 dark:text-slate-700 cursor-not-allowed">Next &gt;</span>
-            @endif
+    {{-- ================= PAGINATION ================= --}}
+    @if($entries->hasPages())
+    <div class="pt-2">
+        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <div class="text-[13px] text-slate-500 dark:text-slate-400 text-center sm:text-left font-medium">
+                Halaman <span class="font-bold text-slate-700 dark:text-slate-300">{{ $entries->currentPage() }}</span> 
+                dari <span class="font-bold text-slate-700 dark:text-slate-300">{{ $entries->lastPage() }}</span>
+                <span class="mx-1.5 text-slate-300 dark:text-slate-600">|</span>
+                Total <span class="font-bold text-slate-700 dark:text-slate-300">{{ $entries->total() }}</span> data
+            </div>
+            
+            <div class="flex items-center gap-6 text-[13px] font-semibold">
+                @if ($entries->onFirstPage())
+                    <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">&lt; Prev</span>
+                @else
+                    <a href="{{ $entries->previousPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">&lt; Prev</a>
+                @endif
+
+                @if ($entries->hasMorePages())
+                    <a href="{{ $entries->nextPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">Next &gt;</a>
+                @else
+                    <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">Next &gt;</span>
+                @endif
+            </div>
         </div>
     </div>
+    @endif
 </div>
 
 @push('scripts')
@@ -247,3 +312,4 @@ function updateDateRange(input, type) {
 }
 </script>
 @endpush
+@endsection

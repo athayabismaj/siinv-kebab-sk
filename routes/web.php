@@ -210,6 +210,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockController::class,'index'])->name('index');
             Route::get('/logs', [StockController::class,'logs'])->name('logs');
+            Route::get('/logs/export', [StockController::class,'exportLogs'])->name('logs.export');
             Route::get('/{ingredient}/restock', [StockController::class,'restockForm'])->name('restock.form');
             Route::post('/{ingredient}/restock', [StockController::class,'restock'])->name('restock');
             Route::get('/{ingredient}/adjust', [StockController::class,'adjustForm'])->name('adjust.form');

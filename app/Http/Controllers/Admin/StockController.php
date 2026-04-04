@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\StockLog;
+use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class StockController extends Controller
 {
@@ -34,6 +36,24 @@ class StockController extends Controller
             ->paginate(5)
             ->withQueryString();
 
+        $categories->setCollection(
+            $categories->getCollection()->map(function (IngredientCategory $category) {
+                $ingredients = $category->ingredients->map(function (Ingredient $ingredient) {
+                    $ingredient->stock_meta = IngredientStockView::fromIngredient($ingredient);
+                    return $ingredient;
+                });
+
+                $category->setRelation('ingredients', $ingredients);
+
+                $category->stock_summary = [
+                    'out' => $ingredients->filter(fn (Ingredient $ingredient) => (bool) ($ingredient->stock_meta['is_out'] ?? false))->count(),
+                    'low' => $ingredients->filter(fn (Ingredient $ingredient) => (bool) ($ingredient->stock_meta['is_low'] ?? false))->count(),
+                ];
+
+                return $category;
+            })
+        );
+
         $allCategories = IngredientCategory::query()
             ->withCount('ingredients')
             ->withCount([
@@ -46,7 +66,20 @@ class StockController extends Controller
                 },
             ])
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function (IngredientCategory $category) {
+                $outCount = (int) ($category->out_of_stock_count ?? 0);
+                $lowCount = (int) ($category->low_stock_count ?? 0);
+
+                $marker = '';
+                if ($outCount > 0 || $lowCount > 0) {
+                    $marker = '(H:' . $outCount . ' R:' . $lowCount . ')';
+                }
+
+                $category->status_marker = $marker;
+
+                return $category;
+            });
 
         $lowStockQuery = Ingredient::query()
             ->whereColumn('stock', '<=', 'minimum_stock');
@@ -84,7 +117,7 @@ class StockController extends Controller
                 'note' => 'nullable|string|max:255'
             ]);
 
-            $quantityInBaseUnit = IngredientUnit::toBase((string) $ingredient->display_unit, (float) $request->quantity);
+            $quantityInBaseUnit = $this->normalizeQuantityForIngredient($ingredient, (float) $request->quantity);
 
             DB::transaction(function () use ($request, $ingredient, $quantityInBaseUnit) {
                 $ingredient->increment('stock', $quantityInBaseUnit);
@@ -126,7 +159,7 @@ class StockController extends Controller
                 'note' => 'required|string|max:255'
             ]);
 
-            $newStockInBaseUnit = IngredientUnit::toBase((string) $ingredient->display_unit, (float) $request->new_stock);
+            $newStockInBaseUnit = $this->normalizeQuantityForIngredient($ingredient, (float) $request->new_stock);
 
             if (round($newStockInBaseUnit, 2) === round((float) $ingredient->stock, 2)) {
                 return back()
@@ -167,31 +200,157 @@ class StockController extends Controller
 
     public function logs(Request $request)
     {
+        $period = $request->input('period', 'daily');
+        if (! in_array($period, ['daily', 'weekly', 'monthly'], true)) {
+            $period = 'daily';
+        }
+
+        try {
+            $selectedDate = $request->filled('date')
+                ? Carbon::parse($request->input('date'))->startOfDay()
+                : now()->startOfDay();
+        } catch (\Throwable $e) {
+            $selectedDate = now()->startOfDay();
+        }
+
+        $rangeStart = null;
+        $rangeEnd = null;
+        if ($period === 'daily') {
+            $rangeStart = $selectedDate->copy()->startOfDay();
+            $rangeEnd = $selectedDate->copy()->endOfDay();
+        } elseif ($period === 'weekly') {
+            $rangeStart = $selectedDate->copy()->startOfWeek();
+            $rangeEnd = $selectedDate->copy()->endOfWeek();
+        } else {
+            $rangeStart = $selectedDate->copy()->startOfMonth();
+            $rangeEnd = $selectedDate->copy()->endOfMonth();
+        }
+
         $logsQuery = StockLog::with('ingredient')->latest();
+        $logsQuery->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
         if ($request->filled('type') && in_array($request->type, ['in', 'out', 'adjustment'], true)) {
             $logsQuery->where('type', $request->type);
         }
 
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            if ($search !== '') {
-                $driver = DB::connection()->getDriverName();
-                $logsQuery->whereHas('ingredient', function ($query) use ($search, $driver) {
-                    if ($driver === 'pgsql') {
-                        $query->where('name', 'ILIKE', "%{$search}%");
-                        return;
-                    }
-                    $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
-                });
-            }
-        }
+        $summary = [
+            'total' => (clone $logsQuery)->count(),
+            'restock' => (clone $logsQuery)->where('type', 'in')->count(),
+            'usage' => (clone $logsQuery)->where('type', 'out')->count(),
+            'adjustment' => (clone $logsQuery)->where('type', 'adjustment')->count(),
+        ];
 
         $logs = $logsQuery
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.stocks.logs', compact('logs'));
+        return view('admin.stocks.logs', compact(
+            'logs',
+            'summary',
+            'period',
+            'selectedDate',
+            'rangeStart',
+            'rangeEnd'
+        ));
+    }
+
+    public function exportLogs(Request $request)
+    {
+        $period = $request->input('period', 'daily');
+        if (! in_array($period, ['daily', 'weekly', 'monthly'], true)) {
+            $period = 'daily';
+        }
+
+        try {
+            $selectedDate = $request->filled('date')
+                ? Carbon::parse($request->input('date'))->startOfDay()
+                : now()->startOfDay();
+        } catch (\Throwable $e) {
+            $selectedDate = now()->startOfDay();
+        }
+
+        if ($period === 'daily') {
+            $rangeStart = $selectedDate->copy()->startOfDay();
+            $rangeEnd = $selectedDate->copy()->endOfDay();
+        } elseif ($period === 'weekly') {
+            $rangeStart = $selectedDate->copy()->startOfWeek();
+            $rangeEnd = $selectedDate->copy()->endOfWeek();
+        } else {
+            $rangeStart = $selectedDate->copy()->startOfMonth();
+            $rangeEnd = $selectedDate->copy()->endOfMonth();
+        }
+
+        $query = StockLog::with('ingredient')
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->latest();
+
+        if ($request->filled('type') && in_array($request->type, ['in', 'out', 'adjustment'], true)) {
+            $query->where('type', $request->type);
+        }
+
+        $rows = $query->get();
+
+        $filename = sprintf(
+            'riwayat-stok-%s-%s_sd_%s.csv',
+            $period,
+            $rangeStart->toDateString(),
+            $rangeEnd->toDateString()
+        );
+
+        return response()->streamDownload(function () use ($rows, $period, $rangeStart, $rangeEnd) {
+            $output = fopen('php://output', 'w');
+            fwrite($output, "\xEF\xBB\xBF");
+
+            fputcsv($output, ['Riwayat Stok']);
+            fputcsv($output, ['Periode', strtoupper($period)]);
+            fputcsv($output, ['Rentang', $rangeStart->toDateString() . ' s/d ' . $rangeEnd->toDateString()]);
+            fputcsv($output, []);
+            fputcsv($output, ['Tanggal', 'Bahan', 'Tipe', 'Jumlah', 'Sumber', 'Catatan']);
+
+            foreach ($rows as $log) {
+                $rawQty = (float) $log->quantity;
+                $displayUnit = strtolower(trim((string) ($log->ingredient->display_unit ?? $log->ingredient->base_unit ?? '')));
+                $qtyDisplay = in_array($displayUnit, ['kg', 'l'], true) ? $rawQty / 1000 : $rawQty;
+                $formattedQty = number_format($qtyDisplay, 2, '.', '');
+                $packSuffix = '';
+
+                if ($displayUnit === 'pcs') {
+                    $packSize = max(1, (int) ($log->ingredient->pack_size ?? 1));
+                    if ($packSize > 1) {
+                        $packValue = $qtyDisplay / $packSize;
+                        $packFormatted = rtrim(rtrim(number_format($packValue, 2, '.', ''), '0'), '.');
+                        if ($packFormatted === '') {
+                            $packFormatted = '0';
+                        }
+                        $packSuffix = " ({$packFormatted} pack)";
+                    }
+                }
+
+                if ($log->type === 'in') {
+                    $typeLabel = 'Restok';
+                    $sourceLabel = 'Manual Restok';
+                } elseif ($log->type === 'adjustment') {
+                    $typeLabel = 'Penyesuaian';
+                    $sourceLabel = 'Manual Adjust';
+                } else {
+                    $typeLabel = 'Pemakaian';
+                    $sourceLabel = $log->reference_id ? 'TRX-' . $log->reference_id : 'Transaksi';
+                }
+
+                fputcsv($output, [
+                    optional($log->created_at)->format('Y-m-d H:i:s'),
+                    $log->ingredient->name ?? '-',
+                    $typeLabel,
+                    $formattedQty . ' ' . $displayUnit . $packSuffix,
+                    $sourceLabel,
+                    $log->note ?? '-',
+                ]);
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     private function applyNameSearch($query, string $search): void
@@ -208,5 +367,14 @@ class StockController extends Controller
         }
 
         $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
+    }
+
+    private function normalizeQuantityForIngredient(Ingredient $ingredient, float $value): float
+    {
+        if ((string) $ingredient->display_unit === 'pcs') {
+            return $value * max(1, (int) ($ingredient->pack_size ?? 1));
+        }
+
+        return IngredientUnit::toBase((string) $ingredient->display_unit, $value);
     }
 }

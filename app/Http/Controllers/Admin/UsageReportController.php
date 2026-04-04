@@ -14,7 +14,6 @@ class UsageReportController extends Controller
     {
         $type = $this->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->resolveDateRange($request, $type);
-        $search = trim((string) $request->input('search', ''));
 
         $baseQuery = StockLog::query()
             ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
@@ -26,6 +25,7 @@ class UsageReportController extends Controller
                 ingredients.name as ingredient_name,
                 ingredients.base_unit,
                 ingredients.display_unit,
+                ingredients.pack_size,
                 SUM(ABS(stock_logs.quantity)) as total_quantity,
                 COUNT(*) as usage_count,
                 MAX(stock_logs.created_at) as last_used_at'
@@ -34,17 +34,35 @@ class UsageReportController extends Controller
                 'stock_logs.ingredient_id',
                 'ingredients.name',
                 'ingredients.base_unit',
-                'ingredients.display_unit'
+                'ingredients.display_unit',
+                'ingredients.pack_size'
             );
-
-        if ($search !== '') {
-            $baseQuery->where('ingredients.name', 'like', "%{$search}%");
-        }
 
         $usageItems = (clone $baseQuery)
             ->orderByDesc(DB::raw('SUM(ABS(stock_logs.quantity))'))
             ->paginate(10)
             ->withQueryString();
+
+        $usageItems->setCollection(
+            $usageItems->getCollection()->map(function ($item) {
+                $parts = $this->formatUsageQuantityParts(
+                    (float) $item->total_quantity,
+                    (string) ($item->base_unit ?? ''),
+                    (string) ($item->display_unit ?? ''),
+                    (int) ($item->pack_size ?? 1)
+                );
+
+                $lastUsedAt = Carbon::parse($item->last_used_at);
+
+                $item->quantity_label = $parts['quantity'];
+                $item->pack_label = $parts['pack'];
+                $item->last_used_date = $lastUsedAt->translatedFormat('d M Y');
+                $item->last_used_time = $lastUsedAt->format('H:i');
+                $item->last_used_mobile = $lastUsedAt->translatedFormat('d M, H:i');
+
+                return $item;
+            })
+        );
 
         $totalsBase = (clone $baseQuery)->get();
 
@@ -89,7 +107,6 @@ class UsageReportController extends Controller
         return view('admin.reports.usage', compact(
             'usageItems',
             'summary',
-            'search',
             'dateFrom',
             'dateTo',
             'type',
@@ -110,7 +127,6 @@ class UsageReportController extends Controller
     {
         $type = $this->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->resolveDateRange($request, $type);
-        $search = trim((string) $request->input('search', ''));
 
         $query = StockLog::query()
             ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
@@ -122,18 +138,16 @@ class UsageReportController extends Controller
                 SUM(ABS(stock_logs.quantity)) as total_quantity,
                 ingredients.base_unit,
                 ingredients.display_unit,
+                ingredients.pack_size,
                 COUNT(*) as usage_count,
                 MAX(stock_logs.created_at) as last_used_at'
             )
             ->groupBy(
                 'ingredients.name',
                 'ingredients.base_unit',
-                'ingredients.display_unit'
+                'ingredients.display_unit',
+                'ingredients.pack_size'
             );
-
-        if ($search !== '') {
-            $query->where('ingredients.name', 'like', "%{$search}%");
-        }
 
         $rows = $query->orderByDesc('total_quantity')->get();
 
@@ -155,10 +169,17 @@ class UsageReportController extends Controller
             ]);
 
             foreach ($rows as $item) {
+                $quantityLabel = $this->formatUsageQuantity(
+                    (float) $item->total_quantity,
+                    (string) ($item->base_unit ?? ''),
+                    (string) ($item->display_unit ?? ''),
+                    (int) ($item->pack_size ?? 1)
+                );
+
                 fputcsv($output, [
                     $item->ingredient_name,
-                    (float) $item->total_quantity,
-                    $item->base_unit,
+                    $quantityLabel,
+                    strtolower((string) ($item->display_unit ?? $item->base_unit ?? '')),
                     $item->usage_count,
                     $item->last_used_at,
                 ]);
@@ -200,6 +221,14 @@ class UsageReportController extends Controller
             ? Carbon::parse($request->input('date_to'))->startOfDay()
             : $today;
 
+        if ($type === 'weekly') {
+            $from = $from->copy()->startOfWeek(Carbon::MONDAY);
+            $to = $from->copy()->endOfWeek(Carbon::SUNDAY);
+        } elseif ($type === 'monthly') {
+            $from = $from->copy()->startOfMonth();
+            $to = $from->copy()->endOfMonth();
+        }
+
         if ($from->greaterThan($today)) $from = $today;
         if ($to->greaterThan($today))   $to   = $today;
         if ($from->greaterThan($to)) [$from, $to] = [$to, $from];
@@ -212,5 +241,72 @@ class UsageReportController extends Controller
         return in_array($type, ['daily', 'weekly', 'monthly'], true)
             ? $type
             : 'daily';
+    }
+
+    private function formatUsageQuantity(float $totalQuantity, string $baseUnit, string $displayUnit, int $packSize): string
+    {
+        $parts = $this->formatUsageQuantityParts($totalQuantity, $baseUnit, $displayUnit, $packSize);
+
+        return $parts['full'];
+    }
+
+    private function formatUsageQuantityParts(float $totalQuantity, string $baseUnit, string $displayUnit, int $packSize): array
+    {
+        $baseUnit = strtolower(trim($baseUnit));
+        $displayUnit = strtolower(trim($displayUnit));
+
+        if ($displayUnit === 'pcs') {
+            $pcs = rtrim(rtrim(number_format($totalQuantity, 2, '.', ''), '0'), '.');
+            if ($pcs === '') {
+                $pcs = '0';
+            }
+
+            $packLabel = '';
+            $packSize = max(1, $packSize);
+            if ($packSize > 1) {
+                $pack = $totalQuantity / $packSize;
+                $packText = rtrim(rtrim(number_format($pack, 2, '.', ''), '0'), '.');
+                if ($packText === '') {
+                    $packText = '0';
+                }
+                $packLabel = $packText . ' pack';
+            }
+
+            return [
+                'quantity' => $pcs . ' pcs',
+                'pack' => $packLabel,
+                'full' => $packLabel !== '' ? ($pcs . ' pcs (' . $packLabel . ')') : ($pcs . ' pcs'),
+            ];
+        }
+
+        $converted = $totalQuantity;
+        $unitLabel = $baseUnit;
+
+        if (in_array($baseUnit, ['g', 'gr', 'gram'], true)) {
+            if ($totalQuantity >= 1000) {
+                $converted = $totalQuantity / 1000;
+                $unitLabel = 'kg';
+            } else {
+                $unitLabel = 'g';
+            }
+        } elseif (in_array($baseUnit, ['ml', 'milliliter'], true)) {
+            if ($totalQuantity >= 1000) {
+                $converted = $totalQuantity / 1000;
+                $unitLabel = 'l';
+            } else {
+                $unitLabel = 'ml';
+            }
+        }
+
+        $value = rtrim(rtrim(number_format($converted, 2, '.', ''), '0'), '.');
+        if ($value === '') {
+            $value = '0';
+        }
+
+        return [
+            'quantity' => $value . ' ' . $unitLabel,
+            'pack' => '',
+            'full' => $value . ' ' . $unitLabel,
+        ];
     }
 }

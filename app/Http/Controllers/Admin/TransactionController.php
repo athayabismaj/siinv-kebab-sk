@@ -64,6 +64,47 @@ class TransactionController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $activeDate = null;
+        $todayDate = null;
+        $isToday = false;
+        $prevDateParams = [];
+        $nextDateParams = [];
+        $hasActiveFilters = false;
+        $groupedTransactions = collect();
+
+        if (! $isOwnerView) {
+            $activeDate = $selectedDate ?? now()->startOfDay();
+            $todayDate = now()->startOfDay();
+            $isToday = $activeDate->isSameDay($todayDate);
+
+            $dateNavParams = $this->buildDateNavigationParams($request, $activeDate);
+            $prevDateParams = $dateNavParams['prev'];
+            $nextDateParams = $dateNavParams['next'];
+
+            $hasActiveFilters = $request->filled('search')
+                || $request->filled('payment_method_id')
+                || $request->filled('date');
+
+            $groupedTransactions = $transactions->getCollection()
+                ->groupBy(fn ($trx) => $trx->created_at->toDateString())
+                ->map(function ($items, $date) {
+                    $groupDate = Carbon::parse($date);
+                    $label = $groupDate->translatedFormat('d M Y');
+
+                    if ($groupDate->isToday()) {
+                        $label = 'Hari ini';
+                    } elseif ($groupDate->isYesterday()) {
+                        $label = 'Kemarin';
+                    }
+
+                    return [
+                        'date' => $date,
+                        'label' => $label,
+                        'items' => $items,
+                    ];
+                });
+        }
+
         $paymentMethods = Cache::remember(
             'payment_methods:list',
             now()->addMinutes(2),
@@ -77,7 +118,18 @@ class TransactionController extends Controller
             ? 'owner.transactions.index'
             : 'admin.transactions.index';
 
-        return view($view, compact('transactions', 'paymentMethods', 'selectedDate'));
+        return view($view, compact(
+            'transactions',
+            'paymentMethods',
+            'selectedDate',
+            'activeDate',
+            'todayDate',
+            'isToday',
+            'prevDateParams',
+            'nextDateParams',
+            'hasActiveFilters',
+            'groupedTransactions'
+        ));
     }
 
     public function show(Request $request, Transaction $transaction)
@@ -110,5 +162,18 @@ class TransactionController extends Controller
         } catch (\Throwable) {
             return $today;
         }
+    }
+
+    private function buildDateNavigationParams(Request $request, Carbon $activeDate): array
+    {
+        $base = array_filter([
+            'search' => $request->input('search'),
+            'payment_method_id' => $request->input('payment_method_id'),
+        ], fn ($value) => $value !== null && $value !== '');
+
+        return [
+            'prev' => array_merge($base, ['date' => $activeDate->copy()->subDay()->toDateString()]),
+            'next' => array_merge($base, ['date' => $activeDate->copy()->addDay()->toDateString()]),
+        ];
     }
 }

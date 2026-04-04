@@ -1,169 +1,175 @@
-<div class="bg-white dark:bg-slate-900
-            border border-slate-200 dark:border-slate-800
-            rounded-2xl shadow-sm">
-
-<form method="POST"
-      enctype="multipart/form-data"
-      action="{{ $action }}">
-@csrf
-@if($method === 'PUT')
-    @method('PUT')
-@endif
-
-<div class="p-8 space-y-10">
-
-    {{-- VALIDATION ERROR --}}
-    @if ($errors->any())
-        <div class="p-4 rounded-xl
-                    bg-red-50 border border-red-200
-                    text-red-700 text-sm">
-            <ul class="space-y-1">
-                @foreach ($errors->all() as $error)
-                    <li>• {{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    {{-- SECTION TITLE --}}
-    <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Informasi Menu
-        </h2>
+<div class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+    
+    {{-- Card Header --}}
+    <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+        <h2 class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Informasi Menu</h2>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <form method="POST" action="{{ $action }}" enctype="multipart/form-data" x-data="{ submitting: false }" @submit="submitting = true">
+        @csrf
+        @if($method === 'PUT')
+            @method('PUT')
+        @endif
 
-        {{-- KATEGORI --}}
-        <div>
-            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
-                Kategori
-            </label>
-
-            <select name="category_id"
-                    required
-                    class="w-full px-4 py-3 rounded-xl
-                           border border-slate-300 dark:border-slate-700
-                           bg-white dark:bg-slate-800
-                           focus:ring-2 focus:ring-blue-500">
-
-                <option value="">Pilih Kategori</option>
-
-                @foreach($categories as $category)
-                    <option value="{{ $category->id }}"
-                        {{ old('category_id', $menu->category_id ?? '') == $category->id ? 'selected' : '' }}>
-                        {{ $category->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        {{-- NAMA --}}
-        <div>
-            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
-                Nama Menu
-            </label>
-
-            <input type="text"
-                   name="name"
-                   value="{{ old('name', $menu->name ?? '') }}"
-                   required
-                   class="w-full px-4 py-3 rounded-xl
-                          border border-slate-300 dark:border-slate-700
-                          bg-white dark:bg-slate-800
-                          focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        {{-- URUTAN --}}
-        <div>
-            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
-                Urutan
-            </label>
-
-            <input type="number"
-                   name="sort_order"
-                   min="0"
-                   value="{{ old('sort_order', $menu->sort_order ?? 0) }}"
-                   class="w-full px-4 py-3 rounded-xl
-                          border border-slate-300 dark:border-slate-700
-                          bg-white dark:bg-slate-800
-                          focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        {{-- STATUS --}}
-        <div class="flex items-center gap-3 mt-8">
-            <input type="checkbox"
-                   name="is_active"
-                   value="1"
-                   {{ old('is_active', $menu->is_active ?? true) ? 'checked' : '' }}
-                   class="w-4 h-4">
-
-            <label class="text-sm text-slate-600 dark:text-slate-300">
-                Aktif
-            </label>
-        </div>
-
-        {{-- FOTO --}}
-        <div class="lg:col-span-2">
-            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
-                Foto
-            </label>
-
-            <input type="file"
-                   name="image"
-                   accept="image/*"
-                   class="text-sm">
-
-            {{-- PREVIEW --}}
-            @if(isset($menu) && $menu->image_path)
-                <div class="mt-4">
-                    <img src="{{ asset('storage/'.$menu->image_path) }}"
-                         class="w-32 h-32 object-cover rounded-xl border">
+        {{-- Global Validation Error --}}
+        @if ($errors->any())
+            <div class="mx-6 md:mx-8 mt-6 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300 shadow-sm">
+                <svg class="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div>
+                    <p class="font-bold mb-1">Terdapat kesalahan pada input Anda:</p>
+                    <ul class="list-disc list-inside space-y-1 ml-1 text-xs">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
-            @endif
+            </div>
+        @endif
+
+        {{-- Body Form --}}
+        <div class="p-6 md:p-8 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                
+                {{-- Nama Menu --}}
+                <div>
+                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Nama Menu <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text"
+                           name="name"
+                           value="{{ old('name', $menu->name ?? '') }}"
+                           placeholder="Contoh: Kebab Sapi Reguler"
+                           required
+                           class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
+                    @error('name')
+                        <p class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Kategori Menu --}}
+                <div>
+                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Kategori <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="category_id" required
+                            class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
+                        <option value="">Pilih Kategori</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ old('category_id', $menu->category_id ?? '') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('category_id')
+                        <p class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Urutan Tampil --}}
+                <div>
+                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Urutan Tampil (Sort Order)
+                    </label>
+                    <input type="number"
+                           name="sort_order"
+                           min="0"
+                           value="{{ old('sort_order', $menu->sort_order ?? 0) }}"
+                           class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm tabular-nums">
+                    <p class="mt-1.5 text-[11px] font-medium text-slate-500">Angka lebih kecil akan muncul lebih dulu di kasir.</p>
+                </div>
+
+                {{-- Status Aktif --}}
+                <div class="flex flex-col justify-center">
+                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                        Status Ketersediaan
+                    </label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" 
+                               name="is_active" 
+                               value="1" 
+                               class="sr-only peer"
+                               {{ old('is_active', $menu->is_active ?? true) ? 'checked' : '' }}>
+                        
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Tampilkan di sistem POS</span>
+                    </label>
+                </div>
+
+                {{-- Foto Menu --}}
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Foto Menu <span class="text-slate-400 font-normal text-xs">(Opsional)</span>
+                    </label>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                        
+                        {{-- Preview Existing Image --}}
+                        @if(isset($menu) && $menu->image_path)
+                            <div class="shrink-0 flex flex-col items-center gap-2">
+                                <img src="{{ asset('storage/'.$menu->image_path) }}" alt="Preview" class="h-20 w-20 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saat ini</span>
+                            </div>
+                        @endif
+
+                        <div class="w-full">
+                            <input type="file"
+                                   name="image"
+                                   accept="image/*"
+                                   class="block w-full text-sm text-slate-500 dark:text-slate-400
+                                          file:mr-4 file:py-3 file:px-4
+                                          file:rounded-xl file:border-0
+                                          file:text-sm file:font-semibold
+                                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
+                                          dark:file:bg-slate-800 dark:file:text-slate-300 dark:hover:file:bg-slate-700
+                                          transition-all cursor-pointer border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm">
+                            <p class="mt-2 text-[11px] font-medium text-slate-500">Format yang didukung: JPG, PNG, JPEG. Ukuran maksimal 2MB.</p>
+                            @error('image')
+                                <p class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Deskripsi Menu --}}
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Deskripsi Singkat <span class="text-slate-400 font-normal text-xs">(Opsional)</span>
+                    </label>
+                    <textarea name="description"
+                              rows="4"
+                              placeholder="Tuliskan deksripsi menarik mengenai menu ini..."
+                              class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm resize-none">{{ old('description', $menu->description ?? '') }}</textarea>
+                    @error('description')
+                        <p class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+            </div>
         </div>
 
-        {{-- DESKRIPSI --}}
-        <div class="lg:col-span-2">
-            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
-                Deskripsi
-            </label>
+        {{-- Footer Actions --}}
+        <div class="flex flex-col-reverse gap-3 px-6 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-end">
+            
+            <a href="{{ route('admin.menus.index') }}"
+               class="inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700">
+                Batal
+            </a>
 
-            <textarea name="description"
-                      rows="4"
-                      class="w-full px-4 py-3 rounded-xl
-                             border border-slate-300 dark:border-slate-700
-                             bg-white dark:bg-slate-800
-                             focus:ring-2 focus:ring-blue-500">{{ old('description', $menu->description ?? '') }}</textarea>
+            <button type="submit"
+                    :disabled="submitting"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto shadow-blue-500/20">
+
+                <svg x-show="!submitting" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+
+                <svg x-show="submitting" x-cloak class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+
+                <span x-text="submitting ? 'Menyimpan...' : '{{ $buttonText }}'"></span>
+            </button>
+
         </div>
-
-    </div>
-
-</div>
-
-{{-- FOOTER ACTION --}}
-<div class="flex justify-between items-center
-            px-8 py-6
-            bg-slate-50 dark:bg-slate-800
-            border-t border-slate-200 dark:border-slate-700
-            rounded-b-2xl">
-
-    <a href="{{ route('admin.menus.index') }}"
-       class="text-sm text-slate-500 hover:text-blue-600 transition">
-        ← Kembali
-    </a>
-
-    <button type="submit"
-            class="px-8 py-3 rounded-xl
-                   bg-blue-600 text-white
-                   text-sm font-medium
-                   hover:bg-blue-700
-                   active:scale-[0.98]
-                   transition">
-        {{ $buttonText }}
-    </button>
-
-</div>
-
-</form>
+    </form>
 </div>

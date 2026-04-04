@@ -10,7 +10,9 @@ class IngredientCategoryController extends Controller
 {
     public function index()
     {
-        $categories = IngredientCategory::latest()->paginate(10);
+        $categories = IngredientCategory::withCount('ingredients')
+            ->latest()
+            ->paginate(10);
         return view('admin.ingredient_categories.index', compact('categories'));
     }
 
