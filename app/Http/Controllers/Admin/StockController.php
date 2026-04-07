@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\StockLog;
+use App\Support\AdminCache;
 use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
+use App\Support\StockLogView;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class StockController extends Controller
 {
@@ -130,6 +131,8 @@ class StockController extends Controller
                 ]);
             });
 
+            AdminCache::bumpDashboard();
+
             return redirect()
                 ->route('admin.stocks.index')
                 ->with('success', 'Restok berhasil dilakukan.');
@@ -182,6 +185,8 @@ class StockController extends Controller
                 ]);
             });
 
+            AdminCache::bumpDashboard();
+
             return redirect()
                 ->route('admin.stocks.index')
                 ->with('success', 'Penyesuaian stok berhasil.');
@@ -200,37 +205,16 @@ class StockController extends Controller
 
     public function logs(Request $request)
     {
-        $period = $request->input('period', 'daily');
-        if (! in_array($period, ['daily', 'weekly', 'monthly'], true)) {
-            $period = 'daily';
-        }
-
-        try {
-            $selectedDate = $request->filled('date')
-                ? Carbon::parse($request->input('date'))->startOfDay()
-                : now()->startOfDay();
-        } catch (\Throwable $e) {
-            $selectedDate = now()->startOfDay();
-        }
-
-        $rangeStart = null;
-        $rangeEnd = null;
-        if ($period === 'daily') {
-            $rangeStart = $selectedDate->copy()->startOfDay();
-            $rangeEnd = $selectedDate->copy()->endOfDay();
-        } elseif ($period === 'weekly') {
-            $rangeStart = $selectedDate->copy()->startOfWeek();
-            $rangeEnd = $selectedDate->copy()->endOfWeek();
-        } else {
-            $rangeStart = $selectedDate->copy()->startOfMonth();
-            $rangeEnd = $selectedDate->copy()->endOfMonth();
-        }
+        $period = StockLogView::normalizePeriod($request->input('period'));
+        $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
+        [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
 
         $logsQuery = StockLog::with('ingredient')->latest();
         $logsQuery->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
-        if ($request->filled('type') && in_array($request->type, ['in', 'out', 'adjustment'], true)) {
-            $logsQuery->where('type', $request->type);
+        $typeFilter = $request->input('type');
+        if ($typeFilter && in_array($typeFilter, ['in', 'out', 'adjustment'], true)) {
+            $logsQuery->where('type', $typeFilter);
         }
 
         $summary = [
@@ -240,52 +224,93 @@ class StockController extends Controller
             'adjustment' => (clone $logsQuery)->where('type', 'adjustment')->count(),
         ];
 
+        $summaryCards = StockLogView::summaryCards($summary);
+
         $logs = $logsQuery
             ->paginate(10)
             ->withQueryString();
 
+        $logs->setCollection(
+            $logs->getCollection()->map(fn (StockLog $log) => StockLogView::decorate($log))
+        );
+
+        $groupedLogs = $logs->getCollection()
+            ->groupBy('group_date')
+            ->map(function ($items) {
+                /** @var StockLog $first */
+                $first = $items->first();
+                $groupLabel = $first->created_at->translatedFormat('d F Y');
+
+                if ($first->created_at->isToday()) {
+                    $groupLabel = 'Hari ini - ' . $groupLabel;
+                } elseif ($first->created_at->isYesterday()) {
+                    $groupLabel = 'Kemarin - ' . $groupLabel;
+                }
+
+                return [
+                    'label' => $groupLabel,
+                    'items' => $items,
+                ];
+            });
+
+        $baseParams = array_filter([
+            'period' => $period,
+            'type' => $typeFilter,
+        ], fn ($value) => $value !== null && $value !== '');
+
+        $prevDate = StockLogView::navigationDate($period, $selectedDate, 'prev');
+        $nextDate = StockLogView::navigationDate($period, $selectedDate, 'next');
+
+        $prevParams = array_merge($baseParams, ['date' => $prevDate->toDateString()]);
+        $nextParams = array_merge($baseParams, ['date' => $nextDate->toDateString()]);
+        $isNextDisabled = $nextDate->startOfDay()->gt(now()->startOfDay());
+        $dateDisplay = StockLogView::dateDisplay($period, $selectedDate, $rangeStart, $rangeEnd);
+        $typeTabs = collect(StockLogView::typeTabs($typeFilter))
+            ->map(function (array $tab) {
+                $params = request()->query();
+
+                if ($tab['key'] === null) {
+                    unset($params['type']);
+                } else {
+                    $params['type'] = $tab['key'];
+                }
+
+                $tab['href'] = route('admin.stocks.logs', $params);
+                return $tab;
+            })
+            ->values();
+
         return view('admin.stocks.logs', compact(
             'logs',
+            'groupedLogs',
             'summary',
+            'summaryCards',
             'period',
             'selectedDate',
             'rangeStart',
-            'rangeEnd'
+            'rangeEnd',
+            'prevParams',
+            'nextParams',
+            'isNextDisabled',
+            'dateDisplay',
+            'typeFilter',
+            'typeTabs'
         ));
     }
 
     public function exportLogs(Request $request)
     {
-        $period = $request->input('period', 'daily');
-        if (! in_array($period, ['daily', 'weekly', 'monthly'], true)) {
-            $period = 'daily';
-        }
-
-        try {
-            $selectedDate = $request->filled('date')
-                ? Carbon::parse($request->input('date'))->startOfDay()
-                : now()->startOfDay();
-        } catch (\Throwable $e) {
-            $selectedDate = now()->startOfDay();
-        }
-
-        if ($period === 'daily') {
-            $rangeStart = $selectedDate->copy()->startOfDay();
-            $rangeEnd = $selectedDate->copy()->endOfDay();
-        } elseif ($period === 'weekly') {
-            $rangeStart = $selectedDate->copy()->startOfWeek();
-            $rangeEnd = $selectedDate->copy()->endOfWeek();
-        } else {
-            $rangeStart = $selectedDate->copy()->startOfMonth();
-            $rangeEnd = $selectedDate->copy()->endOfMonth();
-        }
+        $period = StockLogView::normalizePeriod($request->input('period'));
+        $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
+        [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
 
         $query = StockLog::with('ingredient')
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ->latest();
 
-        if ($request->filled('type') && in_array($request->type, ['in', 'out', 'adjustment'], true)) {
-            $query->where('type', $request->type);
+        $typeFilter = $request->input('type');
+        if ($typeFilter && in_array($typeFilter, ['in', 'out', 'adjustment'], true)) {
+            $query->where('type', $typeFilter);
         }
 
         $rows = $query->get();
@@ -308,41 +333,14 @@ class StockController extends Controller
             fputcsv($output, ['Tanggal', 'Bahan', 'Tipe', 'Jumlah', 'Sumber', 'Catatan']);
 
             foreach ($rows as $log) {
-                $rawQty = (float) $log->quantity;
-                $displayUnit = strtolower(trim((string) ($log->ingredient->display_unit ?? $log->ingredient->base_unit ?? '')));
-                $qtyDisplay = in_array($displayUnit, ['kg', 'l'], true) ? $rawQty / 1000 : $rawQty;
-                $formattedQty = number_format($qtyDisplay, 2, '.', '');
-                $packSuffix = '';
-
-                if ($displayUnit === 'pcs') {
-                    $packSize = max(1, (int) ($log->ingredient->pack_size ?? 1));
-                    if ($packSize > 1) {
-                        $packValue = $qtyDisplay / $packSize;
-                        $packFormatted = rtrim(rtrim(number_format($packValue, 2, '.', ''), '0'), '.');
-                        if ($packFormatted === '') {
-                            $packFormatted = '0';
-                        }
-                        $packSuffix = " ({$packFormatted} pack)";
-                    }
-                }
-
-                if ($log->type === 'in') {
-                    $typeLabel = 'Restok';
-                    $sourceLabel = 'Manual Restok';
-                } elseif ($log->type === 'adjustment') {
-                    $typeLabel = 'Penyesuaian';
-                    $sourceLabel = 'Manual Adjust';
-                } else {
-                    $typeLabel = 'Pemakaian';
-                    $sourceLabel = $log->reference_id ? 'TRX-' . $log->reference_id : 'Transaksi';
-                }
+                $typeConfig = StockLogView::typeConfig($log);
 
                 fputcsv($output, [
                     optional($log->created_at)->format('Y-m-d H:i:s'),
                     $log->ingredient->name ?? '-',
-                    $typeLabel,
-                    $formattedQty . ' ' . $displayUnit . $packSuffix,
-                    $sourceLabel,
+                    $typeConfig['label'],
+                    StockLogView::exportQuantity($log),
+                    $typeConfig['source'],
                     $log->note ?? '-',
                 ]);
             }

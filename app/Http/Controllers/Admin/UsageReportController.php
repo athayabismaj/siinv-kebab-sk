@@ -4,39 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\StockLog;
+use App\Support\AdminCache;
+use App\Support\ReportPeriod;
+use App\Support\UsageQuantityFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class UsageReportController extends Controller
 {
     public function index(Request $request)
     {
-        $type = $this->resolveType((string) $request->input('type', 'daily'));
-        [$dateFrom, $dateTo] = $this->resolveDateRange($request, $type);
+        $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
+        $rangeStart = $dateFrom->copy()->startOfDay();
+        $rangeEnd = $dateTo->copy()->endOfDay();
 
-        $baseQuery = StockLog::query()
-            ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
-            ->where('stock_logs.type', 'out')
-            ->whereDate('stock_logs.created_at', '>=', $dateFrom->toDateString())
-            ->whereDate('stock_logs.created_at', '<=', $dateTo->toDateString())
-            ->selectRaw(
-                'stock_logs.ingredient_id,
-                ingredients.name as ingredient_name,
-                ingredients.base_unit,
-                ingredients.display_unit,
-                ingredients.pack_size,
-                SUM(ABS(stock_logs.quantity)) as total_quantity,
-                COUNT(*) as usage_count,
-                MAX(stock_logs.created_at) as last_used_at'
-            )
-            ->groupBy(
-                'stock_logs.ingredient_id',
-                'ingredients.name',
-                'ingredients.base_unit',
-                'ingredients.display_unit',
-                'ingredients.pack_size'
-            );
+        $baseQuery = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd);
 
         $usageItems = (clone $baseQuery)
             ->orderByDesc(DB::raw('SUM(ABS(stock_logs.quantity))'))
@@ -45,7 +30,7 @@ class UsageReportController extends Controller
 
         $usageItems->setCollection(
             $usageItems->getCollection()->map(function ($item) {
-                $parts = $this->formatUsageQuantityParts(
+                $parts = UsageQuantityFormatter::parts(
                     (float) $item->total_quantity,
                     (string) ($item->base_unit ?? ''),
                     (string) ($item->display_unit ?? ''),
@@ -64,44 +49,13 @@ class UsageReportController extends Controller
             })
         );
 
-        $totalsBase = (clone $baseQuery)->get();
+        $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $baseQuery);
 
-        $summary = [
-            'ingredients_count' => $totalsBase->count(),
-            'logs_count' => (int) $totalsBase->sum('usage_count'),
-            'total_base_quantity' => (float) $totalsBase->sum('total_quantity'),
-        ];
-
-        $todayDate = now()->startOfDay();
-
-        if ($type === 'monthly') {
-            $prevFrom = $dateFrom->copy()->subMonth()->startOfMonth()->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subMonth()->endOfMonth()->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addMonth()->startOfMonth()->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addMonth()->endOfMonth()->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addMonth()->startOfMonth()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m');
-            $inputType = 'month';
-        } elseif ($type === 'weekly') {
-            $prevFrom = $dateFrom->copy()->subWeek()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subWeek()->endOfWeek(Carbon::SUNDAY)->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addWeek()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addWeek()->endOfWeek(Carbon::SUNDAY)->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addWeek()->startOfWeek(Carbon::MONDAY)->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m-d');
-            $inputType = 'date';
-        } else {
-            $prevFrom = $dateFrom->copy()->subDay()->format('Y-m-d');
-            $prevTo = $dateFrom->copy()->subDay()->format('Y-m-d');
-            $nextFrom = $dateFrom->copy()->addDay()->format('Y-m-d');
-            $nextTo = $dateFrom->copy()->addDay()->format('Y-m-d');
-            $isFuture = $dateFrom->copy()->addDay()->isAfter($todayDate);
-            $inputValue = $dateFrom->format('Y-m-d');
-            $inputType = 'date';
-        }
+        [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
+            ReportPeriod::buildNavigator($type, $dateFrom);
 
         $today = now()->toDateString();
-        $week  = now()->subDays(6)->toDateString();
+        $week = now()->subDays(6)->toDateString();
         $month = now()->startOfMonth()->toDateString();
 
         return view('admin.reports.usage', compact(
@@ -125,14 +79,15 @@ class UsageReportController extends Controller
 
     public function export(Request $request)
     {
-        $type = $this->resolveType((string) $request->input('type', 'daily'));
-        [$dateFrom, $dateTo] = $this->resolveDateRange($request, $type);
+        $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
+        $rangeStart = $dateFrom->copy()->startOfDay();
+        $rangeEnd = $dateTo->copy()->endOfDay();
 
-        $query = StockLog::query()
+        $rows = StockLog::query()
             ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
             ->where('stock_logs.type', 'out')
-            ->whereDate('stock_logs.created_at', '>=', $dateFrom->toDateString())
-            ->whereDate('stock_logs.created_at', '<=', $dateTo->toDateString())
+            ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
             ->selectRaw(
                 'ingredients.name as ingredient_name,
                 SUM(ABS(stock_logs.quantity)) as total_quantity,
@@ -147,9 +102,9 @@ class UsageReportController extends Controller
                 'ingredients.base_unit',
                 'ingredients.display_unit',
                 'ingredients.pack_size'
-            );
-
-        $rows = $query->orderByDesc('total_quantity')->get();
+            )
+            ->orderByDesc('total_quantity')
+            ->get();
 
         $filename = 'laporan-pemakaian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
 
@@ -169,7 +124,7 @@ class UsageReportController extends Controller
             ]);
 
             foreach ($rows as $item) {
-                $quantityLabel = $this->formatUsageQuantity(
+                $quantityLabel = UsageQuantityFormatter::formatLabel(
                     (float) $item->total_quantity,
                     (string) ($item->base_unit ?? ''),
                     (string) ($item->display_unit ?? ''),
@@ -191,122 +146,47 @@ class UsageReportController extends Controller
         ]);
     }
 
-    private function resolveDateRange(Request $request, string $type): array
+    private function baseUsageAggregateQuery(Carbon $rangeStart, Carbon $rangeEnd)
     {
-        $today = now()->startOfDay();
-        if (! $request->filled('date_from') || ! $request->filled('date_to')) {
-            if ($type === 'monthly') {
-                $from = $today->copy()->startOfMonth();
-                $to = $today->copy()->endOfMonth();
-            } elseif ($type === 'weekly') {
-                $from = $today->copy()->startOfWeek(Carbon::MONDAY);
-                $to = $today->copy()->endOfWeek(Carbon::SUNDAY);
-            } else {
-                $from = $today->copy();
-                $to = $today->copy();
-            }
-
-            if ($to->greaterThan($today)) {
-                $to = $today->copy();
-            }
-
-            return [$from, $to];
-        }
-
-        $from = $request->filled('date_from')
-            ? Carbon::parse($request->input('date_from'))->startOfDay()
-            : $today;
-
-        $to = $request->filled('date_to')
-            ? Carbon::parse($request->input('date_to'))->startOfDay()
-            : $today;
-
-        if ($type === 'weekly') {
-            $from = $from->copy()->startOfWeek(Carbon::MONDAY);
-            $to = $from->copy()->endOfWeek(Carbon::SUNDAY);
-        } elseif ($type === 'monthly') {
-            $from = $from->copy()->startOfMonth();
-            $to = $from->copy()->endOfMonth();
-        }
-
-        if ($from->greaterThan($today)) $from = $today;
-        if ($to->greaterThan($today))   $to   = $today;
-        if ($from->greaterThan($to)) [$from, $to] = [$to, $from];
-
-        return [$from, $to];
+        return StockLog::query()
+            ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
+            ->where('stock_logs.type', 'out')
+            ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw(
+                'stock_logs.ingredient_id,
+                ingredients.name as ingredient_name,
+                ingredients.base_unit,
+                ingredients.display_unit,
+                ingredients.pack_size,
+                SUM(ABS(stock_logs.quantity)) as total_quantity,
+                COUNT(*) as usage_count,
+                MAX(stock_logs.created_at) as last_used_at'
+            )
+            ->groupBy(
+                'stock_logs.ingredient_id',
+                'ingredients.name',
+                'ingredients.base_unit',
+                'ingredients.display_unit',
+                'ingredients.pack_size'
+            );
     }
 
-    private function resolveType(string $type): string
+    private function summary(string $type, string $from, string $to, $baseQuery): array
     {
-        return in_array($type, ['daily', 'weekly', 'monthly'], true)
-            ? $type
-            : 'daily';
-    }
+        $summaryKey = AdminCache::key('usage', 'summary:' . md5(json_encode([
+            'type' => $type,
+            'from' => $from,
+            'to' => $to,
+        ])));
 
-    private function formatUsageQuantity(float $totalQuantity, string $baseUnit, string $displayUnit, int $packSize): string
-    {
-        $parts = $this->formatUsageQuantityParts($totalQuantity, $baseUnit, $displayUnit, $packSize);
-
-        return $parts['full'];
-    }
-
-    private function formatUsageQuantityParts(float $totalQuantity, string $baseUnit, string $displayUnit, int $packSize): array
-    {
-        $baseUnit = strtolower(trim($baseUnit));
-        $displayUnit = strtolower(trim($displayUnit));
-
-        if ($displayUnit === 'pcs') {
-            $pcs = rtrim(rtrim(number_format($totalQuantity, 2, '.', ''), '0'), '.');
-            if ($pcs === '') {
-                $pcs = '0';
-            }
-
-            $packLabel = '';
-            $packSize = max(1, $packSize);
-            if ($packSize > 1) {
-                $pack = $totalQuantity / $packSize;
-                $packText = rtrim(rtrim(number_format($pack, 2, '.', ''), '0'), '.');
-                if ($packText === '') {
-                    $packText = '0';
-                }
-                $packLabel = $packText . ' pack';
-            }
+        return Cache::remember($summaryKey, now()->addSeconds(60), function () use ($baseQuery) {
+            $totalsBase = (clone $baseQuery)->get();
 
             return [
-                'quantity' => $pcs . ' pcs',
-                'pack' => $packLabel,
-                'full' => $packLabel !== '' ? ($pcs . ' pcs (' . $packLabel . ')') : ($pcs . ' pcs'),
+                'ingredients_count' => $totalsBase->count(),
+                'logs_count' => (int) $totalsBase->sum('usage_count'),
+                'total_base_quantity' => (float) $totalsBase->sum('total_quantity'),
             ];
-        }
-
-        $converted = $totalQuantity;
-        $unitLabel = $baseUnit;
-
-        if (in_array($baseUnit, ['g', 'gr', 'gram'], true)) {
-            if ($totalQuantity >= 1000) {
-                $converted = $totalQuantity / 1000;
-                $unitLabel = 'kg';
-            } else {
-                $unitLabel = 'g';
-            }
-        } elseif (in_array($baseUnit, ['ml', 'milliliter'], true)) {
-            if ($totalQuantity >= 1000) {
-                $converted = $totalQuantity / 1000;
-                $unitLabel = 'l';
-            } else {
-                $unitLabel = 'ml';
-            }
-        }
-
-        $value = rtrim(rtrim(number_format($converted, 2, '.', ''), '0'), '.');
-        if ($value === '') {
-            $value = '0';
-        }
-
-        return [
-            'quantity' => $value . ' ' . $unitLabel,
-            'pack' => '',
-            'full' => $value . ' ' . $unitLabel,
-        ];
+        });
     }
 }

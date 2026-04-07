@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
+use App\Support\AdminCache;
 use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class IngredientController extends Controller
 {
@@ -28,26 +30,15 @@ class IngredientController extends Controller
             ])
             ->with('category:id,name');
 
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
-        }
+        $this->applyIndexFilters($query, $request);
 
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
-
-        $lowStockQuery = Ingredient::query();
-        if ($request->filled('category')) {
-            $lowStockQuery->where('category_id', $request->category);
-        }
-        if ($request->filled('search')) {
-            $lowStockQuery->where('name', 'like', '%' . $request->search . '%');
-        }
-        $lowStockCount = $lowStockQuery
+        $lowStockCount = (clone $query)
             ->whereColumn('stock', '<=', 'minimum_stock')
             ->count();
 
-        $ingredients = $query->latest()->paginate(10)
+        $ingredients = $query
+            ->latest()
+            ->paginate(10)
             ->withQueryString();
 
         $ingredients->setCollection(
@@ -57,57 +48,25 @@ class IngredientController extends Controller
             })
         );
 
-        $categories = Cache::remember(
-            'ingredient_categories:list',
-            now()->addMinutes(2),
-            fn () => IngredientCategory::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-        );
+        $categories = $this->categoryOptions();
 
         return view('admin.ingredients.index', compact('ingredients', 'categories', 'lowStockCount'));
     }
 
     public function create()
     {
-        $categories = Cache::remember(
-            'ingredient_categories:list',
-            now()->addMinutes(2),
-            fn () => IngredientCategory::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-        );
+        $categories = $this->categoryOptions();
 
         return view('admin.ingredients.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:150',
-            'category_id' => 'nullable|exists:ingredient_categories,id',
-            'display_unit' => 'required|in:g,kg,ml,l,pcs',
-            'pack_size' => 'required|integer|min:1',
-            'stock' => 'required|numeric|min:0',
-            'minimum_stock' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validate($this->rules());
 
-        $packSize = (int) $request->pack_size;
-        $displayUnit = (string) $request->display_unit;
-        $stock = (float) $request->stock;
-        $minimumStock = (float) $request->minimum_stock;
+        Ingredient::create($this->payloadFromValidated($validated));
 
-        Ingredient::create([
-            'name' => $request->name,
-            'category_id' => $request->category_id,
-            'display_unit' => $displayUnit,
-            'base_unit' => IngredientUnit::baseUnit($displayUnit),
-            'pack_size' => $packSize,
-            'stock' => $this->normalizeStockInput($displayUnit, $stock, $packSize),
-            'minimum_stock' => $this->normalizeStockInput($displayUnit, $minimumStock, $packSize),
-        ]);
+        AdminCache::bumpDashboard();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -116,43 +75,18 @@ class IngredientController extends Controller
 
     public function edit(Ingredient $ingredient)
     {
-        $categories = Cache::remember(
-            'ingredient_categories:list',
-            now()->addMinutes(2),
-            fn () => IngredientCategory::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-        );
+        $categories = $this->categoryOptions();
 
         return view('admin.ingredients.edit', compact('ingredient', 'categories'));
     }
 
     public function update(Request $request, Ingredient $ingredient)
     {
-        $request->validate([
-            'name' => 'required|string|max:150',
-            'category_id' => 'nullable|exists:ingredient_categories,id',
-            'display_unit' => 'required|in:g,kg,ml,l,pcs',
-            'pack_size' => 'required|integer|min:1',
-            'stock' => 'required|numeric|min:0',
-            'minimum_stock' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validate($this->rules());
 
-        $packSize = (int) $request->pack_size;
-        $displayUnit = (string) $request->display_unit;
-        $stock = (float) $request->stock;
-        $minimumStock = (float) $request->minimum_stock;
+        $ingredient->update($this->payloadFromValidated($validated));
 
-        $ingredient->update([
-            'name' => $request->name,
-            'category_id' => $request->category_id,
-            'display_unit' => $displayUnit,
-            'base_unit' => IngredientUnit::baseUnit($displayUnit),
-            'pack_size' => $packSize,
-            'stock' => $this->normalizeStockInput($displayUnit, $stock, $packSize),
-            'minimum_stock' => $this->normalizeStockInput($displayUnit, $minimumStock, $packSize),
-        ]);
+        AdminCache::bumpDashboard();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -162,6 +96,7 @@ class IngredientController extends Controller
     public function destroy(Ingredient $ingredient)
     {
         $ingredient->delete();
+        AdminCache::bumpDashboard();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -184,27 +119,14 @@ class IngredientController extends Controller
             ])
             ->with('category:id,name');
 
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
-        }
+        $this->applyArchiveFilters($query, $request);
 
         $ingredients = $query
             ->latest('deleted_at')
             ->paginate(10)
             ->withQueryString();
 
-        $categories = Cache::remember(
-            'ingredient_categories:list',
-            now()->addMinutes(2),
-            fn () => IngredientCategory::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-        );
+        $categories = $this->categoryOptions();
 
         return view('admin.ingredients.archive', compact('ingredients', 'categories'));
     }
@@ -213,10 +135,88 @@ class IngredientController extends Controller
     {
         $ingredient = Ingredient::onlyTrashed()->findOrFail($id);
         $ingredient->restore();
+        AdminCache::bumpDashboard();
 
         return redirect()
             ->route('admin.ingredients.archive')
             ->with('success', 'Bahan berhasil diaktifkan kembali.');
+    }
+
+    private function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:150',
+            'category_id' => 'nullable|exists:ingredient_categories,id',
+            'display_unit' => 'required|in:g,kg,ml,l,pcs',
+            'pack_size' => 'required|integer|min:1',
+            'stock' => 'required|numeric|min:0',
+            'minimum_stock' => 'required|numeric|min:0',
+        ];
+    }
+
+    private function payloadFromValidated(array $validated): array
+    {
+        $packSize = (int) $validated['pack_size'];
+        $displayUnit = (string) $validated['display_unit'];
+
+        return [
+            'name' => $validated['name'],
+            'category_id' => $validated['category_id'] ?? null,
+            'display_unit' => $displayUnit,
+            'base_unit' => IngredientUnit::baseUnit($displayUnit),
+            'pack_size' => $packSize,
+            'stock' => $this->normalizeStockInput($displayUnit, (float) $validated['stock'], $packSize),
+            'minimum_stock' => $this->normalizeStockInput($displayUnit, (float) $validated['minimum_stock'], $packSize),
+        ];
+    }
+
+    private function applyIndexFilters($query, Request $request): void
+    {
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->input('category'));
+        }
+
+        if ($request->filled('search')) {
+            $this->applyIngredientSearch($query, (string) $request->input('search'));
+        }
+    }
+
+    private function applyArchiveFilters($query, Request $request): void
+    {
+        if ($request->filled('search')) {
+            $this->applyIngredientSearch($query, (string) $request->input('search'));
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->input('category'));
+        }
+    }
+
+    private function applyIngredientSearch($query, string $search): void
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return;
+        }
+
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            $query->where('name', 'ILIKE', "%{$search}%");
+            return;
+        }
+
+        $query->where('name', 'like', '%' . $search . '%');
+    }
+
+    private function categoryOptions()
+    {
+        return Cache::remember(
+            'ingredient_categories:list',
+            now()->addMinutes(2),
+            fn () => IngredientCategory::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
     }
 
     private function normalizeStockInput(string $displayUnit, float $value, int $packSize): float

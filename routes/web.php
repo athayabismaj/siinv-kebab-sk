@@ -90,7 +90,7 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->group(function () {
+Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('owner.')->group(function () {
         // ================= PANEL =================
         Route::get('/panel', [OwnerDashboardController::class, 'index'])->name('panel');
 
@@ -147,7 +147,7 @@ Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->grou
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('admin.')->group(function () {
 
         // ===== PANEL =====
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel');

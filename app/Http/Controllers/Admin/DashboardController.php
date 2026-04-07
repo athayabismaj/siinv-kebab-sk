@@ -7,85 +7,22 @@ use App\Models\Ingredient;
 use App\Models\Menu;
 use App\Models\StockLog;
 use App\Models\Transaction;
+use App\Support\AdminCache;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $today = now()->toDateString();
+        [$todayStart, $todayEnd, $todayKey] = $this->todayBounds();
 
-        $totalActiveMenus = Menu::query()
-            ->where('is_active', true)
-            ->count();
-
-        $totalIngredients = Ingredient::query()->count();
-
-        $transactionsTodayCount = Transaction::query()
-            ->whereDate('created_at', $today)
-            ->count();
-
-        $lowStockItems = Ingredient::query()
-            ->select('id', 'name', 'stock', 'minimum_stock', 'base_unit')
-            ->whereColumn('stock', '<=', 'minimum_stock')
-            ->orderByRaw('(stock - minimum_stock) asc')
-            ->limit(8)
-            ->get()
-            ->map(function (Ingredient $ingredient) {
-                $stock = (float) $ingredient->stock;
-                $minimum = (float) $ingredient->minimum_stock;
-                $statusKey = $stock <= 0 ? 'critical' : 'warning';
-
-                return [
-                    'id' => $ingredient->id,
-                    'name' => $ingredient->name,
-                    'stock_label' => $this->formatQuantity($stock, (string) $ingredient->base_unit),
-                    'minimum_label' => $this->formatQuantity($minimum, (string) $ingredient->base_unit),
-                    'status_key' => $statusKey,
-                    'status_label' => $statusKey === 'critical' ? 'Habis' : 'Rendah',
-                    'stock_value' => $stock,
-                    'minimum_value' => $minimum,
-                ];
-            });
-
-        $recentStockActivities = StockLog::query()
-            ->with('ingredient:id,name,base_unit')
-            ->latest()
-            ->limit(10)
-            ->get()
-            ->map(function (StockLog $log) {
-                $ingredient = $log->ingredient;
-                $baseUnit = (string) optional($ingredient)->base_unit;
-                $qty = (float) $log->quantity;
-
-                if ($log->type === 'in') {
-                    $activity = 'Restok';
-                    $quantityLabel = '+' . $this->formatQuantity($qty, $baseUnit);
-                } elseif ($log->type === 'out') {
-                    $activity = 'Pemakaian';
-                    $quantityLabel = '-' . $this->formatQuantity(abs($qty), $baseUnit);
-                } else {
-                    $activity = 'Penyesuaian';
-                    $quantityLabel = ($qty >= 0 ? '+' : '-') . $this->formatQuantity(abs($qty), $baseUnit);
-                }
-
-                return [
-                    'time' => $log->created_at,
-                    'ingredient_name' => optional($ingredient)->name ?? '-',
-                    'activity' => $activity,
-                    'quantity_label' => $quantityLabel,
-                ];
-            });
-
-        $topMenusToday = DB::table('transaction_details')
-            ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
-            ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
-            ->whereDate('transactions.created_at', $today)
-            ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
-            ->groupBy('menus.id', 'menus.name')
-            ->orderByDesc('sold_qty')
-            ->limit(5)
-            ->get();
+        $totalActiveMenus = $this->getTotalActiveMenus();
+        $totalIngredients = $this->getTotalIngredients();
+        $transactionsTodayCount = $this->getTransactionsTodayCount($todayStart, $todayEnd, $todayKey);
+        $lowStockItems = $this->getLowStockItems();
+        $recentStockActivities = $this->getRecentStockActivities();
+        $topMenusToday = $this->getTopMenusToday($todayStart, $todayEnd, $todayKey);
 
         return view('admin.panel_admin', compact(
             'totalActiveMenus',
@@ -95,6 +32,134 @@ class DashboardController extends Controller
             'recentStockActivities',
             'topMenusToday'
         ));
+    }
+
+    private function todayBounds(): array
+    {
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+
+        return [$todayStart, $todayEnd, $todayStart->format('Y-m-d')];
+    }
+
+    private function getTotalActiveMenus(): int
+    {
+        return (int) Cache::remember(
+            AdminCache::key('dashboard', 'total_active_menus'),
+            now()->addSeconds(60),
+            fn () => Menu::query()
+                ->where('is_active', true)
+                ->count()
+        );
+    }
+
+    private function getTotalIngredients(): int
+    {
+        return (int) Cache::remember(
+            AdminCache::key('dashboard', 'total_ingredients'),
+            now()->addSeconds(60),
+            fn () => Ingredient::query()->count()
+        );
+    }
+
+    private function getTransactionsTodayCount($todayStart, $todayEnd, string $todayKey): int
+    {
+        return (int) Cache::remember(
+            AdminCache::key('dashboard', 'transactions_today:' . $todayKey),
+            now()->addSeconds(30),
+            fn () => Transaction::query()
+                ->whereBetween('created_at', [$todayStart, $todayEnd])
+                ->count()
+        );
+    }
+
+    private function getLowStockItems()
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'low_stock_items'),
+            now()->addSeconds(30),
+            fn () => Ingredient::query()
+                ->select('id', 'name', 'stock', 'minimum_stock', 'base_unit')
+                ->whereColumn('stock', '<=', 'minimum_stock')
+                ->orderByRaw('(stock - minimum_stock) asc')
+                ->limit(8)
+                ->get()
+                ->map(fn (Ingredient $ingredient) => $this->mapLowStockItem($ingredient))
+        );
+    }
+
+    private function getRecentStockActivities()
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'recent_stock_activities'),
+            now()->addSeconds(20),
+            fn () => StockLog::query()
+                ->with('ingredient:id,name,base_unit')
+                ->latest()
+                ->limit(10)
+                ->get()
+                ->map(fn (StockLog $log) => $this->mapStockActivity($log))
+        );
+    }
+
+    private function getTopMenusToday($todayStart, $todayEnd, string $todayKey)
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'top_menus_today:' . $todayKey),
+            now()->addSeconds(30),
+            fn () => DB::table('transaction_details')
+                ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
+                ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
+                ->whereBetween('transactions.created_at', [$todayStart, $todayEnd])
+                ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
+                ->groupBy('menus.id', 'menus.name')
+                ->orderByDesc('sold_qty')
+                ->limit(5)
+                ->get()
+        );
+    }
+
+    private function mapLowStockItem(Ingredient $ingredient): array
+    {
+        $stock = (float) $ingredient->stock;
+        $minimum = (float) $ingredient->minimum_stock;
+        $statusKey = $stock <= 0 ? 'critical' : 'warning';
+
+        return [
+            'id' => $ingredient->id,
+            'name' => $ingredient->name,
+            'stock_label' => $this->formatQuantity($stock, (string) $ingredient->base_unit),
+            'minimum_label' => $this->formatQuantity($minimum, (string) $ingredient->base_unit),
+            'status_key' => $statusKey,
+            'status_label' => $statusKey === 'critical' ? 'Habis' : 'Rendah',
+            'stock_value' => $stock,
+            'minimum_value' => $minimum,
+        ];
+    }
+
+    private function mapStockActivity(StockLog $log): array
+    {
+        $ingredient = $log->ingredient;
+        $baseUnit = (string) optional($ingredient)->base_unit;
+        $qty = (float) $log->quantity;
+
+        if ($log->type === 'in') {
+            $activity = 'Restok';
+            $quantityLabel = '+' . $this->formatQuantity($qty, $baseUnit);
+        } elseif ($log->type === 'out') {
+            $activity = 'Pemakaian';
+            $quantityLabel = '-' . $this->formatQuantity(abs($qty), $baseUnit);
+        } else {
+            $activity = 'Penyesuaian';
+            $quantityLabel = ($qty >= 0 ? '+' : '-') . $this->formatQuantity(abs($qty), $baseUnit);
+        }
+
+        return [
+            'time' => $log->created_at,
+            'ingredient_name' => optional($ingredient)->name ?? '-',
+            'activity' => $activity,
+            'quantity_label' => $quantityLabel,
+        ];
     }
 
     private function formatQuantity(float $value, string $baseUnit): string

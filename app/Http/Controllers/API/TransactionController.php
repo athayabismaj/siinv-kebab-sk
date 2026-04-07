@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
 use App\Models\PaymentMethod;
 use App\Services\ApiTransactionService;
+use App\Support\AdminCache;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -105,6 +106,10 @@ class TransactionController extends Controller
                 $draft,
                 $validated['note'] ?? null
             );
+
+            AdminCache::bumpDashboard();
+            AdminCache::bumpCashflow();
+            AdminCache::bumpUsage();
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {
