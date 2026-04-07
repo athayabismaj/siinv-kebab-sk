@@ -146,21 +146,28 @@ class OwnerCriticalFlowTest extends TestCase
             'total_amount' => $totalAmount,
             'paid_amount' => $paidAmount,
             'change_amount' => max(0, $paidAmount - $totalAmount),
-            'created_at' => $createdAt,
-            'updated_at' => $createdAt,
         ]);
 
-        TransactionDetail::create([
+        $transaction->timestamps = false;
+        $transaction->forceFill([
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ])->save();
+
+        $detail = TransactionDetail::create([
             'transaction_id' => $transaction->id,
             'menu_id' => $menu->id,
             'quantity' => 1,
             'price' => $totalAmount,
             'subtotal' => $totalAmount,
+        ]);
+
+        $detail->timestamps = false;
+        $detail->forceFill([
             'created_at' => $createdAt,
             'updated_at' => $createdAt,
-        ]);
+        ])->save();
 
         return $transaction;
     }
 }
-
