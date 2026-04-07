@@ -20,36 +20,21 @@ class CashflowController extends Controller
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
 
-        $baseQuery = CashflowEntry::query()
-            ->with('creator:id,name')
-            ->where('type', 'expense')
-            ->whereBetween('entry_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
-            ->latest('entry_date')
-            ->latest('id');
-
+        $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
         $this->applySearch($baseQuery, $request);
 
         $entries = (clone $baseQuery)->paginate(10)->withQueryString();
         $groupedEntries = $entries->getCollection()->groupBy(fn ($entry) => $entry->entry_date->toDateString());
 
-        $summaryQuery = CashflowEntry::query()
-            ->where('type', 'expense')
-            ->whereBetween('entry_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
-        $this->applySearch($summaryQuery, $request);
-
-        $salesRevenue = (float) Transaction::query()
-            ->whereBetween('created_at', [
-                $dateFrom->copy()->startOfDay()->toDateTimeString(),
-                $dateTo->copy()->endOfDay()->toDateTimeString(),
-            ])
-            ->sum('total_amount');
-
-        $expenseTotal = (float) (clone $summaryQuery)->sum('amount');
-        $netCash = $salesRevenue - $expenseTotal;
-        $expenseCount = (clone $summaryQuery)->count();
+        $summary = $this->summary($baseQuery, $dateFrom->toDateTimeString(), $dateTo->copy()->endOfDay()->toDateTimeString());
 
         [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
             $this->periodFilter->buildNavigator($type, $dateFrom);
+
+        $salesRevenue = (float) ($summary['salesRevenue'] ?? 0);
+        $expenseTotal = (float) ($summary['expenseTotal'] ?? 0);
+        $expenseCount = (int) ($summary['expenseCount'] ?? 0);
+        $netCash = (float) ($summary['netCash'] ?? 0);
 
         return view('owner.reports.expenses.index', compact(
             'entries',
@@ -76,13 +61,7 @@ class CashflowController extends Controller
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
 
-        $query = CashflowEntry::query()
-            ->with('creator:id,name')
-            ->where('type', 'expense')
-            ->whereBetween('entry_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
-            ->latest('entry_date')
-            ->latest('id');
-
+        $query = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
         $this->applySearch($query, $request);
 
         $rows = $query->get();
@@ -111,6 +90,33 @@ class CashflowController extends Controller
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
+    private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder
+    {
+        return CashflowEntry::query()
+            ->with('creator:id,name')
+            ->where('type', 'expense')
+            ->whereBetween('entry_date', [$dateFrom, $dateTo])
+            ->latest('entry_date')
+            ->latest('id');
+    }
+
+    private function summary(Builder $baseQuery, string $trxFrom, string $trxTo): array
+    {
+        $salesRevenue = (float) Transaction::query()
+            ->whereBetween('created_at', [$trxFrom, $trxTo])
+            ->sum('total_amount');
+
+        $expenseTotal = (float) (clone $baseQuery)->sum('amount');
+        $expenseCount = (int) (clone $baseQuery)->count();
+
+        return [
+            'salesRevenue' => $salesRevenue,
+            'expenseTotal' => $expenseTotal,
+            'expenseCount' => $expenseCount,
+            'netCash' => $salesRevenue - $expenseTotal,
+        ];
+    }
+
     private function applySearch(Builder $query, Request $request): void
     {
         if (! $request->filled('search')) {
@@ -124,11 +130,10 @@ class CashflowController extends Controller
 
         $query->where(function (Builder $q) use ($search) {
             $q->where('source', 'like', "%{$search}%")
-              ->orWhere('note', 'like', "%{$search}%")
-              ->orWhereHas('creator', function (Builder $u) use ($search) {
-                  $u->where('name', 'like', "%{$search}%");
-              });
+                ->orWhere('note', 'like', "%{$search}%")
+                ->orWhereHas('creator', function (Builder $u) use ($search) {
+                    $u->where('name', 'like', "%{$search}%");
+                });
         });
     }
-
 }

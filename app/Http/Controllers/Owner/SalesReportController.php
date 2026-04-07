@@ -3,78 +3,30 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\PeriodClosing;
 use App\Services\Owner\SalesReportQueryService;
+use App\Services\Shared\PeriodFilterService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class SalesReportController extends Controller
 {
     public function __construct(
-        private readonly SalesReportQueryService $queryService
+        private readonly SalesReportQueryService $queryService,
+        private readonly PeriodFilterService $periodFilter
     ) {}
 
     public function index(Request $request)
     {
-        $type = $request->input('type', 'daily');
-        if (!in_array($type, ['daily', 'weekly', 'monthly'], true)) {
-            $type = 'daily';
-        }
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         $data = ['type' => $type];
 
-        switch ($type) {
-            case 'weekly':
-                $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
-                $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
-                $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-                $summary = $this->queryService->buildWeeklySummary($weekAnchor);
-                $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd);
-                $data = array_merge($data, [
-                    'selectedWeekStart' => $selectedWeekStart,
-                    'selectedWeekEnd' => $selectedWeekEnd,
-                    'totalRevenue' => $summary['totalRevenue'],
-                    'totalTransactions' => $summary['totalTransactions'],
-                    'avgTransaction' => $summary['avgTransaction'],
-                    'weeklyBreakdown' => $summary['weeklyBreakdown'],
-                    'topMenu' => $analytics['topMenu'],
-                    'leastMenu' => $analytics['leastMenu'],
-                    'contributions' => $analytics['contributions'],
-                    'totalMenuSold' => $analytics['totalMenuSold'],
-                ]);
-                break;
-
-            case 'monthly':
-                $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
-                $summary = $this->queryService->buildMonthlySummary($selectedMonth);
-                $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedMonth->startOfMonth(), $selectedMonth->copy()->endOfMonth());
-                $data = array_merge($data, [
-                    'selectedMonth' => $selectedMonth,
-                    'totalRevenue' => $summary['totalRevenue'],
-                    'totalTransactions' => $summary['totalTransactions'],
-                    'avgTransaction' => $summary['avgTransaction'],
-                    'dailyBreakdown' => $summary['dailyBreakdown'],
-                    'topMenu' => $analytics['topMenu'],
-                    'leastMenu' => $analytics['leastMenu'],
-                    'contributions' => $analytics['contributions'],
-                    'totalMenuSold' => $analytics['totalMenuSold'],
-                ]);
-                break;
-
-            case 'daily':
-            default:
-                $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-                $summary = $this->queryService->buildDailySummary($selectedDate);
-                $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate);
-                $data = array_merge($data, [
-                    'selectedDate' => $selectedDate,
-                    'totalRevenue' => $summary['totalRevenue'],
-                    'totalTransactions' => $summary['totalTransactions'],
-                    'avgTransaction' => $summary['avgTransaction'],
-                    'totalMenuSold' => $summary['totalMenuSold'],
-                    'topMenu' => $analytics['topMenu'],
-                    'leastMenu' => $analytics['leastMenu'],
-                    'contributions' => $analytics['contributions'],
-                ]);
-                break;
+        if ($type === 'weekly') {
+            $data = array_merge($data, $this->weeklySalesPayload($request));
+        } elseif ($type === 'monthly') {
+            $data = array_merge($data, $this->monthlySalesPayload($request));
+        } else {
+            $data = array_merge($data, $this->dailySalesPayload($request));
         }
 
         return view('owner.reports.sales_unified', $data);
@@ -82,20 +34,16 @@ class SalesReportController extends Controller
 
     public function closingIndex(Request $request)
     {
-        $closings = \App\Models\PeriodClosing::with('closedBy')
+        $closings = PeriodClosing::with('closedBy')
             ->orderByDesc('period_date')
             ->paginate(12);
 
-        // Preview data untuk bulan ini (jika belum tutup buku)
         $thisMonth = now()->startOfMonth();
-        $isClosed = \App\Models\PeriodClosing::where('period_type', 'monthly')
+        $isClosed = PeriodClosing::where('period_type', 'monthly')
             ->where('period_date', $thisMonth->toDateString())
             ->exists();
 
-        $preview = null;
-        if (!$isClosed) {
-            $preview = $this->queryService->buildMonthlySummary($thisMonth);
-        }
+        $preview = $isClosed ? null : $this->queryService->buildMonthlySummary($thisMonth);
 
         return view('owner.reports.closing_index', [
             'closings' => $closings,
@@ -112,20 +60,20 @@ class SalesReportController extends Controller
             'period_date' => 'required|date',
         ]);
 
-        $date = Carbon::parse($request->period_date)->startOfDay();
-        
-        // Cek apakah sudah ditutup
-        if (\App\Models\PeriodClosing::where('period_type', $request->period_type)->where('period_date', $date->toDateString())->exists()) {
+        $date = Carbon::parse((string) $request->input('period_date'))->startOfDay();
+
+        if (PeriodClosing::where('period_type', (string) $request->input('period_type'))
+            ->where('period_date', $date->toDateString())
+            ->exists()) {
             return back()->with('error', 'Periode ini sudah ditutup sebelumnya.');
         }
 
-        // Hitung data final
-        $summary = $request->period_type === 'monthly' 
+        $summary = (string) $request->input('period_type') === 'monthly'
             ? $this->queryService->buildMonthlySummary($date)
-            : $this->queryService->buildYearlySummary($date->year);
+            : $this->queryService->buildYearlySummary((int) $date->year);
 
-        \App\Models\PeriodClosing::create([
-            'period_type' => $request->period_type,
+        PeriodClosing::create([
+            'period_type' => (string) $request->input('period_type'),
             'period_date' => $date->toDateString(),
             'total_revenue' => $summary['totalRevenue'],
             'total_transactions' => $summary['totalTransactions'],
@@ -133,16 +81,14 @@ class SalesReportController extends Controller
             'notes' => $request->input('notes'),
         ]);
 
-        return redirect()->route('owner.reports.closing.index')->with('success', 'Tutup buku periode ' . $date->format('M Y') . ' berhasil!');
+        return redirect()
+            ->route('owner.reports.closing.index')
+            ->with('success', 'Tutup buku periode ' . $date->format('M Y') . ' berhasil!');
     }
 
     public function menuAnalysis(Request $request)
     {
-        $type = $request->input('type', 'daily');
-        if (!in_array($type, ['daily', 'weekly', 'monthly'], true)) {
-            $type = 'daily';
-        }
-
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         $data = ['type' => $type];
 
         if ($type === 'weekly') {
@@ -154,11 +100,7 @@ class SalesReportController extends Controller
             $data = array_merge($data, [
                 'selectedWeekStart' => $selectedWeekStart,
                 'selectedWeekEnd' => $selectedWeekEnd,
-                'topMenu' => $analytics['topMenu'],
-                'leastMenu' => $analytics['leastMenu'],
-                'contributions' => $analytics['contributions'],
-                'totalMenuSold' => $analytics['totalMenuSold'],
-            ]);
+            ], $this->analyticsPayload($analytics));
         } elseif ($type === 'monthly') {
             $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
             $analytics = $this->queryService->buildPeriodMenuAnalytics(
@@ -169,22 +111,14 @@ class SalesReportController extends Controller
 
             $data = array_merge($data, [
                 'selectedMonth' => $selectedMonth,
-                'topMenu' => $analytics['topMenu'],
-                'leastMenu' => $analytics['leastMenu'],
-                'contributions' => $analytics['contributions'],
-                'totalMenuSold' => $analytics['totalMenuSold'],
-            ]);
+            ], $this->analyticsPayload($analytics));
         } else {
             $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
             $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
 
             $data = array_merge($data, [
                 'selectedDate' => $selectedDate,
-                'topMenu' => $analytics['topMenu'],
-                'leastMenu' => $analytics['leastMenu'],
-                'contributions' => $analytics['contributions'],
-                'totalMenuSold' => $analytics['totalMenuSold'],
-            ]);
+            ], $this->analyticsPayload($analytics));
         }
 
         return view('owner.analytics.menu', $data);
@@ -192,7 +126,7 @@ class SalesReportController extends Controller
 
     public function export(Request $request)
     {
-        $type = $request->input('type', 'daily');
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
 
         return match ($type) {
             'weekly' => $this->exportWeekly($request),
@@ -209,31 +143,17 @@ class SalesReportController extends Controller
 
         $filename = 'laporan-penjualan-harian-' . $selectedDate->toDateString() . '.csv';
 
-        return response()->streamDownload(function () use ($selectedDate, $summary, $analytics) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
-
-            fputcsv($output, ['Jenis Laporan', 'Harian']);
-            fputcsv($output, ['Tanggal', $selectedDate->format('Y-m-d')]);
-            fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
-            fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
-            fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
-            fputcsv($output, []);
-
-            fputcsv($output, ['Menu', 'Qty', 'Kontribusi (%)', 'Penjualan']);
-            foreach ($analytics['contributions'] as $item) {
-                fputcsv($output, [
-                    $item->menu_name,
-                    (int) $item->total_qty,
-                    (float) $item->contribution,
-                    (float) $item->total_sales,
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return $this->streamContributionCsv(
+            $filename,
+            [
+                ['Jenis Laporan', 'Harian'],
+                ['Tanggal', $selectedDate->format('Y-m-d')],
+                ['Total Omzet', (string) $summary['totalRevenue']],
+                ['Jumlah Transaksi', (string) $summary['totalTransactions']],
+                ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)],
+            ],
+            $analytics['contributions']
+        );
     }
 
     public function exportMonthly(Request $request)
@@ -279,19 +199,97 @@ class SalesReportController extends Controller
 
         $filename = 'laporan-penjualan-mingguan-' . $selectedWeekStart->toDateString() . '-sampai-' . $selectedWeekEnd->toDateString() . '.csv';
 
-        return response()->streamDownload(function () use ($selectedWeekStart, $selectedWeekEnd, $summary, $analytics) {
+        return $this->streamContributionCsv(
+            $filename,
+            [
+                ['Jenis Laporan', 'Mingguan'],
+                ['Periode', $selectedWeekStart->format('Y-m-d') . ' s/d ' . $selectedWeekEnd->format('Y-m-d')],
+                ['Total Omzet', (string) $summary['totalRevenue']],
+                ['Jumlah Transaksi', (string) $summary['totalTransactions']],
+                ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)],
+            ],
+            $analytics['contributions']
+        );
+    }
+
+    private function dailySalesPayload(Request $request): array
+    {
+        $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
+        $summary = $this->queryService->buildDailySummary($selectedDate);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate);
+
+        return [
+            'selectedDate' => $selectedDate,
+            'totalRevenue' => $summary['totalRevenue'],
+            'totalTransactions' => $summary['totalTransactions'],
+            'avgTransaction' => $summary['avgTransaction'],
+            'totalMenuSold' => $summary['totalMenuSold'],
+            ...$this->analyticsPayload($analytics),
+        ];
+    }
+
+    private function weeklySalesPayload(Request $request): array
+    {
+        $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
+        $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
+        $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
+        $summary = $this->queryService->buildWeeklySummary($weekAnchor);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd);
+
+        return [
+            'selectedWeekStart' => $selectedWeekStart,
+            'selectedWeekEnd' => $selectedWeekEnd,
+            'totalRevenue' => $summary['totalRevenue'],
+            'totalTransactions' => $summary['totalTransactions'],
+            'avgTransaction' => $summary['avgTransaction'],
+            'weeklyBreakdown' => $summary['weeklyBreakdown'],
+            ...$this->analyticsPayload($analytics),
+        ];
+    }
+
+    private function monthlySalesPayload(Request $request): array
+    {
+        $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
+        $summary = $this->queryService->buildMonthlySummary($selectedMonth);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics(
+            $selectedMonth->copy()->startOfMonth(),
+            $selectedMonth->copy()->endOfMonth()
+        );
+
+        return [
+            'selectedMonth' => $selectedMonth,
+            'totalRevenue' => $summary['totalRevenue'],
+            'totalTransactions' => $summary['totalTransactions'],
+            'avgTransaction' => $summary['avgTransaction'],
+            'dailyBreakdown' => $summary['dailyBreakdown'],
+            ...$this->analyticsPayload($analytics),
+        ];
+    }
+
+    private function analyticsPayload(array $analytics): array
+    {
+        return [
+            'topMenu' => $analytics['topMenu'],
+            'leastMenu' => $analytics['leastMenu'],
+            'contributions' => $analytics['contributions'],
+            'totalMenuSold' => $analytics['totalMenuSold'],
+        ];
+    }
+
+    private function streamContributionCsv(string $filename, array $metaRows, $contributions)
+    {
+        return response()->streamDownload(function () use ($metaRows, $contributions) {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");
 
-            fputcsv($output, ['Jenis Laporan', 'Mingguan']);
-            fputcsv($output, ['Periode', $selectedWeekStart->format('Y-m-d') . ' s/d ' . $selectedWeekEnd->format('Y-m-d')]);
-            fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
-            fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
-            fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
-            fputcsv($output, []);
+            foreach ($metaRows as $row) {
+                fputcsv($output, $row);
+            }
 
+            fputcsv($output, []);
             fputcsv($output, ['Menu', 'Qty', 'Kontribusi (%)', 'Penjualan']);
-            foreach ($analytics['contributions'] as $item) {
+
+            foreach ($contributions as $item) {
                 fputcsv($output, [
                     $item->menu_name,
                     (int) $item->total_qty,

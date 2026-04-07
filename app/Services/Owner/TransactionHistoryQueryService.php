@@ -11,10 +11,8 @@ class TransactionHistoryQueryService
     public function baseFilterQuery(Carbon $dateFrom, Carbon $dateTo): Builder
     {
         return Transaction::query()
-            ->whereBetween('transactions.created_at', [
-                $dateFrom->copy()->startOfDay()->toDateTimeString(),
-                $dateTo->copy()->endOfDay()->toDateTimeString(),
-            ]);
+            ->whereDate('transactions.created_at', '>=', $dateFrom->toDateString())
+            ->whereDate('transactions.created_at', '<=', $dateTo->toDateString());
     }
 
     public function baseListQuery(Carbon $dateFrom, Carbon $dateTo): Builder
@@ -92,4 +90,3 @@ class TransactionHistoryQueryService
         return (string) ($topCashierRow->cashier_name ?? '-');
     }
 }
-
