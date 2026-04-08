@@ -40,7 +40,7 @@
             <span class="text-slate-200 dark:text-slate-700">/</span>
             <span class="text-slate-600 dark:text-slate-300">Analisis Menu</span>
         </nav>
-        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">Analisis Menu</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">Analisis Menu</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
             Pantau performa penjualan menu berdasarkan periode harian, mingguan, atau bulanan.
         </p>

@@ -19,7 +19,7 @@
                 <span class="text-slate-200 dark:text-slate-800">/</span>
                 <span class="text-slate-600 dark:text-slate-400">Detail</span>
             </nav>
-            <h1 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Detail Transaksi</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Detail Transaksi</h1>
             <p class="text-slate-400 dark:text-slate-500 text-sm mt-3 flex items-center gap-2 flex-wrap">
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                 <span class="font-mono font-bold text-slate-700 dark:text-slate-300 break-all">{{ $transaction->transaction_code }}</span>
@@ -327,3 +327,5 @@
 </div>
 
 @endsection
+
+

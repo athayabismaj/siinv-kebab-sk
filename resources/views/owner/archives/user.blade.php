@@ -22,7 +22,7 @@
 
         {{-- Judul & Tombol Aksi Utama --}}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
-            <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Arsip Pengguna
             </h1>
 

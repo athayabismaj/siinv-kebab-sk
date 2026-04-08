@@ -15,7 +15,7 @@
             <span class="text-slate-600 dark:text-slate-300">Analisis Penjualan</span>
         </nav>
 
-        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">
             Analisis Penjualan
         </h1>
 
