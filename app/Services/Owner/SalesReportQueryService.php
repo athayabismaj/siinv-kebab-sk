@@ -4,153 +4,145 @@ namespace App\Services\Owner;
 
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
+use App\Support\AdminCache;
+use App\Services\Analytics\DailySalesSummaryService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class SalesReportQueryService
 {
+    public function __construct(
+        private readonly DailySalesSummaryService $dailySummaryService
+    ) {
+    }
+
     public function buildDailySummary(Carbon $selectedDate): array
     {
-        [$startDateTime, $endDateTime] = $this->toDateTimeRange($selectedDate, $selectedDate);
-        $aggregate = Transaction::query()
-            ->whereBetween('created_at', [$startDateTime, $endDateTime])
-            ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
-            ->first();
+        $dateKey = $selectedDate->toDateString();
 
-        $totalTransactions = (int) ($aggregate->total_transactions ?? 0);
-        $totalRevenue = (float) ($aggregate->total_revenue ?? 0);
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
+        return $this->remember('daily_summary:' . $dateKey, function () use ($selectedDate) {
+            $summary = $this->dailySummaryService->getOrBuildForDate($selectedDate);
+            $totalTransactions = (int) $summary['total_transactions'];
+            $totalRevenue = (float) $summary['total_revenue'];
 
-        $menuStats = $this->buildPeriodMenuStats($selectedDate, $selectedDate);
-
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'totalMenuSold' => (int) $menuStats->sum('total_qty'),
-        ];
+            return [
+                'totalTransactions' => $totalTransactions,
+                'totalRevenue' => $totalRevenue,
+                'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
+                'totalMenuSold' => (int) $summary['total_items_sold'],
+            ];
+        });
     }
 
     public function buildMonthlySummary(Carbon $selectedMonth): array
     {
-        [$startDateTime, $endDateTime] = $this->toDateTimeRange(
-            $selectedMonth->copy()->startOfMonth(),
-            $selectedMonth->copy()->endOfMonth()
-        );
+        $monthStart = $selectedMonth->copy()->startOfMonth();
+        $monthEnd = $selectedMonth->copy()->endOfMonth();
+        $monthKey = $selectedMonth->format('Y-m');
 
-        $query = Transaction::query()
-            ->whereBetween('created_at', [$startDateTime, $endDateTime]);
+        return $this->remember('monthly_summary:' . $monthKey, function () use ($monthStart, $monthEnd) {
+            $summary = $this->dailySummaryService->getRange($monthStart, $monthEnd);
+            $totalTransactions = (int) $summary['total_transactions'];
+            $totalRevenue = (float) $summary['total_revenue'];
 
-        $totalTransactions = (clone $query)->count();
-        $totalRevenue = (float) (clone $query)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
-
-        $dailyBreakdown = DB::table('transactions')
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as trx_count, SUM(total_amount) as revenue')
-            ->whereBetween('created_at', [$startDateTime, $endDateTime])
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date', 'asc')
-            ->get();
-
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'dailyBreakdown' => $dailyBreakdown,
-        ];
+            return [
+                'totalTransactions' => $totalTransactions,
+                'totalRevenue' => $totalRevenue,
+                'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
+                'dailyBreakdown' => $summary['daily_breakdown'],
+            ];
+        });
     }
 
     public function buildWeeklySummary(Carbon $weekAnchor): array
     {
         $weekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
         $weekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-        [$startDateTime, $endDateTime] = $this->toDateTimeRange($weekStart, $weekEnd);
+        $key = $weekStart->toDateString() . ':' . $weekEnd->toDateString();
 
-        $query = Transaction::query()
-            ->whereBetween('created_at', [$startDateTime, $endDateTime]);
+        return $this->remember('weekly_summary:' . $key, function () use ($weekStart, $weekEnd) {
+            $summary = $this->dailySummaryService->getRange($weekStart, $weekEnd);
+            $totalTransactions = (int) $summary['total_transactions'];
+            $totalRevenue = (float) $summary['total_revenue'];
 
-        $totalTransactions = (clone $query)->count();
-        $totalRevenue = (float) (clone $query)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
-
-        $weeklyBreakdown = DB::table('transactions')
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as trx_count, SUM(total_amount) as revenue')
-            ->whereBetween('created_at', [$startDateTime, $endDateTime])
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date', 'asc')
-            ->get();
-
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'weeklyBreakdown' => $weeklyBreakdown,
-        ];
+            return [
+                'totalTransactions' => $totalTransactions,
+                'totalRevenue' => $totalRevenue,
+                'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
+                'weeklyBreakdown' => $summary['daily_breakdown'],
+            ];
+        });
     }
 
     public function buildYearlySummary(int $year): array
     {
-        $query = Transaction::query()
-            ->whereYear('created_at', $year);
+        return $this->remember('yearly_summary:' . $year, function () use ($year) {
+            $start = Carbon::create($year, 1, 1)->startOfMonth();
+            $end = Carbon::create($year, 12, 31)->endOfMonth();
 
-        $totalTransactions = (clone $query)->count();
-        $totalRevenue = (float) (clone $query)->sum('total_amount');
-        $avgTransaction = $totalTransactions > 0
-            ? $totalRevenue / $totalTransactions
-            : 0;
+            $summary = $this->dailySummaryService->getRange($start, $end);
+            $totalTransactions = (int) $summary['total_transactions'];
+            $totalRevenue = (float) $summary['total_revenue'];
 
-        $monthlyBreakdown = DB::table('transactions')
-            ->selectRaw('EXTRACT(MONTH FROM created_at) as month, COUNT(*) as trx_count, SUM(total_amount) as revenue')
-            ->whereYear('created_at', $year)
-            ->groupBy(DB::raw('EXTRACT(MONTH FROM created_at)'))
-            ->orderBy('month', 'asc')
-            ->get();
+            $monthlyBreakdown = collect($summary['daily_breakdown'])
+                ->groupBy(function ($row) {
+                    return (int) Carbon::parse($row->date)->month;
+                })
+                ->map(function ($rows, $month) {
+                    return (object) [
+                        'month' => (int) $month,
+                        'trx_count' => (int) collect($rows)->sum('trx_count'),
+                        'revenue' => (float) collect($rows)->sum('revenue'),
+                    ];
+                })
+                ->sortBy('month')
+                ->values();
 
-        return [
-            'totalTransactions' => $totalTransactions,
-            'totalRevenue' => $totalRevenue,
-            'avgTransaction' => $avgTransaction,
-            'monthlyBreakdown' => $monthlyBreakdown,
-        ];
+            return [
+                'totalTransactions' => $totalTransactions,
+                'totalRevenue' => $totalRevenue,
+                'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
+                'monthlyBreakdown' => $monthlyBreakdown,
+            ];
+        });
     }
 
     public function buildPeriodMenuAnalytics(Carbon $start, Carbon $end, bool $limitTopTen = true): array
     {
-        $menuStats = $this->buildPeriodMenuStats($start, $end);
-        $totalMenuSold = (int) $menuStats->sum('total_qty');
+        $cacheSuffix = 'menu_analytics:' . $start->toDateString() . ':' . $end->toDateString() . ':' . ($limitTopTen ? '10' : 'all');
 
-        $contributions = $menuStats
-            ->map(function ($item) use ($totalMenuSold) {
-                $qty = (int) $item->total_qty;
-                $item->contribution = $totalMenuSold > 0
-                    ? round(($qty / $totalMenuSold) * 100, 1)
-                    : 0;
+        return $this->remember($cacheSuffix, function () use ($start, $end, $limitTopTen) {
+            $menuStats = $this->buildPeriodMenuStats($start, $end);
+            $totalMenuSold = (int) $menuStats->sum('total_qty');
 
-                return $item;
-            })
-            ->sortByDesc('contribution');
+            $contributions = $menuStats
+                ->map(function ($item) use ($totalMenuSold) {
+                    $qty = (int) $item->total_qty;
+                    $item->contribution = $totalMenuSold > 0
+                        ? round(($qty / $totalMenuSold) * 100, 1)
+                        : 0;
 
-        if ($limitTopTen) {
-            $contributions = $contributions->take(10);
-        }
+                    return $item;
+                })
+                ->sortByDesc('contribution');
 
-        return [
-            'topMenu' => $menuStats->first(),
-            'leastMenu' => $menuStats
-                ->sortBy([
-                    ['total_qty', 'asc'],
-                    ['total_sales', 'asc'],
-                ])
-                ->first(),
-            'contributions' => $contributions->values(),
-            'totalMenuSold' => $totalMenuSold,
-        ];
+            if ($limitTopTen) {
+                $contributions = $contributions->take(10);
+            }
+
+            return [
+                'topMenu' => $menuStats->first(),
+                'leastMenu' => $menuStats
+                    ->sortBy([
+                        ['total_qty', 'asc'],
+                        ['total_sales', 'asc'],
+                    ])
+                    ->first(),
+                'contributions' => $contributions->values(),
+                'totalMenuSold' => $totalMenuSold,
+            ];
+        });
     }
 
     private function buildPeriodMenuStats(Carbon $start, Carbon $end)
@@ -174,5 +166,14 @@ class SalesReportQueryService
             $start->copy()->startOfDay()->toDateTimeString(),
             $end->copy()->endOfDay()->toDateTimeString(),
         ];
+    }
+
+    private function remember(string $suffix, callable $resolver): array
+    {
+        return Cache::remember(
+            AdminCache::key('cashflow', 'owner:' . $suffix),
+            now()->addSeconds(120),
+            $resolver
+        );
     }
 }

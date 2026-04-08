@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PeriodClosing;
 use App\Services\Owner\SalesReportQueryService;
 use App\Services\Shared\PeriodFilterService;
+use App\Services\ReportExportDispatchService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -126,13 +127,21 @@ class SalesReportController extends Controller
 
     public function export(Request $request)
     {
-        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
+        $export = app(ReportExportDispatchService::class)->dispatch(
+            $request->user(),
+            'owner',
+            'owner.sales',
+            $request->query()
+        );
 
-        return match ($type) {
-            'weekly' => $this->exportWeekly($request),
-            'monthly' => $this->exportMonthly($request),
-            default => $this->exportDaily($request),
-        };
+        $message = 'Export laporan penjualan masuk antrian. ID: #' . $export->id;
+        if ($export->scheduled_for) {
+            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+        }
+
+        return redirect()
+            ->route('owner.exports.index')
+            ->with('success', $message);
     }
 
     public function exportDaily(Request $request)
@@ -336,3 +345,5 @@ class SalesReportController extends Controller
         }
     }
 }
+
+
