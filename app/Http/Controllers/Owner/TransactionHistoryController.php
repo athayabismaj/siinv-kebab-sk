@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
+use App\Services\ReportExportDispatchService;
 use App\Services\Shared\PeriodFilterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -14,7 +15,8 @@ class TransactionHistoryController extends Controller
 {
     public function __construct(
         private readonly TransactionHistoryQueryService $queryService,
-        private readonly PeriodFilterService $periodFilter
+        private readonly PeriodFilterService $periodFilter,
+        private readonly ReportExportDispatchService $exportDispatch
     ) {}
 
     public function index(Request $request)
@@ -70,48 +72,21 @@ class TransactionHistoryController extends Controller
 
     public function export(Request $request)
     {
-        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
-        [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
-        $filters = $request->only(['search', 'user_id', 'payment_method_id']);
-        $query = $this->queryService
-            ->applyFilters(
-                $this->queryService->baseListQuery($dateFrom, $dateTo),
-                $filters
-            )
-            ->latest();
+        $export = $this->exportDispatch->dispatch(
+            $request->user(),
+            'owner',
+            'owner.transactions',
+            $request->query()
+        );
 
-        $rows = $query->get();
+        $message = 'Export transaksi masuk antrian. ID: #' . $export->id;
+        if ($export->scheduled_for) {
+            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+        }
 
-        $filename = 'riwayat-transaksi-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
-
-        return response()->streamDownload(function () use ($rows, $dateFrom, $dateTo) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
-
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
-            fputcsv($output, []);
-            fputcsv($output, [
-                'Kode', 'Kasir', 'Metode Pembayaran', 'Status',
-                'Jumlah Item', 'Total', 'Dibayar', 'Kembalian', 'Waktu',
-            ]);
-
-            foreach ($rows as $trx) {
-                $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount;
-                fputcsv($output, [
-                    $trx->transaction_code,
-                    optional($trx->user)->name ?? '-',
-                    optional($trx->paymentMethod)->name ?? '-',
-                    $isPaid ? 'Lunas' : 'Kurang',
-                    (int) $trx->details_count,
-                    (float) $trx->total_amount,
-                    (float) $trx->paid_amount,
-                    (float) $trx->change_amount,
-                    $trx->created_at?->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return redirect()
+            ->route('owner.exports.index')
+            ->with('success', $message);
     }
 
     public function show(Transaction $transaction)
@@ -129,7 +104,7 @@ class TransactionHistoryController extends Controller
     {
         return Cache::remember(
             'payment_methods:list',
-            now()->addMinutes(2),
+            now()->addSeconds(90),
             fn () => PaymentMethod::query()
                 ->select('id', 'name')
                 ->orderBy('name')
@@ -141,7 +116,7 @@ class TransactionHistoryController extends Controller
     {
         return Cache::remember(
             'owner:transaction_cashiers:list',
-            now()->addMinutes(2),
+            now()->addSeconds(90),
             fn () => Transaction::query()
                 ->join('users', 'users.id', '=', 'transactions.user_id')
                 ->select('users.id', 'users.name')
@@ -152,3 +127,4 @@ class TransactionHistoryController extends Controller
     }
 
 }
+

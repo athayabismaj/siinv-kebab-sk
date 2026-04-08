@@ -27,16 +27,16 @@ Route::prefix('auth')->group(function () {
         );    });
 
 Route::get('/revenue/summary', [TransactionController::class , 'revenueSummary'])
-    ->middleware(['api.token', 'throttle:60,1']);
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::get('/revenue/trend', [TransactionController::class , 'revenueTrend'])
-    ->middleware(['api.token', 'throttle:60,1']);
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::get('/transactions', [TransactionController::class , 'index'])
-    ->middleware(['api.token', 'throttle:60,1']);
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::post('/transactions', [TransactionController::class , 'store'])
-    ->middleware(['api.token', 'throttle:30,1']);
+    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
 
 Route::get('/menus', [MenuController::class , 'index'])
-    ->middleware(['api.token', 'throttle:60,1']);
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
 
 Route::get('/payment-methods', [PaymentMethodController::class , 'index'])
-    ->middleware(['api.token', 'throttle:60,1']);
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);

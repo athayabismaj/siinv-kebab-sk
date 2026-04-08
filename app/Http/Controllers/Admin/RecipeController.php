@@ -45,7 +45,7 @@ class RecipeController extends Controller
         }
 
         $menus = $query->orderBy('name')
-                       ->paginate(5)
+                       ->paginate(10)
                        ->withQueryString();
 
         $categories = MenuCategory::orderBy('name')->get();
@@ -145,3 +145,4 @@ class RecipeController extends Controller
         }
     }
 }
+

@@ -4,11 +4,24 @@ namespace App\Services\Owner;
 
 use App\Models\Ingredient;
 use App\Models\Transaction;
+use App\Support\AdminCache;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardQueryService
 {
     public function buildDashboardData(): array
+    {
+        $todayKey = now()->toDateString();
+
+        return Cache::remember(
+            AdminCache::key('dashboard', 'owner:dashboard:' . $todayKey),
+            now()->addSeconds(90),
+            fn () => $this->buildFreshDashboardData()
+        );
+    }
+
+    private function buildFreshDashboardData(): array
     {
         $todayStart = now()->startOfDay();
         $todayEnd = now()->endOfDay();
@@ -130,3 +143,4 @@ class DashboardQueryService
         return trim($formatted . ' ' . $displayUnit);
     }
 }
+

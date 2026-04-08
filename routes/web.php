@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UsageReportController;
 use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
+use App\Http\Controllers\ReportExportController;
 
 
 
@@ -38,31 +39,19 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 |--------------------------------------------------------------------------
 */
 
-Route::get('/forgot-password', function () {
-    return view('auth.forgot');
-})->name('password.request');
+Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
 
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])
     ->middleware('throttle:3,1')
     ->name('password.sendOtp');
 
-Route::get('/verify-otp', function () {
-    if (!session('otp_email')) {
-        return redirect()->route('password.request');
-    }
-    return view('auth.verify_otp');
-})->name('password.verify.form');
+Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerifyForm'])->name('password.verify.form');
 
 Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])
     ->middleware('throttle:10,1')
     ->name('password.verifyOtp');
 
-Route::get('/reset-password', function () {
-    if (!session('password_reset_user_id')) {
-        return redirect()->route('password.request');
-    }
-    return view('auth.reset_password');
-})->name('password.reset.form');
+Route::get('/reset-password', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset.form');
 
 Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])
     ->middleware('throttle:5,1')
@@ -108,32 +97,51 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
             Route::get('/archive',[UserManagementController::class, 'archive'])->name('archive');
             Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
         });
+        Route::prefix('exports')->name('exports.')->group(function () {
+            Route::get('/', [ReportExportController::class, 'index'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('index');
+            Route::get('/{reportExport}/download', [ReportExportController::class, 'download'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('download');
+        });
+
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockMonitoringController::class, 'index'])->name('index');
         });
 
         Route::prefix('transactions')->name('transactions.')->group(function () {
             Route::get('/', [TransactionHistoryController::class, 'index'])->name('index');
-            Route::get('/export', [TransactionHistoryController::class, 'export'])->name('export');
+            Route::get('/export', [TransactionHistoryController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('export');
             Route::get('/{transaction}', [TransactionHistoryController::class, 'show'])->name('show');
         });
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/sales', [SalesReportController::class, 'index'])->name('sales');
-            Route::get('/sales/export', [SalesReportController::class, 'export'])->name('sales.export');
+            Route::get('/sales/export', [SalesReportController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('sales.export');
             
             // Tutup Buku (Closing)
             Route::get('/closing', [SalesReportController::class, 'closingIndex'])->name('closing.index');
             Route::post('/closing', [SalesReportController::class, 'closePeriod'])->name('closing.store');
 
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
-            Route::get('/usage/export', [UsageReportController::class, 'export'])->name('usage.export');
+            Route::get('/usage/export', [UsageReportController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('usage.export');
             Route::get('/cashflow', [OwnerCashflowController::class, 'index'])->name('cashflow');
-            Route::get('/cashflow/export', [OwnerCashflowController::class, 'export'])->name('cashflow.export');
+            Route::get('/cashflow/export', [OwnerCashflowController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('cashflow.export');
         });
 
         Route::prefix('analytics')->name('analytics.')->group(function () {
-            Route::get('/menu', [SalesReportController::class, 'menuAnalysis'])->name('menu');
+            Route::get('/menu', [SalesReportController::class, 'menuAnalysis'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('menu');
         });
 
 
@@ -207,10 +215,22 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
             });
 
 
+
+        Route::prefix('exports')->name('exports.')->group(function () {
+            Route::get('/', [ReportExportController::class, 'index'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('index');
+            Route::get('/{reportExport}/download', [ReportExportController::class, 'download'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('download');
+        });
+
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockController::class,'index'])->name('index');
             Route::get('/logs', [StockController::class,'logs'])->name('logs');
-            Route::get('/logs/export', [StockController::class,'exportLogs'])->name('logs.export');
+            Route::get('/logs/export', [StockController::class,'exportLogs'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('logs.export');
             Route::get('/{ingredient}/restock', [StockController::class,'restockForm'])->name('restock.form');
             Route::post('/{ingredient}/restock', [StockController::class,'restock'])->name('restock');
             Route::get('/{ingredient}/adjust', [StockController::class,'adjustForm'])->name('adjust.form');
@@ -232,15 +252,23 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
-            Route::get('/usage/export', [UsageReportController::class, 'export'])->name('usage.export');
+            Route::get('/usage/export', [UsageReportController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('usage.export');
             Route::get('/cashflow', [AdminCashflowController::class, 'index'])->name('cashflow');
             Route::get('/cashflow/input', [AdminCashflowController::class, 'create'])->name('cashflow.create');
             Route::post('/cashflow/input', [AdminCashflowController::class, 'store'])->name('cashflow.store');
-            Route::get('/cashflow/export', [AdminCashflowController::class, 'export'])->name('cashflow.export');
+            Route::get('/cashflow/export', [AdminCashflowController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('cashflow.export');
         });
 
 
 });
+
+
+
+
 
 
 

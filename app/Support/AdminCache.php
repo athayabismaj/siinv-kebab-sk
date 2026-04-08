@@ -42,6 +42,16 @@ class AdminCache
         return self::bump('usage');
     }
 
+    public static function bumpCatalog(): int
+    {
+        return self::bump('catalog');
+    }
+
+    public static function bumpPaymentMethods(): int
+    {
+        return self::bump('payment_methods');
+    }
+
     private static function versionKey(string $domain): string
     {
         return 'admin:cache_version:' . $domain;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CashflowEntry;
 use App\Models\Transaction;
+use App\Services\ReportExportDispatchService;
 use App\Support\AdminCache;
 use App\Support\ReportPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,11 @@ use Illuminate\Support\Facades\Cache;
 
 class CashflowController extends Controller
 {
+    public function __construct(
+        private readonly ReportExportDispatchService $exportDispatch
+    ) {
+    }
+
     public function index(Request $request)
     {
         $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
@@ -93,37 +99,21 @@ class CashflowController extends Controller
 
     public function export(Request $request)
     {
-        $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
-        [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type);
+        $export = $this->exportDispatch->dispatch(
+            $request->user(),
+            'admin',
+            'admin.cashflow',
+            $request->query()
+        );
 
-        $query = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
-        $this->applySearch($query, $request);
+        $message = 'Export pengeluaran masuk antrian. ID: #' . $export->id;
+        if ($export->scheduled_for) {
+            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+        }
 
-        $rows = $query->get();
-
-        $filename = 'pengeluaran-' . $type . '-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
-
-        return response()->streamDownload(function () use ($rows, $dateFrom, $dateTo) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
-
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
-            fputcsv($output, []);
-            fputcsv($output, ['Tanggal', 'Nominal', 'Kategori', 'Catatan', 'Input Oleh', 'Waktu Input']);
-
-            foreach ($rows as $row) {
-                fputcsv($output, [
-                    optional($row->entry_date)->format('Y-m-d'),
-                    (float) $row->amount,
-                    $row->source ?? '-',
-                    $row->note ?? '-',
-                    optional($row->creator)->name ?? '-',
-                    optional($row->created_at)->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return redirect()
+            ->route('admin.exports.index')
+            ->with('success', $message);
     }
 
     private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder
@@ -145,7 +135,7 @@ class CashflowController extends Controller
             'search' => trim((string) $request->input('search', '')),
         ])));
 
-        return Cache::remember($summaryKey, now()->addSeconds(45), function () use ($dateFrom, $dateTo, $baseQuery) {
+        return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($dateFrom, $dateTo, $baseQuery) {
             $salesRevenue = (float) Transaction::query()
                 ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->sum('total_amount');
@@ -182,3 +172,4 @@ class CashflowController extends Controller
         });
     }
 }
+

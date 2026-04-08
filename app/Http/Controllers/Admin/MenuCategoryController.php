@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MenuCategory;
+use App\Support\AdminCache;
 use Illuminate\Http\Request;
 
 class MenuCategoryController extends Controller
@@ -33,6 +34,8 @@ class MenuCategoryController extends Controller
             'name' => $request->name
         ]);
 
+        AdminCache::bumpCatalog();
+
         return redirect()
             ->route('admin.menu-categories.index')
             ->with('success', 'Kategori menu berhasil ditambahkan.');
@@ -53,6 +56,8 @@ class MenuCategoryController extends Controller
             'name' => $request->name
         ]);
 
+        AdminCache::bumpCatalog();
+
         return redirect()
             ->route('admin.menu-categories.index')
             ->with('success', 'Kategori menu berhasil diperbarui.');
@@ -67,6 +72,7 @@ class MenuCategoryController extends Controller
         }
 
         $menuCategory->delete();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menu-categories.index')

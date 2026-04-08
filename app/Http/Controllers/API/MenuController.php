@@ -4,7 +4,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
+use App\Support\AdminCache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class MenuController extends Controller
 {
@@ -14,60 +16,75 @@ class MenuController extends Controller
         $role = strtolower((string) optional($user->role)->name);
         $isPrivileged = in_array($role, ['owner', 'admin'], true);
 
-        $query = Menu::query()
-            ->with([
-                'category:id,name',
-                'variants' => function ($variantQuery) use ($isPrivileged) {
-                    $variantQuery
-                        ->select('id', 'menu_id', 'name', 'price', 'is_available', 'sort_order')
-                        ->orderBy('sort_order');
+        $search = $request->filled('search')
+            ? mb_substr(trim((string) $request->input('search')), 0, 100)
+            : null;
+        $categoryId = $request->filled('category_id')
+            ? (int) $request->input('category_id')
+            : null;
 
-                    if (! $isPrivileged) {
-                        $variantQuery->where('is_available', true);
-                    }
-                },
-            ])
-            ->whereNull('deleted_at')
-            ->select('id', 'category_id', 'name', 'description', 'image_path', 'is_active', 'sort_order')
-            ->orderBy('sort_order')
-            ->orderBy('name');
+        $cacheKey = AdminCache::key('catalog', 'api:menus:' . md5(json_encode([
+            'role' => $role,
+            'privileged' => $isPrivileged,
+            'search' => $search,
+            'category_id' => $categoryId,
+        ])));
 
-        if ($request->filled('search')) {
-            $search = mb_substr(trim((string) $request->search), 0, 100);
-            $query->where('name', 'like', "%{$search}%");
-        }
+        $menus = Cache::remember($cacheKey, now()->addSeconds(120), function () use ($isPrivileged, $search, $categoryId) {
+            $query = Menu::query()
+                ->with([
+                    'category:id,name',
+                    'variants' => function ($variantQuery) use ($isPrivileged) {
+                        $variantQuery
+                            ->select('id', 'menu_id', 'name', 'price', 'is_available', 'sort_order')
+                            ->orderBy('sort_order');
 
-        if ($request->filled('category_id')) {
-            $query->where('category_id', (int) $request->category_id);
-        }
+                        if (! $isPrivileged) {
+                            $variantQuery->where('is_available', true);
+                        }
+                    },
+                ])
+                ->whereNull('deleted_at')
+                ->select('id', 'category_id', 'name', 'description', 'image_path', 'is_active', 'sort_order')
+                ->orderBy('sort_order')
+                ->orderBy('name');
 
-        if (! $isPrivileged) {
-            $query->where('is_active', true);
-        }
+            if ($search !== null && $search !== '') {
+                $query->where('name', 'like', "%{$search}%");
+            }
 
-        $menus = $query->get()->map(function (Menu $menu) use ($isPrivileged) {
-            return [
-                'id' => $menu->id,
-                'name' => $menu->name,
-                'description' => $menu->description,
-                'image_url' => $menu->image_path ? asset('storage/' . $menu->image_path) : null,
-                'is_active' => (bool) $menu->is_active,
-                'sort_order' => (int) $menu->sort_order,
-                'category' => $menu->category ? [
-                    'id' => $menu->category->id,
-                    'name' => $menu->category->name,
-                ] : null,
-                'variants' => $menu->variants->map(fn ($variant) => [
-                    'id' => $variant->id,
-                    'name' => $variant->name,
-                    'price' => (float) $variant->price,
-                    'is_available' => (bool) $variant->is_available,
-                    'sort_order' => (int) $variant->sort_order,
-                ])->values(),
-                'can_edit' => $isPrivileged,
-                'can_sell' => (bool) $menu->is_active,
-            ];
-        })->values();
+            if ($categoryId !== null) {
+                $query->where('category_id', $categoryId);
+            }
+
+            if (! $isPrivileged) {
+                $query->where('is_active', true);
+            }
+
+            return $query->get()->map(function (Menu $menu) use ($isPrivileged) {
+                return [
+                    'id' => $menu->id,
+                    'name' => $menu->name,
+                    'description' => $menu->description,
+                    'image_url' => $menu->image_path ? asset('storage/' . $menu->image_path) : null,
+                    'is_active' => (bool) $menu->is_active,
+                    'sort_order' => (int) $menu->sort_order,
+                    'category' => $menu->category ? [
+                        'id' => $menu->category->id,
+                        'name' => $menu->category->name,
+                    ] : null,
+                    'variants' => $menu->variants->map(fn ($variant) => [
+                        'id' => $variant->id,
+                        'name' => $variant->name,
+                        'price' => (float) $variant->price,
+                        'is_available' => (bool) $variant->is_available,
+                        'sort_order' => (int) $variant->sort_order,
+                    ])->values(),
+                    'can_edit' => $isPrivileged,
+                    'can_sell' => (bool) $menu->is_active,
+                ];
+            })->values();
+        });
 
         return response()->json([
             'success' => true,

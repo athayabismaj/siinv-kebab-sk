@@ -76,6 +76,7 @@ class MenuController extends Controller
         ]);
 
         AdminCache::bumpDashboard();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menus.index')
@@ -110,6 +111,7 @@ class MenuController extends Controller
 
         $menu->update($data);
         AdminCache::bumpDashboard();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menus.index')
@@ -120,6 +122,7 @@ class MenuController extends Controller
     {
         $menu->delete();
         AdminCache::bumpDashboard();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menus.index')
@@ -165,6 +168,7 @@ class MenuController extends Controller
         $menu = Menu::onlyTrashed()->findOrFail($id);
         $menu->restore();
         AdminCache::bumpDashboard();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menus.archive')
@@ -235,3 +239,4 @@ class MenuController extends Controller
         }
     }
 }
+

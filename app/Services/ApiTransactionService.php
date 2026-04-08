@@ -123,10 +123,26 @@ class ApiTransactionService
             ->select('id', 'name')
             ->findOrFail((int) $validated['payment_method_id']);
 
+        $requestedVariantIds = collect($validated['items'])
+            ->pluck('variant_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $variants = MenuVariant::query()
+            ->with('menu:id,name,is_active')
+            ->whereIn('id', $requestedVariantIds)
+            ->get()
+            ->keyBy('id');
+
         foreach ($validated['items'] as $item) {
-            $variant = MenuVariant::query()
-                ->with('menu')
-                ->findOrFail((int) $item['variant_id']);
+            $variantId = (int) $item['variant_id'];
+            $variant = $variants->get($variantId);
+
+            if (! $variant) {
+                throw (new \Illuminate\Database\Eloquent\ModelNotFoundException())
+                    ->setModel(MenuVariant::class, [$variantId]);
+            }
 
             if (! $variant->is_available || ! optional($variant->menu)->is_active) {
                 return [
@@ -145,7 +161,7 @@ class ApiTransactionService
             $totalAmount += $subtotal;
 
             $lineItems[] = [
-                'variant_id' => (int) $item['variant_id'],
+                'variant_id' => $variantId,
                 'variant_name' => $variant->name,
                 'menu_id' => (int) $variant->menu_id,
                 'menu_name' => optional($variant->menu)->name,

@@ -10,6 +10,7 @@ use App\Support\AdminCache;
 use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
 use App\Support\StockLogView;
+use App\Services\ReportExportDispatchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +35,7 @@ class StockController extends Controller
 
         $categories = $categoriesQuery
             ->orderBy('name')
-            ->paginate(5)
+            ->paginate(10)
             ->withQueryString();
 
         $categories->setCollection(
@@ -300,55 +301,21 @@ class StockController extends Controller
 
     public function exportLogs(Request $request)
     {
-        $period = StockLogView::normalizePeriod($request->input('period'));
-        $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
-        [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
-
-        $query = StockLog::with('ingredient')
-            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
-            ->latest();
-
-        $typeFilter = $request->input('type');
-        if ($typeFilter && in_array($typeFilter, ['in', 'out', 'adjustment'], true)) {
-            $query->where('type', $typeFilter);
-        }
-
-        $rows = $query->get();
-
-        $filename = sprintf(
-            'riwayat-stok-%s-%s_sd_%s.csv',
-            $period,
-            $rangeStart->toDateString(),
-            $rangeEnd->toDateString()
+        $export = app(ReportExportDispatchService::class)->dispatch(
+            $request->user(),
+            'admin',
+            'admin.stock_logs',
+            $request->query()
         );
 
-        return response()->streamDownload(function () use ($rows, $period, $rangeStart, $rangeEnd) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
+        $message = 'Export riwayat stok masuk antrian. ID: #' . $export->id;
+        if ($export->scheduled_for) {
+            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+        }
 
-            fputcsv($output, ['Riwayat Stok']);
-            fputcsv($output, ['Periode', strtoupper($period)]);
-            fputcsv($output, ['Rentang', $rangeStart->toDateString() . ' s/d ' . $rangeEnd->toDateString()]);
-            fputcsv($output, []);
-            fputcsv($output, ['Tanggal', 'Bahan', 'Tipe', 'Jumlah', 'Sumber', 'Catatan']);
-
-            foreach ($rows as $log) {
-                $typeConfig = StockLogView::typeConfig($log);
-
-                fputcsv($output, [
-                    optional($log->created_at)->format('Y-m-d H:i:s'),
-                    $log->ingredient->name ?? '-',
-                    $typeConfig['label'],
-                    StockLogView::exportQuantity($log),
-                    $typeConfig['source'],
-                    $log->note ?? '-',
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return redirect()
+            ->route('admin.exports.index')
+            ->with('success', $message);
     }
 
     private function applyNameSearch($query, string $search): void
@@ -376,3 +343,5 @@ class StockController extends Controller
         return IngredientUnit::toBase((string) $ingredient->display_unit, $value);
     }
 }
+
+

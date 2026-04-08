@@ -46,7 +46,7 @@ class DashboardController extends Controller
     {
         return (int) Cache::remember(
             AdminCache::key('dashboard', 'total_active_menus'),
-            now()->addSeconds(60),
+            now()->addSeconds(120),
             fn () => Menu::query()
                 ->where('is_active', true)
                 ->count()
@@ -57,7 +57,7 @@ class DashboardController extends Controller
     {
         return (int) Cache::remember(
             AdminCache::key('dashboard', 'total_ingredients'),
-            now()->addSeconds(60),
+            now()->addSeconds(120),
             fn () => Ingredient::query()->count()
         );
     }
@@ -66,7 +66,7 @@ class DashboardController extends Controller
     {
         return (int) Cache::remember(
             AdminCache::key('dashboard', 'transactions_today:' . $todayKey),
-            now()->addSeconds(30),
+            now()->addSeconds(90),
             fn () => Transaction::query()
                 ->whereBetween('created_at', [$todayStart, $todayEnd])
                 ->count()
@@ -77,7 +77,7 @@ class DashboardController extends Controller
     {
         return Cache::remember(
             AdminCache::key('dashboard', 'low_stock_items'),
-            now()->addSeconds(30),
+            now()->addSeconds(90),
             fn () => Ingredient::query()
                 ->select('id', 'name', 'stock', 'minimum_stock', 'base_unit')
                 ->whereColumn('stock', '<=', 'minimum_stock')
@@ -92,7 +92,7 @@ class DashboardController extends Controller
     {
         return Cache::remember(
             AdminCache::key('dashboard', 'recent_stock_activities'),
-            now()->addSeconds(20),
+            now()->addSeconds(90),
             fn () => StockLog::query()
                 ->with('ingredient:id,name,base_unit')
                 ->latest()
@@ -106,7 +106,7 @@ class DashboardController extends Controller
     {
         return Cache::remember(
             AdminCache::key('dashboard', 'top_menus_today:' . $todayKey),
-            now()->addSeconds(30),
+            now()->addSeconds(90),
             fn () => DB::table('transaction_details')
                 ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
                 ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
@@ -194,3 +194,5 @@ class DashboardController extends Controller
         return trim($formatted . ' ' . $displayUnit);
     }
 }
+
+

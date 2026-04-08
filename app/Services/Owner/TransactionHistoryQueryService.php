@@ -3,8 +3,10 @@
 namespace App\Services\Owner;
 
 use App\Models\Transaction;
+use App\Support\AdminCache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class TransactionHistoryQueryService
 {
@@ -58,35 +60,59 @@ class TransactionHistoryQueryService
 
     public function summary(Carbon $dateFrom, Carbon $dateTo, array $filters): array
     {
-        $aggregateRow = $this->applyFilters(
-            $this->baseFilterQuery($dateFrom, $dateTo),
-            $filters
-        )
-            ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
-            ->first();
+        return Cache::remember(
+            $this->key('summary', $dateFrom, $dateTo, $filters),
+            now()->addSeconds(90),
+            function () use ($dateFrom, $dateTo, $filters) {
+                $aggregateRow = $this->applyFilters(
+                    $this->baseFilterQuery($dateFrom, $dateTo),
+                    $filters
+                )
+                    ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
+                    ->first();
 
-        $totalTransactions = (int) ($aggregateRow->total_transactions ?? 0);
-        $totalRevenue = (float) ($aggregateRow->total_revenue ?? 0);
+                $totalTransactions = (int) ($aggregateRow->total_transactions ?? 0);
+                $totalRevenue = (float) ($aggregateRow->total_revenue ?? 0);
 
-        return [
-            'total_transactions' => $totalTransactions,
-            'total_revenue' => $totalRevenue,
-            'avg_transaction' => $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0,
-        ];
+                return [
+                    'total_transactions' => $totalTransactions,
+                    'total_revenue' => $totalRevenue,
+                    'avg_transaction' => $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0,
+                ];
+            }
+        );
     }
 
     public function topCashierName(Carbon $dateFrom, Carbon $dateTo, array $filters): string
     {
-        $topCashierRow = $this->applyFilters(
-            $this->baseFilterQuery($dateFrom, $dateTo),
-            $filters
-        )
-            ->join('users', 'users.id', '=', 'transactions.user_id')
-            ->selectRaw('transactions.user_id, users.name as cashier_name, COUNT(*) as trx_count')
-            ->groupBy('transactions.user_id', 'users.name')
-            ->orderByDesc('trx_count')
-            ->first();
+        return Cache::remember(
+            $this->key('top_cashier', $dateFrom, $dateTo, $filters),
+            now()->addSeconds(90),
+            function () use ($dateFrom, $dateTo, $filters) {
+                $topCashierRow = $this->applyFilters(
+                    $this->baseFilterQuery($dateFrom, $dateTo),
+                    $filters
+                )
+                    ->join('users', 'users.id', '=', 'transactions.user_id')
+                    ->selectRaw('transactions.user_id, users.name as cashier_name, COUNT(*) as trx_count')
+                    ->groupBy('transactions.user_id', 'users.name')
+                    ->orderByDesc('trx_count')
+                    ->first();
 
-        return (string) ($topCashierRow->cashier_name ?? '-');
+                return (string) ($topCashierRow->cashier_name ?? '-');
+            }
+        );
+    }
+
+    private function key(string $metric, Carbon $dateFrom, Carbon $dateTo, array $filters): string
+    {
+        return AdminCache::key('cashflow', 'owner:transaction_history:' . $metric . ':' . md5(json_encode([
+            'from' => $dateFrom->toDateString(),
+            'to' => $dateTo->toDateString(),
+            'search' => trim((string) ($filters['search'] ?? '')),
+            'user_id' => (string) ($filters['user_id'] ?? ''),
+            'payment_method_id' => (string) ($filters['payment_method_id'] ?? ''),
+        ])));
     }
 }
+

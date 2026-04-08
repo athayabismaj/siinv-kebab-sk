@@ -13,6 +13,29 @@ use Carbon\Carbon;
 
 class ForgotPasswordController extends Controller
 {
+    public function showRequestForm()
+    {
+        return view('auth.forgot');
+    }
+
+    public function showVerifyForm()
+    {
+        if (!session('otp_email')) {
+            return redirect()->route('password.request');
+        }
+
+        return view('auth.verify_otp');
+    }
+
+    public function showResetForm()
+    {
+        if (!session('password_reset_user_id')) {
+            return redirect()->route('password.request');
+        }
+
+        return view('auth.reset_password');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | KIRIM OTP

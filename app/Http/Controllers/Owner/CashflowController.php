@@ -5,14 +5,18 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Models\CashflowEntry;
 use App\Models\Transaction;
+use App\Services\ReportExportDispatchService;
 use App\Services\Shared\PeriodFilterService;
+use App\Support\AdminCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CashflowController extends Controller
 {
     public function __construct(
-        private readonly PeriodFilterService $periodFilter
+        private readonly PeriodFilterService $periodFilter,
+        private readonly ReportExportDispatchService $exportDispatch
     ) {}
 
     public function index(Request $request)
@@ -26,7 +30,12 @@ class CashflowController extends Controller
         $entries = (clone $baseQuery)->paginate(10)->withQueryString();
         $groupedEntries = $entries->getCollection()->groupBy(fn ($entry) => $entry->entry_date->toDateString());
 
-        $summary = $this->summary($baseQuery, $dateFrom->toDateTimeString(), $dateTo->copy()->endOfDay()->toDateTimeString());
+        $summary = $this->summary(
+            $baseQuery,
+            $dateFrom->toDateTimeString(),
+            $dateTo->copy()->endOfDay()->toDateTimeString(),
+            $request
+        );
 
         [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
             $this->periodFilter->buildNavigator($type, $dateFrom);
@@ -58,36 +67,21 @@ class CashflowController extends Controller
 
     public function export(Request $request)
     {
-        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
-        [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
+        $export = $this->exportDispatch->dispatch(
+            $request->user(),
+            'owner',
+            'owner.cashflow',
+            $request->query()
+        );
 
-        $query = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
-        $this->applySearch($query, $request);
+        $message = 'Export pengeluaran masuk antrian. ID: #' . $export->id;
+        if ($export->scheduled_for) {
+            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+        }
 
-        $rows = $query->get();
-        $filename = 'owner-pengeluaran-' . $type . '-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
-
-        return response()->streamDownload(function () use ($rows, $dateFrom, $dateTo) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
-
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
-            fputcsv($output, []);
-            fputcsv($output, ['Tanggal', 'Nominal', 'Kategori', 'Catatan', 'Input Oleh', 'Waktu Input']);
-
-            foreach ($rows as $row) {
-                fputcsv($output, [
-                    optional($row->entry_date)->format('Y-m-d'),
-                    (float) $row->amount,
-                    $row->source ?? '-',
-                    $row->note ?? '-',
-                    optional($row->creator)->name ?? '-',
-                    optional($row->created_at)->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return redirect()
+            ->route('owner.exports.index')
+            ->with('success', $message);
     }
 
     private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder
@@ -100,21 +94,29 @@ class CashflowController extends Controller
             ->latest('id');
     }
 
-    private function summary(Builder $baseQuery, string $trxFrom, string $trxTo): array
+    private function summary(Builder $baseQuery, string $trxFrom, string $trxTo, Request $request): array
     {
-        $salesRevenue = (float) Transaction::query()
-            ->whereBetween('created_at', [$trxFrom, $trxTo])
-            ->sum('total_amount');
+        $summaryKey = AdminCache::key('cashflow', 'owner:expense:summary:' . md5(json_encode([
+            'from' => $trxFrom,
+            'to' => $trxTo,
+            'search' => trim((string) $request->input('search', '')),
+        ])));
 
-        $expenseTotal = (float) (clone $baseQuery)->sum('amount');
-        $expenseCount = (int) (clone $baseQuery)->count();
+        return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($baseQuery, $trxFrom, $trxTo) {
+            $salesRevenue = (float) Transaction::query()
+                ->whereBetween('created_at', [$trxFrom, $trxTo])
+                ->sum('total_amount');
 
-        return [
-            'salesRevenue' => $salesRevenue,
-            'expenseTotal' => $expenseTotal,
-            'expenseCount' => $expenseCount,
-            'netCash' => $salesRevenue - $expenseTotal,
-        ];
+            $expenseTotal = (float) (clone $baseQuery)->sum('amount');
+            $expenseCount = (int) (clone $baseQuery)->count();
+
+            return [
+                'salesRevenue' => $salesRevenue,
+                'expenseTotal' => $expenseTotal,
+                'expenseCount' => $expenseCount,
+                'netCash' => $salesRevenue - $expenseTotal,
+            ];
+        });
     }
 
     private function applySearch(Builder $query, Request $request): void
@@ -137,3 +139,4 @@ class CashflowController extends Controller
         });
     }
 }
+

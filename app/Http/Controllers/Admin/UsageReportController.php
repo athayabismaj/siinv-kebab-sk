@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\StockLog;
+use App\Services\ReportExportDispatchService;
 use App\Support\AdminCache;
 use App\Support\ReportPeriod;
 use App\Support\UsageQuantityFormatter;
@@ -14,6 +15,11 @@ use Illuminate\Support\Facades\DB;
 
 class UsageReportController extends Controller
 {
+    public function __construct(
+        private readonly ReportExportDispatchService $exportDispatch
+    ) {
+    }
+
     public function index(Request $request)
     {
         $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
@@ -79,71 +85,25 @@ class UsageReportController extends Controller
 
     public function export(Request $request)
     {
-        $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
-        [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
-        $rangeStart = $dateFrom->copy()->startOfDay();
-        $rangeEnd = $dateTo->copy()->endOfDay();
+        $isOwnerScope = $request->routeIs('owner.*');
+        $scope = $isOwnerScope ? 'owner' : 'admin';
+        $exportType = $isOwnerScope ? 'owner.usage' : 'admin.usage';
 
-        $rows = StockLog::query()
-            ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
-            ->where('stock_logs.type', 'out')
-            ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
-            ->selectRaw(
-                'ingredients.name as ingredient_name,
-                SUM(ABS(stock_logs.quantity)) as total_quantity,
-                ingredients.base_unit,
-                ingredients.display_unit,
-                ingredients.pack_size,
-                COUNT(*) as usage_count,
-                MAX(stock_logs.created_at) as last_used_at'
-            )
-            ->groupBy(
-                'ingredients.name',
-                'ingredients.base_unit',
-                'ingredients.display_unit',
-                'ingredients.pack_size'
-            )
-            ->orderByDesc('total_quantity')
-            ->get();
+        $export = $this->exportDispatch->dispatch(
+            $request->user(),
+            $scope,
+            $exportType,
+            $request->query()
+        );
 
-        $filename = 'laporan-pemakaian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
+        $message = 'Export pemakaian bahan masuk antrian. ID: #' . $export->id;
+        if ($export->scheduled_for) {
+            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+        }
 
-        return response()->streamDownload(function () use ($rows, $dateFrom, $dateTo) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
-
-            fputcsv($output, ['Laporan Pemakaian Bahan']);
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
-            fputcsv($output, []);
-            fputcsv($output, [
-                'Bahan',
-                'Total Pemakaian',
-                'Satuan',
-                'Frekuensi',
-                'Terakhir Digunakan',
-            ]);
-
-            foreach ($rows as $item) {
-                $quantityLabel = UsageQuantityFormatter::formatLabel(
-                    (float) $item->total_quantity,
-                    (string) ($item->base_unit ?? ''),
-                    (string) ($item->display_unit ?? ''),
-                    (int) ($item->pack_size ?? 1)
-                );
-
-                fputcsv($output, [
-                    $item->ingredient_name,
-                    $quantityLabel,
-                    strtolower((string) ($item->display_unit ?? $item->base_unit ?? '')),
-                    $item->usage_count,
-                    $item->last_used_at,
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return redirect()
+            ->route($isOwnerScope ? 'owner.exports.index' : 'admin.exports.index')
+            ->with('success', $message);
     }
 
     private function baseUsageAggregateQuery(Carbon $rangeStart, Carbon $rangeEnd)
@@ -179,7 +139,7 @@ class UsageReportController extends Controller
             'to' => $to,
         ])));
 
-        return Cache::remember($summaryKey, now()->addSeconds(60), function () use ($baseQuery) {
+        return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($baseQuery) {
             $totalsBase = (clone $baseQuery)->get();
 
             return [
@@ -190,3 +150,5 @@ class UsageReportController extends Controller
         });
     }
 }
+
+

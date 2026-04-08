@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuVariant;
+use App\Support\AdminCache;
 use Illuminate\Http\Request;
 
 class MenuVariantController extends Controller {
@@ -47,6 +48,8 @@ class MenuVariantController extends Controller {
             'is_available' => $request->boolean('is_available'),
         ]);
 
+        AdminCache::bumpCatalog();
+
         return redirect()
             ->route('admin.menu-variants.index', $menu->id)
             ->with('success', 'Variant berhasil ditambahkan.');
@@ -84,6 +87,8 @@ class MenuVariantController extends Controller {
             'is_available' => $request->boolean('is_available'),
         ]);
 
+        AdminCache::bumpCatalog();
+
         return redirect()
             ->route('admin.menu-variants.index', $menu->id)
             ->with('success', 'Variant berhasil diperbarui.');
@@ -95,6 +100,7 @@ class MenuVariantController extends Controller {
         abort_unless($menuVariant->menu_id === $menu->id, 404);
 
         $menuVariant->delete();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menu-variants.index', $menu->id)
