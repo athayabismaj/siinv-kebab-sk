@@ -59,9 +59,8 @@ class LoginController extends Controller
             ])->withInput();
         }
 
-        // ================= LOGIN MANUAL + REMEMBER ME =================
-        $remember = $request->boolean('remember');
-        Auth::login($user, $remember);
+        // ================= LOGIN MANUAL =================
+        Auth::login($user);
         $request->session()->regenerate();
 
         // ================= REDIRECT BERDASARKAN ROLE =================

@@ -104,16 +104,7 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between mt-1">
-                            <label class="flex items-center gap-2 cursor-pointer group">
-                                <input type="checkbox"
-                                       name="remember"
-                                       value="1"
-                                       {{ old('remember') ? 'checked' : '' }}
-                                       class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer">
-                                <span class="text-[12px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 font-medium transition-colors">Remember me</span>
-                            </label>
-
+                        <div class="flex items-center justify-end mt-1">
                             <a href="{{ route('password.request') }}" class="text-[12px] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
                                 Forgot password?
                             </a>
