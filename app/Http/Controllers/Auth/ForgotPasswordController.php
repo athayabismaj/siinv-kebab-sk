@@ -9,7 +9,7 @@ use App\Mail\OtpMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon;
+use Throwable;
 
 class ForgotPasswordController extends Controller
 {
@@ -50,14 +50,18 @@ class ForgotPasswordController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // RATE LIMIT (1 MENIT)
+        // RATE LIMIT RESEND OTP (CONFIGURABLE)
         $lastOtp = PasswordOtp::where('user_id', $user->id)
             ->latest()
             ->first();
 
-        if ($lastOtp && $lastOtp->created_at->diffInSeconds(now()) < 60) {
+        $cooldownSeconds = max(0, (int) env('OTP_RESEND_COOLDOWN_SECONDS', 60));
+
+        if ($cooldownSeconds > 0 && $lastOtp && $lastOtp->created_at->diffInSeconds(now()) < $cooldownSeconds) {
+            $waitSeconds = $cooldownSeconds - $lastOtp->created_at->diffInSeconds(now());
+
             return back()->withErrors([
-                'email' => 'Tunggu 1 menit sebelum meminta OTP baru.'
+                'email' => 'Tunggu ' . $waitSeconds . ' detik sebelum meminta OTP baru.'
             ]);
         }
 
@@ -83,8 +87,16 @@ class ForgotPasswordController extends Controller
             'otp_expires_at' => $expireTime->timestamp
         ]);
 
-        // KIRIM EMAIL HTML
-        Mail::to($user->email)->send(new OtpMail($otp));
+        // KIRIM EMAIL OTP
+        try {
+            Mail::to($user->email)->send(new OtpMail($otp));
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->withErrors([
+                'email' => 'Gagal mengirim OTP. Periksa konfigurasi email lalu coba lagi.',
+            ])->withInput();
+        }
 
         return redirect()->route('password.verify.form')
             ->with('success', 'OTP telah dikirim ke email.');

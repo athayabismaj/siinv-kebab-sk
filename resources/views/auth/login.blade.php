@@ -1,136 +1,142 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="id" class="h-full antialiased">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Kebab SK</title>
+    <title>Login - Kebab SK Inventory</title>
     @vite('resources/css/app.css')
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
-<body class="h-full bg-slate-100 flex items-center justify-center px-4">
+<body class="h-full bg-slate-100 dark:bg-slate-950 m-0 p-0 selection:bg-blue-500 selection:text-white">
 
-<div class="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden 
-            flex flex-col md:flex-row">
+    <div class="min-h-screen w-full">
+        <div class="flex w-full min-h-screen overflow-hidden bg-white dark:bg-slate-900">
 
-    {{-- LEFT PANEL --}}
-    <div class="md:w-1/2 w-full bg-blue-600 text-white 
-                flex flex-col justify-center items-center 
-                p-10 md:p-16 text-center">
+            <div class="hidden xl:flex xl:w-[50%] relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500">
+                <div class="absolute top-1/4 right-1/4 w-40 h-40 rounded-full bg-gradient-to-tr from-cyan-300 to-blue-300 opacity-50 blur-[2px]"></div>
+                <div class="absolute bottom-0 left-0 w-96 h-96 bg-cyan-300 rounded-full mix-blend-screen filter blur-[100px] opacity-40"></div>
+                <div class="absolute top-1/3 left-10 w-64 h-64 bg-blue-400 rounded-full mix-blend-screen filter blur-[80px] opacity-50"></div>
 
-        <h2 class="text-3xl md:text-4xl font-bold mb-6">
-            Welcome Back!
-        </h2>
+                <svg class="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <path d="M0,50 C30,60 40,20 100,50 L100,100 L0,100 Z" fill="url(#grad)"/>
+                    <path d="M0,60 C40,70 60,10 100,60 L100,100 L0,100 Z" fill="none" stroke="white" stroke-width="0.2"/>
+                    <path d="M0,62 C40,72 60,12 100,62 L100,100 L0,100 Z" fill="none" stroke="white" stroke-width="0.2"/>
+                    <path d="M0,64 C40,74 60,14 100,64 L100,100 L0,100 Z" fill="none" stroke="white" stroke-width="0.2"/>
+                    <defs>
+                        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
+                            <stop offset="100%" stop-color="#2563eb" stop-opacity="0.6" />
+                        </linearGradient>
+                    </defs>
+                </svg>
 
-        <p class="text-sm md:text-base opacity-90 max-w-xs leading-relaxed">
-            Sistem Inventory <br>
-            <span class="font-semibold">Kebab SK</span>
-        </p>
-
-    </div>
-
-    {{-- RIGHT PANEL --}}
-    <div class="md:w-1/2 w-full p-8 md:p-16 flex flex-col justify-center">
-
-        <h2 class="text-2xl font-semibold mb-8 text-slate-800">
-            Login
-        </h2>
-
-        {{-- ALERT SUCCESS --}}
-        @if(session('success'))
-            <div class="mb-5 px-4 py-3 rounded-lg text-sm
-                        bg-emerald-50 text-emerald-700
-                        border border-emerald-200">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        {{-- ALERT ERROR --}}
-        @if(session('error'))
-            <div class="mb-5 px-4 py-3 rounded-lg text-sm
-                        bg-red-50 text-red-600
-                        border border-red-200">
-                {{ session('error') }}
-            </div>
-        @endif
-
-        {{-- VALIDATION ERRORS --}}
-        @if ($errors->any())
-            <div class="mb-5 px-4 py-3 rounded-lg text-sm
-                        bg-red-50 text-red-600
-                        border border-red-200">
-                <ul class="list-disc list-inside space-y-1">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('login.process') }}" 
-              class="space-y-6">
-            @csrf
-
-            {{-- Username --}}
-            <div>
-                <label class="block text-sm text-slate-600 mb-2">
-                    Username
-                </label>
-                <input type="text"
-                       name="username"
-                       value="{{ old('username') }}"
-                       required
-                       class="w-full px-4 py-3 rounded-xl 
-                              border border-slate-300
-                              focus:outline-none 
-                              focus:ring-2 
-                              focus:ring-blue-500 
-                              focus:border-blue-500
-                              transition">
+                <div class="absolute bottom-10 left-10 text-white/80 text-xs tracking-[0.2em] font-bold uppercase">
+                    Sistem Manajemen Inventory
+                </div>
             </div>
 
-            {{-- Password --}}
-            <div>
-                <label class="block text-sm text-slate-600 mb-2">
-                    Password
-                </label>
-                <input type="password"
-                       name="password"
-                       required
-                       class="w-full px-4 py-3 rounded-xl 
-                              border border-slate-300
-                              focus:outline-none 
-                              focus:ring-2 
-                              focus:ring-blue-500 
-                              focus:border-blue-500
-                              transition">
+            <div class="w-full xl:w-[50%] min-h-screen xl:min-h-[calc(100vh-3rem)] flex flex-col justify-center items-center bg-white dark:bg-slate-900 p-8 sm:p-12 xl:p-16 relative overflow-y-auto">
+                <div class="w-full max-w-[540px]">
+
+                    <div class="mb-10 font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        </div>
+                        Kebab SK
+                    </div>
+
+                    <div class="mb-8">
+                        <h2 class="text-3xl xl:text-4xl font-light text-slate-500 dark:text-slate-400 leading-tight">Hello,</h2>
+                        <h3 class="text-4xl xl:text-5xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-tight">welcome!</h3>
+                    </div>
+
+                    @if(session('success'))
+                        <div class="mb-5 px-4 py-3 rounded-lg text-sm bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-2">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if(session('error') || $errors->any())
+                        <div class="mb-5 px-4 py-3 rounded-lg text-sm bg-rose-50 text-rose-700 border border-rose-100 flex items-start gap-2">
+                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <div>
+                                @if(session('error'))
+                                    {{ session('error') }}
+                                @else
+                                    <ul class="list-disc list-inside">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('login.process') }}" class="space-y-5" x-data="{ submitting: false }" @submit="submitting = true">
+                        @csrf
+
+                        <div class="border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col focus-within:border-blue-500 dark:focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+                            <div class="relative border-b border-slate-100 dark:border-slate-800">
+                                <label class="absolute top-2.5 left-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Username
+                                </label>
+                                <input type="text"
+                                       name="username"
+                                       value="{{ old('username') }}"
+                                       placeholder="Masukkan username"
+                                       required
+                                       autocomplete="username"
+                                       class="w-full pt-7 pb-2.5 px-4 bg-transparent border-none text-[14px] font-medium text-slate-900 dark:text-white focus:ring-0 focus:outline-none placeholder-slate-300 dark:placeholder-slate-600">
+                            </div>
+
+                            <div class="relative">
+                                <label class="absolute top-2.5 left-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Password
+                                </label>
+                                <input type="password"
+                                       name="password"
+                                       placeholder="********"
+                                       required
+                                       class="w-full pt-7 pb-2.5 px-4 bg-transparent border-none text-[14px] font-medium text-slate-900 dark:text-white focus:ring-0 focus:outline-none placeholder-slate-300 dark:placeholder-slate-600">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-1">
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox"
+                                       name="remember"
+                                       value="1"
+                                       {{ old('remember') ? 'checked' : '' }}
+                                       class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer">
+                                <span class="text-[12px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 font-medium transition-colors">Remember me</span>
+                            </label>
+
+                            <a href="{{ route('password.request') }}" class="text-[12px] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
+                                Forgot password?
+                            </a>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit"
+                                    :disabled="submitting"
+                                    class="w-full py-3 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/30 flex items-center justify-center">
+                                <span x-show="!submitting">Login</span>
+                                <svg x-show="submitting" x-cloak class="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
             </div>
 
-            <div class="text-right text-sm">
-                <a href="{{ route('password.request') }}"
-                   class="text-slate-500 hover:text-blue-600 transition">
-                    Forgot password?
-                </a>
-            </div>
-
-            {{-- Button --}}
-            <button type="submit"
-                    class="w-full bg-blue-600 text-white 
-                           py-3 rounded-xl font-medium
-                           hover:bg-blue-700
-                           active:scale-[0.98]
-                           transition duration-200">
-                Login
-            </button>
-
-        </form>
-
-        <div class="mt-10 text-center text-xs text-slate-400">
-            &copy; {{ date('Y') }} Sistem Inventory Kebab SK
         </div>
-
     </div>
-
-</div>
 
 </body>
 </html>
