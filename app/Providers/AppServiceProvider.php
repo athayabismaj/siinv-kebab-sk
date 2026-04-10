@@ -22,6 +22,38 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('auth-login', function (Request $request) {
+            $identifier = strtolower((string) ($request->input('username') ?? $request->input('email') ?? 'guest'));
+            $ip = $request->ip();
+
+            return [
+                Limit::perMinute(8)->by('auth-login:ip:' . $ip),
+                Limit::perMinute(5)->by('auth-login:id:' . $identifier),
+            ];
+        });
+
+        RateLimiter::for('auth-forgot-password', function (Request $request) {
+            $email = strtolower((string) ($request->input('email') ?? 'guest'));
+            $ip = $request->ip();
+
+            return [
+                Limit::perMinutes(10, 4)->by('auth-forgot:ip:' . $ip),
+                Limit::perMinutes(10, 3)->by('auth-forgot:email:' . $email),
+            ];
+        });
+
+        RateLimiter::for('auth-reset-password', function (Request $request) {
+            $identifier = strtolower((string) ($request->input('email') ?? $request->ip()));
+
+            return Limit::perMinutes(10, 8)->by('auth-reset:' . $identifier);
+        });
+
+        RateLimiter::for('api-auth', function (Request $request) {
+            $keyBase = $request->ip();
+
+            return Limit::perMinute(20)->by('api-auth:' . $keyBase);
+        });
+
         RateLimiter::for('api-read-role-aware', function (Request $request) {
             $user = $request->user();
             $role = strtolower((string) optional(optional($user)->role)->name);

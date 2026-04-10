@@ -29,7 +29,7 @@ use App\Http\Controllers\ReportExportController;
 
 Route::get('/', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])
-    ->middleware('throttle:5,1')
+    ->middleware('throttle:auth-login')
     ->name('login.process');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
@@ -42,19 +42,19 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
 
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])
-    ->middleware('throttle:3,1')
+    ->middleware('throttle:auth-forgot-password')
     ->name('password.sendOtp');
 
 Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerifyForm'])->name('password.verify.form');
 
 Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])
-    ->middleware('throttle:10,1')
+    ->middleware('throttle:auth-reset-password')
     ->name('password.verifyOtp');
 
 Route::get('/reset-password', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset.form');
 
 Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])
-    ->middleware('throttle:5,1')
+    ->middleware('throttle:auth-reset-password')
     ->name('password.reset');
 
 
@@ -265,29 +265,3 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
 
 
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

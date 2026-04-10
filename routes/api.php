@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class , 'login'])
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:api-auth');
     Route::post('/forgot-password', [AuthController::class , 'forgotPassword'])
-        ->middleware('throttle:3,1');
+        ->middleware('throttle:auth-forgot-password');
     Route::post('/verify-reset-code', [AuthController::class , 'verifyResetCode'])
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:auth-reset-password');
     Route::post('/reset-password', [AuthController::class , 'resetPassword'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:auth-reset-password');
 
     Route::middleware('api.token')->group(function () {
             Route::get('/me', [AuthController::class , 'me']);

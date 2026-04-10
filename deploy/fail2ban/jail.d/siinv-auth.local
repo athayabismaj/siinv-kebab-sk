@@ -1,0 +1,10 @@
+[siinv-auth]
+enabled  = true
+filter   = siinv-auth
+backend  = auto
+logpath  = /var/www/siinv-kebab-sk/storage/logs/laravel.log
+maxretry = 12
+findtime = 600
+bantime  = 3600
+action   = iptables[name=siinv-auth, port=http, protocol=tcp]
+
