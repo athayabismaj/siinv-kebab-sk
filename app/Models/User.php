@@ -42,4 +42,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(ApiToken::class);
     }
+
+    public function dailyStockSessionsAsCashier(): HasMany
+    {
+        return $this->hasMany(DailyStockSession::class, 'cashier_id');
+    }
+
+    public function openedDailyStockSessions(): HasMany
+    {
+        return $this->hasMany(DailyStockSession::class, 'opened_by');
+    }
+
+    public function closedDailyStockSessions(): HasMany
+    {
+        return $this->hasMany(DailyStockSession::class, 'closed_by');
+    }
 }

@@ -123,6 +123,11 @@ class Ingredient extends Model
         return $this->hasMany(StockLog::class);
     }
 
+    public function dailyStockItems()
+    {
+        return $this->hasMany(DailyStockItem::class);
+    }
+
 
 
 }

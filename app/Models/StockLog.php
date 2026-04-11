@@ -29,6 +29,9 @@ class StockLog extends Model
             'in' => 'Restok',
             'out' => 'Pemakaian',
             'adjustment' => 'Penyesuaian',
+            'transfer_daily' => 'Transfer Harian',
+            'daily_usage' => 'Pemakaian Harian',
+            'daily_return' => 'Pengembalian Harian',
             default => 'Unknown'
         };
     }
