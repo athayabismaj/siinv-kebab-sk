@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\DailyStockSession;
+use App\Policies\DailyStockSessionPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(DailyStockSession::class, DailyStockSessionPolicy::class);
+
         RateLimiter::for('auth-login', function (Request $request) {
             $identifier = strtolower((string) ($request->input('username') ?? $request->input('email') ?? 'guest'));
             $ip = $request->ip();

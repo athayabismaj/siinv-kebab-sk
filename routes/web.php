@@ -17,10 +17,12 @@ use App\Http\Controllers\Admin\MenuCategoryController;
 use App\Http\Controllers\Admin\MenuVariantController;
 use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\StockController;
+use App\Http\Controllers\Admin\DailyStockController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UsageReportController;
 use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
+use App\Http\Controllers\Admin\DailyStockReportController;
 use App\Http\Controllers\ReportExportController;
 
 
@@ -237,6 +239,24 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
             Route::post('/{ingredient}/adjust', [StockController::class,'adjust'])->name('adjust');
         });
 
+        Route::prefix('daily-stocks')->name('daily-stocks.')->group(function () {
+            Route::get('/', [DailyStockController::class, 'index'])
+                ->middleware('can:viewAny,App\Models\DailyStockSession')
+                ->name('index');
+            Route::post('/open', [DailyStockController::class, 'open'])
+                ->middleware('can:open,App\Models\DailyStockSession')
+                ->name('open');
+            Route::post('/transfer', [DailyStockController::class, 'transfer'])
+                ->middleware('can:transfer,App\Models\DailyStockSession')
+                ->name('transfer');
+            Route::post('/close', [DailyStockController::class, 'close'])
+                ->middleware('can:close,App\Models\DailyStockSession')
+                ->name('close');
+            Route::post('/reopen', [DailyStockController::class, 'reopen'])
+                ->middleware('can:reopen,App\Models\DailyStockSession')
+                ->name('reopen');
+        });
+
 
 
         Route::prefix('recipes')->name('recipes.')->group(function () {
@@ -255,6 +275,13 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
             Route::get('/usage/export', [UsageReportController::class, 'export'])
                 ->middleware('throttle:web-heavy-role-aware')
                 ->name('usage.export');
+            Route::get('/daily-stock', [DailyStockReportController::class, 'index'])
+                ->middleware('can:viewReport,App\Models\DailyStockSession')
+                ->name('daily-stock');
+            Route::get('/daily-stock/export', [DailyStockReportController::class, 'export'])
+                ->middleware('can:viewReport,App\Models\DailyStockSession')
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('daily-stock.export');
             Route::get('/cashflow', [AdminCashflowController::class, 'index'])->name('cashflow');
             Route::get('/cashflow/input', [AdminCashflowController::class, 'create'])->name('cashflow.create');
             Route::post('/cashflow/input', [AdminCashflowController::class, 'store'])->name('cashflow.store');
