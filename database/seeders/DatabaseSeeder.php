@@ -16,5 +16,11 @@ class DatabaseSeeder extends Seeder
             OwnerUserSeeder::class,
             PaymentMethodSeeder::class,
         ]);
+
+        if (app()->environment(['local', 'testing'])) {
+            $this->call([
+                DailyStockSampleSeeder::class,
+            ]);
+        }
     }
 }
