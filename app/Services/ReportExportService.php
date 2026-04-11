@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CashflowEntry;
+use App\Models\DailyStockSession;
 use App\Models\ReportExport;
 use App\Models\StockLog;
 use App\Models\Transaction;
@@ -23,6 +24,7 @@ class ReportExportService
         return match ($export->type) {
             'admin.cashflow' => $this->generateAdminCashflow($export, $filters),
             'admin.usage' => $this->generateAdminUsage($export, $filters),
+            'admin.daily_stock' => $this->generateAdminDailyStock($export, $filters),
             'admin.stock_logs' => $this->generateAdminStockLogs($export, $filters),
             'owner.cashflow' => $this->generateOwnerCashflow($export, $filters),
             'owner.usage' => $this->generateAdminUsage($export, $filters),
@@ -170,6 +172,50 @@ class ReportExportService
                     StockLogView::exportQuantity($log),
                     $typeConfig['source'],
                     $log->note ?? '-',
+                ]);
+            }
+        });
+    }
+
+    private function generateAdminDailyStock(ReportExport $export, array $filters): array
+    {
+        $type = ReportPeriod::resolveType((string) ($filters['type'] ?? 'daily'));
+        [$dateFrom, $dateTo] = $this->resolveAdminRange($type, $filters, true);
+
+        $rows = DailyStockSession::query()
+            ->with('cashier:id,name')
+            ->withSum('items as total_opening', 'opening_qty')
+            ->withSum('items as total_remaining', 'remaining_qty')
+            ->withSum('items as total_used', 'used_qty')
+            ->withCount('items')
+            ->whereBetween('session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+            ->orderByDesc('session_date')
+            ->orderByDesc('id')
+            ->get();
+
+        $fileName = 'laporan-stok-harian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
+
+        return $this->writeCsv($export, $fileName, function ($output) use ($rows, $dateFrom, $dateTo) {
+            fputcsv($output, ['Laporan Stok Harian Kasir']);
+            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
+            fputcsv($output, []);
+            fputcsv($output, ['Tanggal', 'Kasir', 'Status', 'Jumlah Item', 'Dibawa (qty dasar)', 'Sisa (qty dasar)', 'Terpakai (qty dasar)', 'Nilai']);
+
+            foreach ($rows as $row) {
+                $opening = (float) ($row->total_opening ?? 0);
+                $remaining = (float) ($row->total_remaining ?? 0);
+                $used = (float) ($row->total_used ?? 0);
+                $value = $used;
+
+                fputcsv($output, [
+                    optional($row->session_date)->format('Y-m-d'),
+                    optional($row->cashier)->name ?? '-',
+                    strtoupper((string) $row->status),
+                    (int) ($row->items_count ?? 0),
+                    $opening,
+                    $remaining,
+                    $used,
+                    $value,
                 ]);
             }
         });
@@ -413,7 +459,7 @@ class ReportExportService
         $path = $dir . '/report-export-' . $export->id . '.csv';
 
         Storage::disk('local')->makeDirectory($dir);
-        $absolute = storage_path('app/' . $path);
+        $absolute = Storage::disk('local')->path($path);
         $handle = fopen($absolute, 'w');
         fwrite($handle, "\xEF\xBB\xBF");
         $writer($handle);
