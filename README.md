@@ -132,3 +132,12 @@ Base URL: `/api`
   - pastikan `CACHE_DRIVER` sesuai dan tabel cache tersedia jika memakai database cache
 - Endpoint API timeout:
   - cek koneksi DB, indeks query, dan lokasi server
+
+## Testing & Audit
+
+- Jika environment PHP tidak memiliki extension `pdo_sqlite`, gunakan konfigurasi test PostgreSQL:
+  - `vendor/bin/phpunit -c phpunit.pgsql.xml tests/Feature/Admin/DailyStockFlowTest.php tests/Feature/Admin/DailyStockIntegrityAuditTest.php`
+- Audit integritas stok harian:
+  - `php artisan ops:daily-stock-integrity-audit --days=1`
+- Cek kesehatan environment runtime:
+  - `php artisan ops:doctor-env`

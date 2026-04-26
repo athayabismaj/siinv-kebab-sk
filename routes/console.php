@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Analytics\DailySalesSummaryService;
+use App\Services\System\DailyStockIntegrityAuditService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -114,6 +115,102 @@ Artisan::command('ops:traffic-alert-check {--window=5}', function () {
     $this->warn('traffic-anomaly-window detected');
 })->purpose('Check traffic anomaly window and emit warning/slack alert');
 
+Artisan::command('ops:daily-stock-integrity-audit {--date=} {--days=0} {--fail-on-findings=1}', function (DailyStockIntegrityAuditService $auditService) {
+    $dateOption = $this->option('date');
+    $days = max(0, (int) $this->option('days'));
+    $failOnFindings = (string) $this->option('fail-on-findings') !== '0';
+
+    $baseDate = $dateOption
+        ? Carbon::parse((string) $dateOption)->startOfDay()
+        : now()->startOfDay();
+
+    $from = $baseDate->copy()->subDays($days);
+    $to = $baseDate->copy();
+
+    $result = $auditService->audit($from, $to);
+
+    $this->info(sprintf(
+        'daily-stock-audit scanned=%d findings=%d range=%s..%s',
+        (int) $result['scanned_sessions'],
+        (int) $result['findings_count'],
+        $from->toDateString(),
+        $to->toDateString()
+    ));
+
+    foreach (array_slice($result['findings'], 0, 50) as $finding) {
+        $this->warn(json_encode($finding));
+    }
+
+    if ((int) $result['findings_count'] > 0) {
+        Log::warning('daily-stock-integrity-findings', [
+            'range_from' => $from->toDateString(),
+            'range_to' => $to->toDateString(),
+            'scanned_sessions' => $result['scanned_sessions'],
+            'findings_count' => $result['findings_count'],
+            'findings_preview' => array_slice($result['findings'], 0, 20),
+        ]);
+    }
+
+    return ($failOnFindings && (int) $result['findings_count'] > 0) ? 1 : 0;
+})->purpose('Audit data consistency between daily stock session items and usage logs');
+
+Artisan::command('ops:doctor-env {--strict=0}', function () {
+    $strict = (string) $this->option('strict') === '1';
+
+    $requiredExtensions = ['pdo_pgsql', 'pgsql', 'mbstring', 'json'];
+    $recommendedExtensions = ['intl', 'pdo_sqlite'];
+
+    $missingRequired = [];
+    foreach ($requiredExtensions as $ext) {
+        if (! extension_loaded($ext)) {
+            $missingRequired[] = $ext;
+        }
+    }
+
+    $missingRecommended = [];
+    foreach ($recommendedExtensions as $ext) {
+        if (! extension_loaded($ext)) {
+            $missingRecommended[] = $ext;
+        }
+    }
+
+    $this->info('Environment doctor check:');
+    $this->line('- APP_ENV: ' . config('app.env'));
+    $this->line('- DB_CONNECTION: ' . config('database.default'));
+    $this->line('- PHP version: ' . PHP_VERSION);
+
+    if (! empty($missingRequired)) {
+        $this->error('Missing required PHP extensions: ' . implode(', ', $missingRequired));
+    } else {
+        $this->info('Required extensions: OK');
+    }
+
+    if (! empty($missingRecommended)) {
+        $this->warn('Missing recommended PHP extensions: ' . implode(', ', $missingRecommended));
+        $this->line('Note: missing "intl" can break numeric formatting in some artisan commands.');
+        $this->line('Note: missing "pdo_sqlite" can break default phpunit sqlite in-memory tests.');
+    } else {
+        $this->info('Recommended extensions: OK');
+    }
+
+    $pgsqlBin = env('PG_DUMP_PATH');
+    if ($pgsqlBin && ! file_exists($pgsqlBin)) {
+        $this->warn('PG_DUMP_PATH configured but file not found: ' . $pgsqlBin);
+    }
+
+    if ($strict && (! empty($missingRequired) || ! empty($missingRecommended))) {
+        return 1;
+    }
+
+    return 0;
+})->purpose('Check runtime environment health for required/recommended PHP extensions');
+
+// Rebuild summary penjualan setiap 15 menit agar data Omzet/Transaksi selalu fresh
+Schedule::command('analytics:daily-summary --days=0')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
+
+// Rebuild summary untuk kemarin juga, sekali dini hari (untuk menutup data kemarin)
 Schedule::command('analytics:daily-summary --days=2')
     ->dailyAt('02:10')
     ->withoutOverlapping();
@@ -121,3 +218,30 @@ Schedule::command('analytics:daily-summary --days=2')
 Schedule::command('ops:traffic-alert-check --window=5')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+Schedule::command('ops:daily-stock-integrity-audit --days=1 --fail-on-findings=0')
+    ->dailyAt('03:20')
+    ->withoutOverlapping();
+
+Schedule::command('ops:doctor-env --strict=0')
+    ->dailyAt('03:10')
+    ->withoutOverlapping();
+
+// ─── BACKUP DATABASE OTOMATIS ───
+// Harian: setiap hari jam 01:00
+Schedule::command('backup:database --type=harian')
+    ->dailyAt('01:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Mingguan: setiap Senin jam 02:00
+Schedule::command('backup:database --type=mingguan')
+    ->weeklyOn(1, '02:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Bulanan: tanggal 1 setiap bulan jam 03:00
+Schedule::command('backup:database --type=bulanan')
+    ->monthlyOn(1, '03:00')
+    ->withoutOverlapping()
+    ->onOneServer();
