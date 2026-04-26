@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->foreignId('ingredient_id')
                 ->constrained('ingredients')
                 ->restrictOnDelete();
-            $table->enum('type', ['in','out','adjustment']);
+            $table->enum('type', ['in', 'out', 'adjustment', 'transfer_daily', 'daily_usage', 'daily_return']);
             $table->decimal('quantity', 12, 2);
             $table->unsignedBigInteger('reference_id')->nullable();
             $table->text('note')->nullable();

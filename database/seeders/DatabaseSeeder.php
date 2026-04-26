@@ -13,14 +13,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void {
         $this->call([
             RoleSeeder::class,
-            OwnerUserSeeder::class,
+            DeveloperUserSeeder::class,
             PaymentMethodSeeder::class,
         ]);
-
-        if (app()->environment(['local', 'testing'])) {
-            $this->call([
-                DailyStockSampleSeeder::class,
-            ]);
-        }
     }
 }
