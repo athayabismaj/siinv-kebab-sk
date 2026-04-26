@@ -6,19 +6,67 @@ use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\StockLog;
+use App\Support\AdminCache;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class DailyStockService
 {
+    public function reconcileSessionUsage(int $sessionId): DailyStockSession
+    {
+        $session = DB::transaction(function () use ($sessionId) {
+            $session = DailyStockSession::query()
+                ->whereKey($sessionId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $items = DailyStockItem::query()
+                ->where('daily_stock_session_id', $session->id)
+                ->lockForUpdate()
+                ->get();
+
+            $usageByIngredient = $this->inferUsageFromTransactions(
+                (int) $session->cashier_id,
+                $session->session_date->toDateString(),
+                $items->pluck('ingredient_id')->map(fn ($id) => (int) $id)->all()
+            );
+
+            foreach ($items as $item) {
+                $opening = (float) $item->opening_qty;
+                $used = max(
+                    (float) $item->used_qty,
+                    (float) ($usageByIngredient[(int) $item->ingredient_id] ?? 0)
+                );
+
+                if ($used > $opening) {
+                    $opening = $used;
+                }
+
+                $item->update([
+                    'opening_qty' => $opening,
+                    'used_qty' => $used,
+                    'remaining_qty' => max(0, $opening - $used),
+                ]);
+            }
+
+            return $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']);
+        });
+
+        AdminCache::bumpDailyStock();
+        AdminCache::bumpDashboard();
+        AdminCache::bumpUsage();
+
+        return $session;
+    }
+
     public function openSession(
         Carbon|string $sessionDate,
         int $cashierId,
         int $openedBy,
         ?string $notes = null
     ): DailyStockSession {
-        return DB::transaction(function () use ($sessionDate, $cashierId, $openedBy, $notes) {
+        $session = DB::transaction(function () use ($sessionDate, $cashierId, $openedBy, $notes) {
             $date = $sessionDate instanceof Carbon
                 ? $sessionDate->copy()->startOfDay()->toDateString()
                 : Carbon::parse((string) $sessionDate)->startOfDay()->toDateString();
@@ -51,6 +99,10 @@ class DailyStockService
                 'opened_at' => now(),
             ]);
         });
+
+        AdminCache::bumpDailyStock();
+
+        return $session;
     }
 
     public function transferToDaily(
@@ -60,7 +112,7 @@ class DailyStockService
         int $actorId,
         ?string $note = null
     ): DailyStockItem {
-        return DB::transaction(function () use ($sessionId, $ingredientId, $quantity, $actorId, $note) {
+        $item = DB::transaction(function () use ($sessionId, $ingredientId, $quantity, $actorId, $note) {
             $qty = $this->normalizeQuantity($quantity);
             if ($qty <= 0) {
                 throw new RuntimeException('Jumlah transfer harus lebih dari 0.');
@@ -121,6 +173,12 @@ class DailyStockService
 
             return $item->fresh();
         });
+
+        AdminCache::bumpDailyStock();
+        AdminCache::bumpDashboard();
+        AdminCache::bumpStock();
+
+        return $item;
     }
 
     /**
@@ -132,7 +190,7 @@ class DailyStockService
         int $closedBy,
         ?string $notes = null
     ): DailyStockSession {
-        return DB::transaction(function () use ($sessionId, $remainingByIngredient, $closedBy, $notes) {
+        $session = DB::transaction(function () use ($sessionId, $remainingByIngredient, $closedBy, $notes) {
             $session = DailyStockSession::query()
                 ->whereKey($sessionId)
                 ->lockForUpdate()
@@ -149,6 +207,7 @@ class DailyStockService
 
             foreach ($items as $item) {
                 $opening = (float) $item->opening_qty;
+                $usedBefore = (float) $item->used_qty;
                 $remainingInput = array_key_exists($item->ingredient_id, $remainingByIngredient)
                     ? (float) $remainingByIngredient[$item->ingredient_id]
                     : (float) $item->remaining_qty;
@@ -176,11 +235,12 @@ class DailyStockService
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($used > 0) {
+                $additionalUsage = max(0, $used - $usedBefore);
+                if ($additionalUsage > 0) {
                     StockLog::query()->create([
                         'ingredient_id' => $ingredient->id,
                         'type' => 'daily_usage',
-                        'quantity' => -$used,
+                        'quantity' => -$additionalUsage,
                         'reference_id' => $session->id,
                         'note' => "Pemakaian stok harian sesi #{$session->id}",
                     ]);
@@ -208,11 +268,18 @@ class DailyStockService
 
             return $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']);
         });
+
+        AdminCache::bumpDailyStock();
+        AdminCache::bumpDashboard();
+        AdminCache::bumpUsage();
+        AdminCache::bumpStock();
+
+        return $session;
     }
 
     public function reopenSession(int $sessionId, int $reopenedBy, ?string $notes = null): DailyStockSession
     {
-        return DB::transaction(function () use ($sessionId, $reopenedBy, $notes) {
+        $session = DB::transaction(function () use ($sessionId, $reopenedBy, $notes) {
             $session = DailyStockSession::query()
                 ->whereKey($sessionId)
                 ->lockForUpdate()
@@ -246,15 +313,16 @@ class DailyStockService
                 }
 
                 $item->update([
-                    'remaining_qty' => (float) $item->opening_qty,
-                    'used_qty' => 0,
+                    // Saat reopen, jangan reset pemakaian agar ringkasan terpakai/nilai tetap konsisten.
                     'returned_qty' => 0,
                 ]);
             }
 
+            $session = $this->reconcileSessionUsage($session->id);
+
             StockLog::query()
                 ->where('reference_id', $session->id)
-                ->whereIn('type', ['daily_usage', 'daily_return'])
+                ->where('type', 'daily_return')
                 ->delete();
 
             $session->update([
@@ -266,6 +334,41 @@ class DailyStockService
 
             return $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']);
         });
+
+        AdminCache::bumpDailyStock();
+        AdminCache::bumpDashboard();
+        AdminCache::bumpUsage();
+        AdminCache::bumpStock();
+
+        return $session;
+    }
+
+    /**
+     * @param array<int, int> $ingredientIds
+     * @return array<int, float>
+     */
+    private function inferUsageFromTransactions(int $cashierId, string $sessionDate, array $ingredientIds): array
+    {
+        if ($cashierId <= 0 || empty($ingredientIds)) {
+            return [];
+        }
+
+        $rows = DB::table('stock_logs as sl')
+            ->join('transactions as t', 't.id', '=', 'sl.reference_id')
+            ->where('sl.type', 'daily_usage')
+            ->where('t.user_id', $cashierId)
+            ->whereDate('t.created_at', $sessionDate)
+            ->whereIn('sl.ingredient_id', $ingredientIds)
+            ->groupBy('sl.ingredient_id')
+            ->selectRaw('sl.ingredient_id, SUM(ABS(sl.quantity)) as used_total')
+            ->get();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row->ingredient_id] = (float) $row->used_total;
+        }
+
+        return $result;
     }
 
     private function normalizeQuantity(float $value): float
