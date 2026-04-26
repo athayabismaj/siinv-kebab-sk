@@ -171,7 +171,7 @@ class SalesReportQueryService
     private function remember(string $suffix, callable $resolver): array
     {
         return Cache::remember(
-            AdminCache::key('cashflow', 'owner:' . $suffix),
+            AdminCache::key('transactions', 'owner:sales:' . $suffix),
             now()->addSeconds(120),
             $resolver
         );

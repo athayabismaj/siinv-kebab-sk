@@ -8,6 +8,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -127,6 +128,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 422);
             }
             return back()->withErrors($e->errors())->withInput();
+        });
+
+        // ── 419 Page Expired (CSRF / Session Expired) ─────────────────────────
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Halaman expired. Silakan refresh lalu coba lagi.',
+                ], 419);
+            }
+
+            return response()->view('errors.419', [], 419);
         });
 
         // ── 503 / 500 QueryException ──────────────────────────────────────────

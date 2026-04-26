@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 
 class PeriodFilterService
 {
+    private const MAX_INTERACTIVE_DAYS = 90;
+
     /**
      * @param array<int, string> $allowedTypes
      */
@@ -55,6 +57,12 @@ class PeriodFilterService
             $to = $today->copy();
         }
 
+        // Batas rentang laporan interaktif agar performa tetap stabil.
+        $maxStart = $to->copy()->subDays(self::MAX_INTERACTIVE_DAYS - 1);
+        if ($from->lessThan($maxStart)) {
+            $from = $maxStart;
+        }
+
         return [$from, $to];
     }
 
@@ -94,4 +102,3 @@ class PeriodFilterService
         return [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType];
     }
 }
-

@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
 use App\Services\ReportExportDispatchService;
 use App\Services\Shared\PeriodFilterService;
+use App\Support\AdminCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -72,21 +73,27 @@ class TransactionHistoryController extends Controller
 
     public function export(Request $request)
     {
-        $export = $this->exportDispatch->dispatch(
-            $request->user(),
-            'owner',
-            'owner.transactions',
-            $request->query()
-        );
+        try {
+            $export = $this->exportDispatch->dispatch(
+                $request->user(),
+                'owner',
+                'owner.transactions',
+                $request->query()
+            );
 
-        $message = 'Export transaksi masuk antrian. ID: #' . $export->id;
-        if ($export->scheduled_for) {
-            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            $message = 'Export transaksi masuk antrian. ID: #' . $export->id;
+            if ($export->scheduled_for) {
+                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            }
+
+            return redirect()
+                ->route('owner.exports.index')
+                ->with('success', $message);
+        } catch (\Throwable) {
+            return redirect()
+                ->route('owner.exports.index')
+                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
         }
-
-        return redirect()
-            ->route('owner.exports.index')
-            ->with('success', $message);
     }
 
     public function show(Transaction $transaction)
@@ -103,7 +110,7 @@ class TransactionHistoryController extends Controller
     private function paymentMethods()
     {
         return Cache::remember(
-            'payment_methods:list',
+            AdminCache::key('payment_methods', 'owner:list'),
             now()->addSeconds(90),
             fn () => PaymentMethod::query()
                 ->select('id', 'name')
@@ -115,7 +122,7 @@ class TransactionHistoryController extends Controller
     private function cashiers()
     {
         return Cache::remember(
-            'owner:transaction_cashiers:list',
+            AdminCache::key('transactions', 'owner:cashiers:list'),
             now()->addSeconds(90),
             fn () => Transaction::query()
                 ->join('users', 'users.id', '=', 'transactions.user_id')

@@ -42,6 +42,11 @@ class AdminCache
         return self::bump('usage');
     }
 
+    public static function bumpDailyStock(): int
+    {
+        return self::bump('daily_stock');
+    }
+
     public static function bumpCatalog(): int
     {
         return self::bump('catalog');
@@ -50,6 +55,16 @@ class AdminCache
     public static function bumpPaymentMethods(): int
     {
         return self::bump('payment_methods');
+    }
+
+    public static function bumpTransactions(): int
+    {
+        return self::bump('transactions');
+    }
+
+    public static function bumpStock(): int
+    {
+        return self::bump('stock');
     }
 
     private static function versionKey(string $domain): string

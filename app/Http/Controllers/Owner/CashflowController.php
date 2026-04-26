@@ -43,7 +43,8 @@ class CashflowController extends Controller
         $salesRevenue = (float) ($summary['salesRevenue'] ?? 0);
         $expenseTotal = (float) ($summary['expenseTotal'] ?? 0);
         $expenseCount = (int) ($summary['expenseCount'] ?? 0);
-        $netCash = (float) ($summary['netCash'] ?? 0);
+        $hpp          = (float) ($summary['hpp'] ?? 0);
+        $netCash      = (float) ($summary['netCash'] ?? 0);
 
         return view('owner.reports.expenses.index', compact(
             'entries',
@@ -60,6 +61,7 @@ class CashflowController extends Controller
             'inputType',
             'salesRevenue',
             'expenseTotal',
+            'hpp',
             'netCash',
             'expenseCount'
         ));
@@ -67,21 +69,27 @@ class CashflowController extends Controller
 
     public function export(Request $request)
     {
-        $export = $this->exportDispatch->dispatch(
-            $request->user(),
-            'owner',
-            'owner.cashflow',
-            $request->query()
-        );
+        try {
+            $export = $this->exportDispatch->dispatch(
+                $request->user(),
+                'owner',
+                'owner.cashflow',
+                $request->query()
+            );
 
-        $message = 'Export pengeluaran masuk antrian. ID: #' . $export->id;
-        if ($export->scheduled_for) {
-            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            $message = 'Export pengeluaran masuk antrian. ID: #' . $export->id;
+            if ($export->scheduled_for) {
+                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            }
+
+            return redirect()
+                ->route('owner.exports.index')
+                ->with('success', $message);
+        } catch (\Throwable) {
+            return redirect()
+                ->route('owner.exports.index')
+                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
         }
-
-        return redirect()
-            ->route('owner.exports.index')
-            ->with('success', $message);
     }
 
     private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder
@@ -99,6 +107,7 @@ class CashflowController extends Controller
         $summaryKey = AdminCache::key('cashflow', 'owner:expense:summary:' . md5(json_encode([
             'from' => $trxFrom,
             'to' => $trxTo,
+            'type' => (string) $request->input('type', 'daily'),
             'search' => trim((string) $request->input('search', '')),
         ])));
 
@@ -107,14 +116,39 @@ class CashflowController extends Controller
                 ->whereBetween('created_at', [$trxFrom, $trxTo])
                 ->sum('total_amount');
 
-            $expenseTotal = (float) (clone $baseQuery)->sum('amount');
-            $expenseCount = (int) (clone $baseQuery)->count();
+            $expenseAggregate = (clone $baseQuery)
+                ->reorder()
+                ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count')
+                ->first();
+
+            $expenseTotal = (float) ($expenseAggregate->expense_total ?? 0);
+            $expenseCount = (int) ($expenseAggregate->expense_count ?? 0);
+
+            // HPP: estimasi nilai bahan terpakai pada periode ini
+            $dateFrom = substr($trxFrom, 0, 10);
+            $dateTo   = substr($trxTo,   0, 10);
+
+            $hpp = (float) \Illuminate\Support\Facades\DB::table('daily_stock_sessions as dss')
+                ->join('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'dss.id')
+                ->join('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
+                ->whereBetween('dss.session_date', [$dateFrom, $dateTo])
+                ->where('dss.status', 'closed')
+                ->selectRaw("COALESCE(SUM(
+                    CASE ingredients.display_unit
+                        WHEN 'kg'  THEN (dsi.used_qty / 1000.0) * ingredients.selling_price
+                        WHEN 'l'   THEN (dsi.used_qty / 1000.0) * ingredients.selling_price
+                        WHEN 'pcs' THEN (dsi.used_qty / GREATEST(COALESCE(ingredients.pack_size, 1), 1)) * ingredients.selling_price
+                        ELSE            dsi.used_qty * ingredients.selling_price
+                    END
+                ), 0) as hpp_total")
+                ->value('hpp_total');
 
             return [
                 'salesRevenue' => $salesRevenue,
                 'expenseTotal' => $expenseTotal,
                 'expenseCount' => $expenseCount,
-                'netCash' => $salesRevenue - $expenseTotal,
+                'hpp'          => $hpp,
+                'netCash'      => $salesRevenue - $hpp - $expenseTotal,
             ];
         });
     }

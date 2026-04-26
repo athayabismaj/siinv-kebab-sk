@@ -26,6 +26,7 @@ class IngredientController extends Controller
                 'pack_size',
                 'stock',
                 'minimum_stock',
+                'selling_price',
                 'created_at',
             ])
             ->with('category:id,name');
@@ -67,6 +68,8 @@ class IngredientController extends Controller
         Ingredient::create($this->payloadFromValidated($validated));
 
         AdminCache::bumpDashboard();
+        AdminCache::bumpStock();
+        AdminCache::bumpDailyStock(); // selling_price mempengaruhi estimasi nilai laporan stok harian
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -87,6 +90,8 @@ class IngredientController extends Controller
         $ingredient->update($this->payloadFromValidated($validated));
 
         AdminCache::bumpDashboard();
+        AdminCache::bumpStock();
+        AdminCache::bumpDailyStock(); // selling_price mempengaruhi estimasi nilai laporan stok harian
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -97,6 +102,7 @@ class IngredientController extends Controller
     {
         $ingredient->delete();
         AdminCache::bumpDashboard();
+        AdminCache::bumpStock();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -136,6 +142,7 @@ class IngredientController extends Controller
         $ingredient = Ingredient::onlyTrashed()->findOrFail($id);
         $ingredient->restore();
         AdminCache::bumpDashboard();
+        AdminCache::bumpStock();
 
         return redirect()
             ->route('admin.ingredients.archive')
@@ -151,6 +158,7 @@ class IngredientController extends Controller
             'pack_size' => 'required|integer|min:1',
             'stock' => 'required|numeric|min:0',
             'minimum_stock' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
         ];
     }
 
@@ -167,6 +175,7 @@ class IngredientController extends Controller
             'pack_size' => $packSize,
             'stock' => $this->normalizeStockInput($displayUnit, (float) $validated['stock'], $packSize),
             'minimum_stock' => $this->normalizeStockInput($displayUnit, (float) $validated['minimum_stock'], $packSize),
+            'selling_price' => (float) $validated['selling_price'],
         ];
     }
 
@@ -178,6 +187,16 @@ class IngredientController extends Controller
 
         if ($request->filled('search')) {
             $this->applyIngredientSearch($query, (string) $request->input('search'));
+        }
+
+        if ($request->filled('has_price')) {
+            if ($request->input('has_price') === '1') {
+                $query->where('selling_price', '>', 0);
+            } elseif ($request->input('has_price') === '0') {
+                $query->where(function ($q) {
+                    $q->whereNull('selling_price')->orWhere('selling_price', '<=', 0);
+                });
+            }
         }
     }
 
@@ -210,7 +229,7 @@ class IngredientController extends Controller
     private function categoryOptions()
     {
         return Cache::remember(
-            'ingredient_categories:list',
+            AdminCache::key('stock', 'ingredient_categories:list'),
             now()->addMinutes(2),
             fn () => IngredientCategory::query()
                 ->select('id', 'name')

@@ -5,30 +5,44 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
+use App\Support\AdminCache;
+use App\Support\ReportPeriod;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
     public function index(Request $request)
     {
         $isOwnerView = $this->isOwnerView($request);
-        $selectedDate = $isOwnerView
-            ? null
-            : $this->resolveSelectedDate((string) $request->input('date', ''));
+        $selectedDate = null;
+        $type = 'daily';
+        $dateFrom = null;
+        $dateTo = null;
+
+        if (!$isOwnerView) {
+            $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
+            [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
+            $selectedDate = $dateFrom->copy();
+        }
 
         $query = $this->baseTransactionQuery();
 
-        $this->applyCommonFilters($query, $request);
-        $this->applyDateFilters($query, $request, $isOwnerView, $selectedDate);
+        $this->applyCommonFilters($query, $request, includeUserFilter: !$isOwnerView);
+        $this->applyDateFilters($query, $request, $isOwnerView, $selectedDate, $dateTo);
 
         $transactions = $query
             ->paginate(10)
             ->withQueryString();
 
         $viewData = $this->buildViewData($request, $transactions, $selectedDate, $isOwnerView);
+        $viewData['type'] = $type;
+        $viewData['dateFrom'] = $dateFrom;
+        $viewData['dateTo'] = $dateTo;
         $viewData['paymentMethods'] = $this->paymentMethodOptions();
+        $viewData['cashiers'] = $this->cashierOptions();
         $viewData['transactions'] = $transactions;
 
         $view = $isOwnerView
@@ -76,7 +90,7 @@ class TransactionController extends Controller
             ->latest();
     }
 
-    private function applyCommonFilters($query, Request $request): void
+    private function applyCommonFilters($query, Request $request, bool $includeUserFilter = false): void
     {
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -92,9 +106,13 @@ class TransactionController extends Controller
         if ($request->filled('payment_method_id')) {
             $query->where('payment_method_id', (int) $request->input('payment_method_id'));
         }
+
+        if ($includeUserFilter && $request->filled('user_id')) {
+            $query->where('user_id', (int) $request->input('user_id'));
+        }
     }
 
-    private function applyDateFilters($query, Request $request, bool $isOwnerView, ?Carbon $selectedDate): void
+    private function applyDateFilters($query, Request $request, bool $isOwnerView, ?Carbon $selectedDate, ?Carbon $selectedEndDate = null): void
     {
         if ($isOwnerView) {
             $this->applyOwnerDateRange($query, $request);
@@ -102,9 +120,9 @@ class TransactionController extends Controller
         }
 
         if ($selectedDate !== null) {
-            $query->whereBetween('created_at', [
+            $query->whereBetween('transactions.created_at', [
                 $selectedDate->copy()->startOfDay(),
-                $selectedDate->copy()->endOfDay(),
+                ($selectedEndDate ?? $selectedDate)->copy()->endOfDay(),
             ]);
         }
     }
@@ -114,7 +132,7 @@ class TransactionController extends Controller
         if ($request->filled('date_from')) {
             try {
                 $from = Carbon::parse((string) $request->input('date_from'))->startOfDay();
-                $query->where('created_at', '>=', $from);
+                $query->where('transactions.created_at', '>=', $from);
             } catch (\Throwable) {
                 // abaikan filter tanggal tidak valid
             }
@@ -123,7 +141,7 @@ class TransactionController extends Controller
         if ($request->filled('date_to')) {
             try {
                 $to = Carbon::parse((string) $request->input('date_to'))->endOfDay();
-                $query->where('created_at', '<=', $to);
+                $query->where('transactions.created_at', '<=', $to);
             } catch (\Throwable) {
                 // abaikan filter tanggal tidak valid
             }
@@ -154,32 +172,32 @@ class TransactionController extends Controller
         $data['todayDate'] = $todayDate;
         $data['isToday'] = $activeDate->isSameDay($todayDate);
 
-        $dateNavParams = $this->buildDateNavigationParams($request, $activeDate);
-        $data['prevDateParams'] = $dateNavParams['prev'];
-        $data['nextDateParams'] = $dateNavParams['next'];
-
         $data['hasActiveFilters'] = $request->filled('search')
+            || $request->filled('user_id')
             || $request->filled('payment_method_id')
-            || $request->filled('date');
+            || $request->filled('date_from')
+            || $request->filled('date_to');
+
+        [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
+            ReportPeriod::buildNavigator((string) $request->input('type', 'daily'), $activeDate);
+
+        $data['prevFrom'] = $prevFrom;
+        $data['prevTo'] = $prevTo;
+        $data['nextFrom'] = $nextFrom;
+        $data['nextTo'] = $nextTo;
+        $data['isFuture'] = $isFuture;
+        $data['inputValue'] = $inputValue;
+        $data['inputType'] = $inputType;
 
         $data['groupedTransactions'] = $transactions->getCollection()
             ->groupBy(fn ($trx) => $trx->created_at->toDateString())
-            ->map(function ($items, $date) {
-                $groupDate = Carbon::parse($date);
-                $label = $groupDate->translatedFormat('d M Y');
+            ->map(fn ($items) => $items);
 
-                if ($groupDate->isToday()) {
-                    $label = 'Hari ini';
-                } elseif ($groupDate->isYesterday()) {
-                    $label = 'Kemarin';
-                }
-
-                return [
-                    'date' => $date,
-                    'label' => $label,
-                    'items' => $items,
-                ];
-            });
+        $summary = $this->buildSummary($request, $selectedDate);
+        $data['totalTransactions'] = $summary['total_transactions'];
+        $data['totalRevenue'] = $summary['total_revenue'];
+        $data['avgTransaction'] = $summary['avg_transaction'];
+        $data['topCashierName'] = $summary['top_cashier_name'];
 
         return $data;
     }
@@ -187,7 +205,7 @@ class TransactionController extends Controller
     private function paymentMethodOptions()
     {
         return Cache::remember(
-            'payment_methods:list',
+            AdminCache::key('payment_methods', 'list'),
             now()->addMinutes(2),
             fn () => PaymentMethod::query()
                 ->select('id', 'name')
@@ -196,33 +214,71 @@ class TransactionController extends Controller
         );
     }
 
-    private function resolveSelectedDate(string $dateInput): ?Carbon
+    private function cashierOptions()
     {
-        $today = now()->startOfDay();
-
-        if ($dateInput === '') {
-            return $today;
-        }
-
-        try {
-            $date = Carbon::parse($dateInput)->startOfDay();
-
-            return $date->greaterThan($today) ? $today : $date;
-        } catch (\Throwable) {
-            return $today;
-        }
+        return Cache::remember(
+            AdminCache::key('transactions', 'cashiers:list'),
+            now()->addSeconds(90),
+            fn () => Transaction::query()
+                ->join('users', 'users.id', '=', 'transactions.user_id')
+                ->select('users.id', 'users.name')
+                ->distinct()
+                ->orderBy('users.name')
+                ->get()
+        );
     }
 
-    private function buildDateNavigationParams(Request $request, Carbon $activeDate): array
+    private function buildSummary(Request $request, ?Carbon $selectedDate): array
     {
-        $base = array_filter([
-            'search' => $request->input('search'),
-            'payment_method_id' => $request->input('payment_method_id'),
-        ], fn ($value) => $value !== null && $value !== '');
+        $summaryEndDate = null;
+        if ($request->filled('date_to')) {
+            try {
+                $summaryEndDate = Carbon::parse((string) $request->input('date_to'))->startOfDay();
+            } catch (\Throwable) {
+                $summaryEndDate = null;
+            }
+        }
 
-        return [
-            'prev' => array_merge($base, ['date' => $activeDate->copy()->subDay()->toDateString()]),
-            'next' => array_merge($base, ['date' => $activeDate->copy()->addDay()->toDateString()]),
-        ];
+        $suffix = 'summary:' . md5(json_encode([
+            'search' => (string) $request->input('search', ''),
+            'user_id' => (int) $request->input('user_id', 0),
+            'payment_method_id' => (int) $request->input('payment_method_id', 0),
+            'date_from' => $request->input('date_from'),
+            'date_to' => $request->input('date_to'),
+            'selected_date' => $selectedDate?->toDateString(),
+            'summary_end' => $summaryEndDate?->toDateString(),
+            'type' => (string) $request->input('type', 'daily'),
+        ]));
+
+        return Cache::remember(
+            AdminCache::key('transactions', $suffix),
+            now()->addSeconds(90),
+            function () use ($request, $selectedDate, $summaryEndDate) {
+                $summaryQuery = Transaction::query();
+                $this->applyCommonFilters($summaryQuery, $request, includeUserFilter: true);
+                $this->applyDateFilters($summaryQuery, $request, false, $selectedDate, $summaryEndDate);
+
+                $totalTransactions = (int) (clone $summaryQuery)->count();
+                $totalRevenue = (float) ((clone $summaryQuery)->sum('total_amount') ?? 0);
+
+                $topCashier = (clone $summaryQuery)
+                    ->join('users', 'users.id', '=', 'transactions.user_id')
+                    ->select('users.name', DB::raw('COUNT(*) as trx_count'))
+                    ->groupBy('users.id', 'users.name')
+                    ->orderByDesc('trx_count')
+                    ->first();
+
+                return [
+                    'total_transactions' => $totalTransactions,
+                    'total_revenue' => $totalRevenue,
+                    'avg_transaction' => $totalTransactions > 0
+                        ? ($totalRevenue / $totalTransactions)
+                        : 0,
+                    'top_cashier_name' => $topCashier?->name
+                        ?? Transaction::query()->with('user:id,name')->latest()->first()?->user?->name
+                        ?? '-',
+                ];
+            }
+        );
     }
 }

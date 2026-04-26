@@ -12,9 +12,11 @@ class TransactionHistoryQueryService
 {
     public function baseFilterQuery(Carbon $dateFrom, Carbon $dateTo): Builder
     {
+        $from = $dateFrom->copy()->startOfDay();
+        $to = $dateTo->copy()->endOfDay();
+
         return Transaction::query()
-            ->whereDate('transactions.created_at', '>=', $dateFrom->toDateString())
-            ->whereDate('transactions.created_at', '<=', $dateTo->toDateString());
+            ->whereBetween('transactions.created_at', [$from, $to]);
     }
 
     public function baseListQuery(Carbon $dateFrom, Carbon $dateTo): Builder
@@ -106,7 +108,7 @@ class TransactionHistoryQueryService
 
     private function key(string $metric, Carbon $dateFrom, Carbon $dateTo, array $filters): string
     {
-        return AdminCache::key('cashflow', 'owner:transaction_history:' . $metric . ':' . md5(json_encode([
+        return AdminCache::key('transactions', 'owner:transaction_history:' . $metric . ':' . md5(json_encode([
             'from' => $dateFrom->toDateString(),
             'to' => $dateTo->toDateString(),
             'search' => trim((string) ($filters['search'] ?? '')),

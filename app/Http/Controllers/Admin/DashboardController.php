@@ -23,6 +23,7 @@ class DashboardController extends Controller
         $lowStockItems = $this->getLowStockItems();
         $recentStockActivities = $this->getRecentStockActivities();
         $topMenusToday = $this->getTopMenusToday($todayStart, $todayEnd, $todayKey);
+        $salesLast7Days = $this->getSalesLast7Days();
 
         return view('admin.panel_admin', compact(
             'totalActiveMenus',
@@ -30,7 +31,8 @@ class DashboardController extends Controller
             'transactionsTodayCount',
             'lowStockItems',
             'recentStockActivities',
-            'topMenusToday'
+            'topMenusToday',
+            'salesLast7Days'
         ));
     }
 
@@ -116,6 +118,49 @@ class DashboardController extends Controller
                 ->orderByDesc('sold_qty')
                 ->limit(5)
                 ->get()
+        );
+    }
+
+    private function getSalesLast7Days()
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'sales_last_7_days:' . now()->toDateString()),
+            now()->addSeconds(90),
+            function () {
+                $todayEnd = now()->endOfDay();
+                $last7Start = now()->subDays(6)->startOfDay();
+
+                $dailySalesRaw = Transaction::query()
+                    ->selectRaw('DATE(created_at) as sale_date, COALESCE(SUM(total_amount), 0) as omzet')
+                    ->whereBetween('created_at', [$last7Start->toDateTimeString(), $todayEnd->toDateTimeString()])
+                    ->groupByRaw('DATE(created_at)')
+                    ->orderByRaw('DATE(created_at) asc')
+                    ->get()
+                    ->keyBy('sale_date');
+
+                $salesLast7Days = collect(range(6, 0))
+                    ->map(function (int $dayOffset) use ($dailySalesRaw) {
+                        $date = now()->subDays($dayOffset)->toDateString();
+                        $omzet = (float) optional($dailySalesRaw->get($date))->omzet;
+
+                        return [
+                            'date' => $date,
+                            'label' => now()->subDays($dayOffset)->translatedFormat('D, d M'),
+                            'is_today' => $dayOffset === 0,
+                            'omzet' => $omzet,
+                        ];
+                    });
+
+                $maxOmzet = (float) $salesLast7Days->max('omzet');
+                $salesLast7Days = $salesLast7Days->map(function (array $row) use ($maxOmzet) {
+                    $percentage = $maxOmzet > 0 ? ($row['omzet'] / $maxOmzet) * 100 : 0;
+                    $row['bar_width'] = max(6, (int) round($percentage));
+
+                    return $row;
+                });
+
+                return $salesLast7Days;
+            }
         );
     }
 

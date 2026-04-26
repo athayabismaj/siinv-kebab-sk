@@ -12,7 +12,17 @@ class RoleMiddleware {
             return redirect()->route('login');
         }
 
-        if (strtolower(Auth::user()->role->name) !== strtolower($role)) {
+        $userRole = strtolower(Auth::user()->role->name);
+
+        // Developer (Super Admin) memiliki akses bypass ke semua halaman
+        if ($userRole === 'developer') {
+            return $next($request);
+        }
+
+        // Pengecekan multi-role jika middleware memisahkan dengan pipe, misal: 'role:admin|owner'
+        $allowedRoles = explode('|', strtolower($role));
+        
+        if (!in_array($userRole, $allowedRoles)) {
             abort(403);
         }
 

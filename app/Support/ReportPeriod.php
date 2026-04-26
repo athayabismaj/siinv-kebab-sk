@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 
 class ReportPeriod
 {
+    private const MAX_INTERACTIVE_DAYS = 90;
+
     public static function resolveType(?string $type): string
     {
         return in_array($type, ['daily', 'weekly', 'monthly'], true) ? $type : 'daily';
@@ -47,6 +49,12 @@ class ReportPeriod
 
         if ($to->greaterThan($today)) {
             $to = $today->copy();
+        }
+
+        // Batasi rentang interaktif agar query laporan tetap responsif.
+        $maxStart = $to->copy()->subDays(self::MAX_INTERACTIVE_DAYS - 1);
+        if ($from->lessThan($maxStart)) {
+            $from = $maxStart;
         }
 
         if ($from->greaterThan($to)) {

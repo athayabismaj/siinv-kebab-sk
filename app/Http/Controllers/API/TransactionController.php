@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Services\ApiTransactionService;
 use App\Support\AdminCache;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -79,28 +80,29 @@ class TransactionController extends Controller
 
     public function store(StoreTransactionRequest $request)
     {
-        if (! PaymentMethod::query()->whereNull('deleted_at')->exists()) {
-            return $this->errorResponse('Metode pembayaran belum tersedia.', [
-                'payment_method_id' => $request->input('payment_method_id'),
-            ], 422);
-        }
-
-        $validated = $request->validated();
         $userId = $this->resolveUserId($request);
         if ($userId <= 0) {
             return $this->unauthorizedResponse();
         }
 
-        $draft = $this->transactionService->buildCheckoutDraft($validated);
-        if (! $draft['ok']) {
-            return $this->errorResponse(
-                $draft['message'],
-                $draft['data'] ?? null,
-                $draft['status']
-            );
-        }
-
         try {
+            if (! PaymentMethod::query()->whereNull('deleted_at')->exists()) {
+                return $this->errorResponse('Metode pembayaran belum tersedia.', [
+                    'payment_method_id' => $request->input('payment_method_id'),
+                ], 422);
+            }
+
+            $validated = $request->validated();
+
+            $draft = $this->transactionService->buildCheckoutDraft($validated);
+            if (! $draft['ok']) {
+                return $this->errorResponse(
+                    $draft['message'],
+                    $draft['data'] ?? null,
+                    $draft['status']
+                );
+            }
+
             $result = $this->transactionService->createCheckoutTransaction(
                 $userId,
                 $draft,
@@ -110,16 +112,27 @@ class TransactionController extends Controller
             AdminCache::bumpDashboard();
             AdminCache::bumpCashflow();
             AdminCache::bumpUsage();
+            AdminCache::bumpDailyStock();
+            AdminCache::bumpTransactions();
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {
-            Log::error('Gagal memproses transaksi kasir.', [
-                'user_id' => $userId,
-                'error' => $e->getMessage(),
-            ]);
+            try {
+                Log::error('Gagal memproses transaksi kasir.', [
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                    'exception' => get_class($e),
+                ]);
+            } catch (Throwable) {
+                // Logging failure should never break checkout error response.
+            }
 
             if ($e instanceof RuntimeException) {
                 return $this->errorResponse($e->getMessage(), null, 409);
+            }
+
+            if ($e instanceof ModelNotFoundException) {
+                return $this->errorResponse('Data pembayaran atau varian menu tidak ditemukan. Muat ulang menu lalu coba lagi.', null, 422);
             }
 
             if ($e instanceof QueryException) {
@@ -152,3 +165,5 @@ class TransactionController extends Controller
         }
     }
 }
+
+

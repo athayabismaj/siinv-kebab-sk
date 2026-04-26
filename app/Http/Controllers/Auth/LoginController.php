@@ -72,6 +72,9 @@ class LoginController extends Controller
             case 'admin':
                 return redirect()->route('admin.panel');
 
+            case 'developer':
+                return redirect()->route('developer.panel');
+
             default:
                 Auth::logout();
                 return back()->withErrors([

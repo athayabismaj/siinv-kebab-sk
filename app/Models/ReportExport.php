@@ -35,5 +35,26 @@ class ReportExport extends Model
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
+
+    public function getTable()
+    {
+        $table = parent::getTable();
+
+        $defaultConnection = (string) config('database.default', '');
+        $driver = (string) config("database.connections.{$defaultConnection}.driver", '');
+
+        if ($driver !== 'pgsql' || str_contains($table, '.')) {
+            return $table;
+        }
+
+        $searchPath = (string) config("database.connections.{$defaultConnection}.search_path", 'public');
+        $schema = trim(explode(',', $searchPath)[0] ?? '');
+
+        if ($schema === '') {
+            return $table;
+        }
+
+        return $schema . '.' . $table;
+    }
 }
 

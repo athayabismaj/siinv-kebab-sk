@@ -12,6 +12,7 @@ use App\Support\IngredientUnit;
 use App\Support\StockLogView;
 use App\Services\ReportExportDispatchService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,6 +24,16 @@ class StockController extends Controller
             'ingredients' => function ($query) use ($request) {
                 if ($request->filled('search')) {
                     $this->applyNameSearch($query, $request->search);
+                }
+
+                if ($request->filled('has_price')) {
+                    if ($request->has_price === '1') {
+                        $query->where('selling_price', '>', 0);
+                    } elseif ($request->has_price === '0') {
+                        $query->where(function ($q) {
+                            $q->whereNull('selling_price')->orWhere('selling_price', '<=', 0);
+                        });
+                    }
                 }
 
                 $query->orderBy('name');
@@ -56,32 +67,38 @@ class StockController extends Controller
             })
         );
 
-        $allCategories = IngredientCategory::query()
-            ->withCount('ingredients')
-            ->withCount([
-                'ingredients as out_of_stock_count' => function ($query) {
-                    $query->where('stock', '<=', 0);
-                },
-                'ingredients as low_stock_count' => function ($query) {
-                    $query->where('stock', '>', 0)
-                        ->whereColumn('stock', '<=', 'minimum_stock');
-                },
-            ])
-            ->orderBy('name')
-            ->get()
-            ->map(function (IngredientCategory $category) {
-                $outCount = (int) ($category->out_of_stock_count ?? 0);
-                $lowCount = (int) ($category->low_stock_count ?? 0);
+        $allCategories = Cache::remember(
+            AdminCache::key('stock', 'all_categories:with_counts'),
+            now()->addSeconds(120),
+            function () {
+                return IngredientCategory::query()
+                    ->withCount('ingredients')
+                    ->withCount([
+                        'ingredients as out_of_stock_count' => function ($query) {
+                            $query->where('stock', '<=', 0);
+                        },
+                        'ingredients as low_stock_count' => function ($query) {
+                            $query->where('stock', '>', 0)
+                                ->whereColumn('stock', '<=', 'minimum_stock');
+                        },
+                    ])
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function (IngredientCategory $category) {
+                        $outCount = (int) ($category->out_of_stock_count ?? 0);
+                        $lowCount = (int) ($category->low_stock_count ?? 0);
 
-                $marker = '';
-                if ($outCount > 0 || $lowCount > 0) {
-                    $marker = '(H:' . $outCount . ' R:' . $lowCount . ')';
-                }
+                        $marker = '';
+                        if ($outCount > 0 || $lowCount > 0) {
+                            $marker = '(H:' . $outCount . ' R:' . $lowCount . ')';
+                        }
 
-                $category->status_marker = $marker;
+                        $category->status_marker = $marker;
 
-                return $category;
-            });
+                        return $category;
+                    });
+            }
+        );
 
         $lowStockQuery = Ingredient::query()
             ->whereColumn('stock', '<=', 'minimum_stock');
@@ -94,7 +111,25 @@ class StockController extends Controller
             $lowStockQuery->where('category_id', $request->category);
         }
 
-        $lowStockCount = $lowStockQuery->count();
+        if ($request->filled('has_price')) {
+            if ($request->has_price === '1') {
+                $lowStockQuery->where('selling_price', '>', 0);
+            } elseif ($request->has_price === '0') {
+                $lowStockQuery->where(function ($q) {
+                    $q->whereNull('selling_price')->orWhere('selling_price', '<=', 0);
+                });
+            }
+        }
+
+        $lowStockCount = Cache::remember(
+            AdminCache::key('stock', 'low_stock_count:' . md5(json_encode([
+                'search' => (string) $request->input('search', ''),
+                'category' => (string) $request->input('category', ''),
+                'has_price' => (string) $request->input('has_price', ''),
+            ]))),
+            now()->addSeconds(60),
+            fn () => $lowStockQuery->count()
+        );
 
         return view(
             'admin.stocks.index',
@@ -133,6 +168,7 @@ class StockController extends Controller
             });
 
             AdminCache::bumpDashboard();
+            AdminCache::bumpStock();
 
             return redirect()
                 ->route('admin.stocks.index')
@@ -187,6 +223,7 @@ class StockController extends Controller
             });
 
             AdminCache::bumpDashboard();
+            AdminCache::bumpStock();
 
             return redirect()
                 ->route('admin.stocks.index')
@@ -218,12 +255,39 @@ class StockController extends Controller
             $logsQuery->where('type', $typeFilter);
         }
 
-        $summary = [
-            'total' => (clone $logsQuery)->count(),
-            'restock' => (clone $logsQuery)->where('type', 'in')->count(),
-            'usage' => (clone $logsQuery)->where('type', 'out')->count(),
-            'adjustment' => (clone $logsQuery)->where('type', 'adjustment')->count(),
-        ];
+        $summary = Cache::remember(
+            AdminCache::key('stock', 'logs_summary:' . md5(json_encode([
+                'period' => $period,
+                'date' => $selectedDate->toDateString(),
+                'type' => (string) $typeFilter,
+            ]))),
+            now()->addSeconds(60),
+            function () use ($rangeStart, $rangeEnd, $typeFilter) {
+                $summaryBaseQuery = StockLog::query()
+                    ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+
+                if ($typeFilter && in_array($typeFilter, ['in', 'out', 'adjustment'], true)) {
+                    $summaryBaseQuery->where('type', $typeFilter);
+                }
+
+                $row = $summaryBaseQuery
+                    ->selectRaw(
+                        'COUNT(*) as total,
+                         SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as restock,
+                         SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as usage,
+                         SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
+                        ['in', 'out', 'adjustment']
+                    )
+                    ->first();
+
+                return [
+                    'total' => (int) ($row->total ?? 0),
+                    'restock' => (int) ($row->restock ?? 0),
+                    'usage' => (int) ($row->usage ?? 0),
+                    'adjustment' => (int) ($row->adjustment ?? 0),
+                ];
+            }
+        );
 
         $summaryCards = StockLogView::summaryCards($summary);
 
@@ -301,21 +365,27 @@ class StockController extends Controller
 
     public function exportLogs(Request $request)
     {
-        $export = app(ReportExportDispatchService::class)->dispatch(
-            $request->user(),
-            'admin',
-            'admin.stock_logs',
-            $request->query()
-        );
+        try {
+            $export = app(ReportExportDispatchService::class)->dispatch(
+                $request->user(),
+                'admin',
+                'admin.stock_logs',
+                $request->query()
+            );
 
-        $message = 'Export riwayat stok masuk antrian. ID: #' . $export->id;
-        if ($export->scheduled_for) {
-            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            $message = 'Export riwayat stok masuk antrian. ID: #' . $export->id;
+            if ($export->scheduled_for) {
+                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            }
+
+            return redirect()
+                ->route('admin.exports.index')
+                ->with('success', $message);
+        } catch (\Throwable) {
+            return redirect()
+                ->route('admin.exports.index')
+                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
         }
-
-        return redirect()
-            ->route('admin.exports.index')
-            ->with('success', $message);
     }
 
     private function applyNameSearch($query, string $search): void

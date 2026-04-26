@@ -4,7 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\ReportExport;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class ReportExportController extends Controller
 {
@@ -12,16 +17,52 @@ class ReportExportController extends Controller
     {
         $scope = $this->resolveScope($request);
 
-        $exports = ReportExport::query()
-            ->where('requested_by', auth()->id())
-            ->where('scope', $scope)
-            ->latest('id')
-            ->paginate(15)
-            ->withQueryString();
+        $runtimeError = null;
+        if (! Schema::hasTable('report_exports')) {
+            $runtimeError = 'Riwayat ekspor belum dapat dimuat. Jalankan migrasi export terlebih dahulu.';
+            $exports = new LengthAwarePaginator(
+                new Collection(),
+                0,
+                15,
+                LengthAwarePaginator::resolveCurrentPage(),
+                ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+            );
+
+            return view('shared.exports.index', [
+                'exports' => $exports,
+                'scope' => $scope,
+                'runtimeError' => $runtimeError,
+            ]);
+        }
+
+        try {
+            $exports = ReportExport::query()
+                ->where('requested_by', auth()->id())
+                ->where('scope', $scope)
+                ->latest('id')
+                ->paginate(15)
+                ->withQueryString();
+        } catch (Throwable $e) {
+            Log::error('Failed to load export history', [
+                'scope' => $scope,
+                'user_id' => auth()->id(),
+                'message' => $e->getMessage(),
+            ]);
+
+            $runtimeError = 'Riwayat ekspor belum dapat dimuat. Jalankan migrasi export terlebih dahulu.';
+            $exports = new LengthAwarePaginator(
+                new Collection(),
+                0,
+                15,
+                LengthAwarePaginator::resolveCurrentPage(),
+                ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+            );
+        }
 
         return view('shared.exports.index', [
             'exports' => $exports,
             'scope' => $scope,
+            'runtimeError' => $runtimeError,
         ]);
     }
 

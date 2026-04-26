@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\CashflowController;
+use App\Http\Controllers\API\DailyStockController;
 use App\Http\Controllers\API\MenuController;
 use App\Http\Controllers\API\PaymentMethodController;
 use App\Http\Controllers\API\TransactionController;
@@ -40,3 +42,12 @@ Route::get('/menus', [MenuController::class , 'index'])
 
 Route::get('/payment-methods', [PaymentMethodController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
+
+Route::get('/daily-stock-items', [DailyStockController::class, 'index'])
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
+
+Route::post('/daily-stock-sessions/close', [DailyStockController::class, 'closeSession'])
+    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+
+Route::post('/cashflow/expenses', [CashflowController::class, 'storeExpense'])
+    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);

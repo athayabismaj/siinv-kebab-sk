@@ -12,4 +12,8 @@ return [
 
     // Delay tambahan (menit) setelah jam operasional selesai.
     'defer_buffer_minutes' => (int) env('OPS_DEFER_BUFFER_MINUTES', 5),
+
+    // Jika export ditunda saat jam operasional, tunda beberapa detik saja.
+    // Cocok untuk single-hosting agar antrean tetap cepat diproses.
+    'defer_seconds_during_ops' => (int) env('OPS_DEFER_SECONDS_DURING_OPS', 5),
 ];

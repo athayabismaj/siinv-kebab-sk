@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\IngredientCategory;
+use App\Support\AdminCache;
 use Illuminate\Http\Request;
 
 class IngredientCategoryController extends Controller
@@ -28,6 +29,7 @@ class IngredientCategoryController extends Controller
         ]);
 
         IngredientCategory::create($request->only('name'));
+        AdminCache::bumpStock();
 
         return redirect()
             ->route('admin.ingredient-categories.index')
@@ -47,6 +49,7 @@ class IngredientCategoryController extends Controller
         ]);
 
         $ingredientCategory->update($request->only('name'));
+        AdminCache::bumpStock();
 
         return redirect()
             ->route('admin.ingredient-categories.index')
@@ -63,6 +66,7 @@ class IngredientCategoryController extends Controller
         }
 
         $ingredientCategory->delete();
+        AdminCache::bumpStock();
 
         return redirect()
             ->route('admin.ingredient-categories.index')

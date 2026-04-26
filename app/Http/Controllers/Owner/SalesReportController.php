@@ -127,21 +127,27 @@ class SalesReportController extends Controller
 
     public function export(Request $request)
     {
-        $export = app(ReportExportDispatchService::class)->dispatch(
-            $request->user(),
-            'owner',
-            'owner.sales',
-            $request->query()
-        );
+        try {
+            $export = app(ReportExportDispatchService::class)->dispatch(
+                $request->user(),
+                'owner',
+                'owner.sales',
+                $request->query()
+            );
 
-        $message = 'Export laporan penjualan masuk antrian. ID: #' . $export->id;
-        if ($export->scheduled_for) {
-            $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            $message = 'Export laporan penjualan masuk antrian. ID: #' . $export->id;
+            if ($export->scheduled_for) {
+                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
+            }
+
+            return redirect()
+                ->route('owner.exports.index')
+                ->with('success', $message);
+        } catch (\Throwable) {
+            return redirect()
+                ->route('owner.exports.index')
+                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
         }
-
-        return redirect()
-            ->route('owner.exports.index')
-            ->with('success', $message);
     }
 
     public function exportDaily(Request $request)

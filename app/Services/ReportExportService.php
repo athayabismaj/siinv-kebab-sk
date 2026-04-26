@@ -85,7 +85,7 @@ class ReportExportService
 
         $rows = StockLog::query()
             ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
-            ->where('stock_logs.type', 'out')
+            ->whereIn('stock_logs.type', ['out', 'daily_usage'])
             ->whereBetween('stock_logs.created_at', [$dateFrom->copy()->startOfDay(), $dateTo->copy()->endOfDay()])
             ->selectRaw(
                 'ingredients.name as ingredient_name,
@@ -182,12 +182,26 @@ class ReportExportService
         $type = ReportPeriod::resolveType((string) ($filters['type'] ?? 'daily'));
         [$dateFrom, $dateTo] = $this->resolveAdminRange($type, $filters, true);
 
+        // Subquery correlated untuk estimasi nilai dengan konversi satuan
+        $valueSubquery = \Illuminate\Support\Facades\DB::table('daily_stock_items as dsi')
+            ->join('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
+            ->whereColumn('dsi.daily_stock_session_id', 'daily_stock_sessions.id')
+            ->selectRaw('COALESCE(SUM(
+                CASE ingredients.display_unit
+                    WHEN \'kg\'  THEN (dsi.used_qty / 1000.0) * ingredients.selling_price
+                    WHEN \'l\'   THEN (dsi.used_qty / 1000.0) * ingredients.selling_price
+                    WHEN \'pcs\' THEN (dsi.used_qty / GREATEST(COALESCE(ingredients.pack_size, 1), 1)) * ingredients.selling_price
+                    ELSE              dsi.used_qty * ingredients.selling_price
+                END
+            ), 0)');
+
         $rows = DailyStockSession::query()
             ->with('cashier:id,name')
             ->withSum('items as total_opening', 'opening_qty')
             ->withSum('items as total_remaining', 'remaining_qty')
             ->withSum('items as total_used', 'used_qty')
             ->withCount('items')
+            ->addSelect(['total_value' => $valueSubquery])
             ->whereBetween('session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
             ->orderByDesc('session_date')
             ->orderByDesc('id')
@@ -196,28 +210,33 @@ class ReportExportService
         $fileName = 'laporan-stok-harian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
 
         return $this->writeCsv($export, $fileName, function ($output) use ($rows, $dateFrom, $dateTo) {
-            fputcsv($output, ['Laporan Stok Harian Kasir']);
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
+            fputcsv($output, ['LAPORAN STOK HARIAN KASIR']);
+            fputcsv($output, ['Sistem Manajemen Sipos Kebab SK']);
             fputcsv($output, []);
-            fputcsv($output, ['Tanggal', 'Kasir', 'Status', 'Jumlah Item', 'Dibawa (qty dasar)', 'Sisa (qty dasar)', 'Terpakai (qty dasar)', 'Nilai']);
+            fputcsv($output, ['Waktu Export', now()->format('d M Y H:i')]);
+            fputcsv($output, ['Periode', $dateFrom->format('d/m/Y') . ' - ' . $dateTo->format('d/m/Y')]);
+            fputcsv($output, []);
+            fputcsv($output, ['Tanggal', 'Kasir', 'Status', 'Jumlah Item', 'Stok Dibawa', 'Sisa Stok', 'Terpakai', 'Estimasi Nilai (Rp)']);
 
+            $grandTotal = 0;
             foreach ($rows as $row) {
-                $opening = (float) ($row->total_opening ?? 0);
-                $remaining = (float) ($row->total_remaining ?? 0);
-                $used = (float) ($row->total_used ?? 0);
-                $value = $used;
+                $value = (float) ($row->total_value ?? 0);
+                $grandTotal += $value;
 
                 fputcsv($output, [
-                    optional($row->session_date)->format('Y-m-d'),
+                    optional($row->session_date)->format('d/m/Y'),
                     optional($row->cashier)->name ?? '-',
                     strtoupper((string) $row->status),
                     (int) ($row->items_count ?? 0),
-                    $opening,
-                    $remaining,
-                    $used,
+                    (float) ($row->total_opening ?? 0),
+                    (float) ($row->total_remaining ?? 0),
+                    (float) ($row->total_used ?? 0),
                     $value,
                 ]);
             }
+
+            fputcsv($output, []);
+            fputcsv($output, ['TOTAL ESTIMASI NILAI TERPAKAI', '', '', '', '', '', '', $grandTotal]);
         });
     }
 
@@ -248,20 +267,28 @@ class ReportExportService
         $fileName = 'owner-pengeluaran-' . $type . '-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
 
         return $this->writeCsv($export, $fileName, function ($output) use ($rows, $dateFrom, $dateTo) {
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
+            fputcsv($output, ['LAPORAN PENGELUARAN (CASHFLOW)']);
+            fputcsv($output, ['Sistem Manajemen Sipos Kebab SK']);
             fputcsv($output, []);
-            fputcsv($output, ['Tanggal', 'Nominal', 'Kategori', 'Catatan', 'Input Oleh', 'Waktu Input']);
+            fputcsv($output, ['Waktu Export', now()->format('d M Y H:i')]);
+            fputcsv($output, ['Periode', $dateFrom->format('d/m/Y') . ' - ' . $dateTo->format('d/m/Y')]);
+            fputcsv($output, []);
+            fputcsv($output, ['Tanggal', 'Nominal (Rp)', 'Kategori', 'Catatan', 'Input Oleh', 'Waktu Input']);
 
+            $total = 0;
             foreach ($rows as $row) {
+                $total += $row->amount;
                 fputcsv($output, [
-                    optional($row->entry_date)->format('Y-m-d'),
+                    optional($row->entry_date)->format('d/m/Y'),
                     (float) $row->amount,
                     $row->source ?? '-',
                     $row->note ?? '-',
                     optional($row->creator)->name ?? '-',
-                    optional($row->created_at)->format('Y-m-d H:i:s'),
+                    optional($row->created_at)->format('d/m/Y H:i'),
                 ]);
             }
+            fputcsv($output, []);
+            fputcsv($output, ['TOTAL PENGELUARAN', $total]);
         });
     }
 
@@ -287,12 +314,18 @@ class ReportExportService
         $fileName = 'riwayat-transaksi-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString() . '.csv';
 
         return $this->writeCsv($export, $fileName, function ($output) use ($rows, $dateFrom, $dateTo) {
-            fputcsv($output, ['Periode', $dateFrom->toDateString() . ' s/d ' . $dateTo->toDateString()]);
+            fputcsv($output, ['LAPORAN RIWAYAT TRANSAKSI']);
+            fputcsv($output, ['Sistem Manajemen Sipos Kebab SK']);
             fputcsv($output, []);
-            fputcsv($output, ['Kode', 'Kasir', 'Metode Pembayaran', 'Status', 'Jumlah Item', 'Total', 'Dibayar', 'Kembalian', 'Waktu']);
+            fputcsv($output, ['Waktu Export', now()->format('d M Y H:i')]);
+            fputcsv($output, ['Periode', $dateFrom->format('d/m/Y') . ' - ' . $dateTo->format('d/m/Y')]);
+            fputcsv($output, []);
+            fputcsv($output, ['Kode', 'Kasir', 'Metode Pembayaran', 'Status', 'Jumlah Item', 'Total (Rp)', 'Dibayar (Rp)', 'Kembalian (Rp)', 'Waktu Transaksi']);
 
+            $totalAmount = 0;
             foreach ($rows as $trx) {
                 $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount;
+                $totalAmount += $trx->total_amount;
                 fputcsv($output, [
                     $trx->transaction_code,
                     optional($trx->user)->name ?? '-',
@@ -302,9 +335,11 @@ class ReportExportService
                     (float) $trx->total_amount,
                     (float) $trx->paid_amount,
                     (float) $trx->change_amount,
-                    $trx->created_at?->format('Y-m-d H:i:s'),
+                    $trx->created_at?->format('d/m/Y H:i'),
                 ]);
             }
+            fputcsv($output, []);
+            fputcsv($output, ['TOTAL PENDAPATAN', '', '', '', '', $totalAmount]);
         });
     }
 
@@ -322,16 +357,22 @@ class ReportExportService
             $fileName = 'laporan-penjualan-bulanan-' . $month->format('Y-m') . '.csv';
 
             return $this->writeCsv($export, $fileName, function ($output) use ($month, $summary) {
-                fputcsv($output, ['Jenis Laporan', 'Bulanan']);
-                fputcsv($output, ['Bulan', $month->format('Y-m')]);
-                fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
-                fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
-                fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
+                fputcsv($output, ['LAPORAN PENJUALAN BULANAN']);
+                fputcsv($output, ['Sistem Manajemen Sipos Kebab SK']);
                 fputcsv($output, []);
-                fputcsv($output, ['Tanggal', 'Jumlah Transaksi', 'Omzet']);
+                fputcsv($output, ['Waktu Export', now()->format('d M Y H:i')]);
+                fputcsv($output, ['Bulan Laporan', $month->format('F Y')]);
+                fputcsv($output, []);
+                fputcsv($output, ['RINGKASAN']);
+                fputcsv($output, ['Total Omzet', 'Rp ' . number_format($summary['totalRevenue'], 0, ',', '.')]);
+                fputcsv($output, ['Jumlah Transaksi', number_format($summary['totalTransactions'], 0, ',', '.')]);
+                fputcsv($output, ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avgTransaction'], 0, ',', '.')]);
+                fputcsv($output, []);
+                fputcsv($output, ['DETAIL HARIAN']);
+                fputcsv($output, ['Tanggal', 'Jumlah Transaksi', 'Omzet (Rp)']);
 
                 foreach ($summary['dailyBreakdown'] as $row) {
-                    fputcsv($output, [$row->date, (int) $row->trx_count, (float) $row->revenue]);
+                    fputcsv($output, [Carbon::parse($row->date)->format('d/m/Y'), (int) $row->trx_count, (float) $row->revenue]);
                 }
             });
         }
@@ -346,19 +387,25 @@ class ReportExportService
             $fileName = 'laporan-penjualan-mingguan-' . $weekStart->toDateString() . '-sampai-' . $weekEnd->toDateString() . '.csv';
 
             return $this->writeCsv($export, $fileName, function ($output) use ($summary, $analytics, $weekStart, $weekEnd) {
-                fputcsv($output, ['Jenis Laporan', 'Mingguan']);
-                fputcsv($output, ['Periode', $weekStart->format('Y-m-d') . ' s/d ' . $weekEnd->format('Y-m-d')]);
-                fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
-                fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
-                fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
+                fputcsv($output, ['LAPORAN PENJUALAN MINGGUAN']);
+                fputcsv($output, ['Sistem Manajemen Sipos Kebab SK']);
                 fputcsv($output, []);
-                fputcsv($output, ['Menu', 'Qty', 'Kontribusi (%)', 'Penjualan']);
+                fputcsv($output, ['Waktu Export', now()->format('d M Y H:i')]);
+                fputcsv($output, ['Periode Laporan', $weekStart->format('d/m/Y') . ' - ' . $weekEnd->format('d/m/Y')]);
+                fputcsv($output, []);
+                fputcsv($output, ['RINGKASAN']);
+                fputcsv($output, ['Total Omzet', 'Rp ' . number_format($summary['totalRevenue'], 0, ',', '.')]);
+                fputcsv($output, ['Jumlah Transaksi', number_format($summary['totalTransactions'], 0, ',', '.')]);
+                fputcsv($output, ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avgTransaction'], 0, ',', '.')]);
+                fputcsv($output, []);
+                fputcsv($output, ['ANALISIS MENU TERLARIS']);
+                fputcsv($output, ['Menu', 'Terjual (Qty)', 'Kontribusi (%)', 'Omzet (Rp)']);
 
                 foreach ($analytics['contributions'] as $item) {
                     fputcsv($output, [
                         $item->menu_name,
                         (int) $item->total_qty,
-                        (float) $item->contribution,
+                        (float) $item->contribution . '%',
                         (float) $item->total_sales,
                     ]);
                 }
@@ -371,19 +418,25 @@ class ReportExportService
         $fileName = 'laporan-penjualan-harian-' . $selectedDate->toDateString() . '.csv';
 
         return $this->writeCsv($export, $fileName, function ($output) use ($summary, $analytics, $selectedDate) {
-            fputcsv($output, ['Jenis Laporan', 'Harian']);
-            fputcsv($output, ['Tanggal', $selectedDate->format('Y-m-d')]);
-            fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
-            fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
-            fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
+            fputcsv($output, ['LAPORAN PENJUALAN HARIAN']);
+            fputcsv($output, ['Sistem Manajemen Sipos Kebab SK']);
             fputcsv($output, []);
-            fputcsv($output, ['Menu', 'Qty', 'Kontribusi (%)', 'Penjualan']);
+            fputcsv($output, ['Waktu Export', now()->format('d M Y H:i')]);
+            fputcsv($output, ['Tanggal Laporan', $selectedDate->format('d F Y')]);
+            fputcsv($output, []);
+            fputcsv($output, ['RINGKASAN']);
+            fputcsv($output, ['Total Omzet', 'Rp ' . number_format($summary['totalRevenue'], 0, ',', '.')]);
+            fputcsv($output, ['Jumlah Transaksi', number_format($summary['totalTransactions'], 0, ',', '.')]);
+            fputcsv($output, ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avgTransaction'], 0, ',', '.')]);
+            fputcsv($output, []);
+            fputcsv($output, ['ANALISIS MENU TERLARIS']);
+            fputcsv($output, ['Menu', 'Terjual (Qty)', 'Kontribusi (%)', 'Omzet (Rp)']);
 
             foreach ($analytics['contributions'] as $item) {
                 fputcsv($output, [
                     $item->menu_name,
                     (int) $item->total_qty,
-                    (float) $item->contribution,
+                    (float) $item->contribution . '%',
                     (float) $item->total_sales,
                 ]);
             }

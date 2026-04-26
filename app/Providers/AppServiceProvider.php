@@ -25,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::before(function ($user, $ability) {
+            if (strtolower(optional(optional($user)->role)->name) === 'developer') {
+                return true;
+            }
+        });
+
         Gate::policy(DailyStockSession::class, DailyStockSessionPolicy::class);
 
         RateLimiter::for('auth-login', function (Request $request) {
@@ -103,6 +109,26 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return Limit::perMinute(20)->by('web-heavy:default:' . $keyBase);
+        });
+
+        // Bagikan jumlah stok rendah ke partials.header untuk notifikasi
+        \Illuminate\Support\Facades\View::composer('partials.header', function (\Illuminate\View\View $view) {
+            // Hanya jalankan query jika user terautentikasi dan memiliki role admin/owner
+            $user = auth()->user();
+            $role = strtolower((string) optional(optional($user)->role)->name);
+
+            if (in_array($role, ['admin', 'owner'], true)) {
+                $count = \Illuminate\Support\Facades\Cache::remember(
+                    \App\Support\AdminCache::key('dashboard', 'low_stock_notification_count'),
+                    now()->addMinutes(5),
+                    fn () => \App\Models\Ingredient::query()
+                        ->whereColumn('stock', '<=', 'minimum_stock')
+                        ->count()
+                );
+                $view->with('lowStockCount', $count);
+            } else {
+                $view->with('lowStockCount', 0);
+            }
         });
     }
 }

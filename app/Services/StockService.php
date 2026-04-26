@@ -2,17 +2,50 @@
 
 namespace App\Services;
 
+use App\Models\DailyStockItem;
+use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\MenuVariant;
 use App\Models\StockLog;
+use App\Support\AdminCache;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use RuntimeException;
 
 class StockService
 {
 
-    public static function deductStock(int $variantId, float $qty, int $transactionId, ?string $note = null): void
+    public static function deductStock(
+        int $variantId,
+        float $qty,
+        int $transactionId,
+        ?string $note = null,
+        ?int $cashierId = null,
+        Carbon|string|null $transactionAt = null
+    ): void
     {
+        $cashierId = (int) ($cashierId ?? 0);
+        if ($cashierId <= 0) {
+            throw new RuntimeException('Kasir tidak valid untuk pengurangan stok harian.');
+        }
+
+        $sessionDate = $transactionAt instanceof Carbon
+            ? $transactionAt->copy()->startOfDay()->toDateString()
+            : Carbon::parse((string) ($transactionAt ?? now()))->startOfDay()->toDateString();
+
+        $session = DailyStockSession::query()
+            ->where('cashier_id', $cashierId)
+            ->whereDate('session_date', $sessionDate)
+            ->whereRaw("LOWER(TRIM(status)) = 'open'")
+            ->lockForUpdate()
+            ->first();
+
+        if (! $session) {
+            throw new RuntimeException(
+                'Sesi stok harian kasir belum dibuka. Buka sesi dan transfer bahan terlebih dahulu.'
+            );
+        }
+
         $variant = MenuVariant::with('ingredients')->findOrFail($variantId);
 
         foreach ($variant->ingredients as $ingredient) {
@@ -21,7 +54,7 @@ class StockService
                 continue;
             }
 
-            // Lock row biar aman dari race condition saat checkout paralel.
+            // Lock row ingredient hanya untuk memastikan data ingredient konsisten saat validasi relasi recipe.
             try {
                 $lockedIngredient = Ingredient::query()
                     ->whereKey($ingredient->id)
@@ -38,20 +71,38 @@ class StockService
                 throw $e;
             }
 
-            if ((float) $lockedIngredient->stock < $usedQty) {
-                throw new RuntimeException("Stok {$lockedIngredient->name} tidak cukup");
+            $dailyItem = DailyStockItem::query()
+                ->where('daily_stock_session_id', $session->id)
+                ->where('ingredient_id', $lockedIngredient->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $dailyItem) {
+                throw new RuntimeException(
+                    "Bahan {$lockedIngredient->name} belum dibawa ke stok harian kasir."
+                );
             }
 
-            $lockedIngredient->decrement('stock', $usedQty);
+            if ((float) $dailyItem->remaining_qty < $usedQty) {
+                throw new RuntimeException(
+                    "Stok harian {$lockedIngredient->name} tidak cukup."
+                );
+            }
+
+            $dailyItem->decrement('remaining_qty', $usedQty);
+            $dailyItem->increment('used_qty', $usedQty);
 
             StockLog::create([
                 'ingredient_id' => $lockedIngredient->id,
-                'type' => 'out',
-                // Nilai negatif agar konsisten sebagai stok keluar.
+                'type' => 'daily_usage',
                 'quantity' => -$usedQty,
                 'reference_id' => $transactionId,
-                'note' => $note ?? "Pemakaian bahan dari transaksi #{$transactionId}",
+                'note' => $note ?? "Pemakaian stok harian dari transaksi #{$transactionId}",
             ]);
         }
+
+        AdminCache::bumpStock();
+        AdminCache::bumpUsage();
+        AdminCache::bumpDailyStock();
     }
 }
