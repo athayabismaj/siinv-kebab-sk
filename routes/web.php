@@ -10,6 +10,7 @@ use App\Http\Controllers\Owner\SalesReportController;
 use App\Http\Controllers\Owner\TransactionHistoryController;
 use App\Http\Controllers\Owner\StockMonitoringController;
 use App\Http\Controllers\Owner\CashflowController as OwnerCashflowController;
+use App\Http\Controllers\Owner\DailyTargetController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientCategoryController;
 use App\Http\Controllers\Admin\MenuController;
@@ -110,6 +111,11 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
 
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockMonitoringController::class, 'index'])->name('index');
+        });
+
+        Route::prefix('targets')->name('targets.')->group(function () {
+            Route::get('/daily', [DailyTargetController::class, 'index'])->name('index');
+            Route::post('/daily', [DailyTargetController::class, 'store'])->name('store');
         });
 
         Route::prefix('transactions')->name('transactions.')->group(function () {
@@ -243,6 +249,12 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
             Route::get('/', [DailyStockController::class, 'index'])
                 ->middleware('can:viewAny,App\Models\DailyStockSession')
                 ->name('index');
+            Route::get('/transfer', [DailyStockController::class, 'transferForm'])
+                ->middleware('can:transfer,App\Models\DailyStockSession')
+                ->name('transfer.form');
+            Route::get('/close', [DailyStockController::class, 'closeForm'])
+                ->middleware('can:close,App\Models\DailyStockSession')
+                ->name('close.form');
             Route::post('/open', [DailyStockController::class, 'open'])
                 ->middleware('can:open,App\Models\DailyStockSession')
                 ->name('open');
@@ -255,6 +267,9 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
             Route::post('/reopen', [DailyStockController::class, 'reopen'])
                 ->middleware('can:reopen,App\Models\DailyStockSession')
                 ->name('reopen');
+            Route::post('/reconcile', [DailyStockController::class, 'reconcile'])
+                ->middleware('can:reopen,App\Models\DailyStockSession')
+                ->name('reconcile');
         });
 
 
@@ -291,4 +306,26 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
         });
 
 
+});
+
+/*
+|--------------------------------------------------------------------------
+| DEVELOPER
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:developer'])->prefix('developer')->name('developer.')->group(function () {
+    Route::get('/panel', [\App\Http\Controllers\Developer\DashboardController::class, 'index'])->name('panel');
+    Route::post('/clear-cache', [\App\Http\Controllers\Developer\DashboardController::class, 'clearCache'])->name('clear-cache');
+    
+    // Manajemen Owner
+    Route::get('/owners', [\App\Http\Controllers\Developer\OwnerController::class, 'index'])->name('owners.index');
+    Route::get('/owners/create', [\App\Http\Controllers\Developer\OwnerController::class, 'create'])->name('owners.create');
+    Route::post('/owners', [\App\Http\Controllers\Developer\OwnerController::class, 'store'])->name('owners.store');
+
+    // Manajemen Backup
+    Route::get('/backups', [\App\Http\Controllers\Developer\BackupController::class, 'index'])->name('backups.index');
+    Route::post('/backups', [\App\Http\Controllers\Developer\BackupController::class, 'create'])->name('backups.create');
+    Route::get('/backups/{id}/download', [\App\Http\Controllers\Developer\BackupController::class, 'download'])->name('backups.download');
+    Route::post('/backups/{id}/restore', [\App\Http\Controllers\Developer\BackupController::class, 'restore'])->name('backups.restore');
+    Route::post('/backups/restore-upload', [\App\Http\Controllers\Developer\BackupController::class, 'restoreUpload'])->name('backups.restore-upload');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\DailyTarget;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
 use Carbon\Carbon;
@@ -10,26 +11,24 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ApiTransactionService
 {
     public function getHistory(int $userId, ?string $date, int $perPage = 15): LengthAwarePaginator
     {
-        $itemCountSubQuery = DB::table('transaction_details')
-            ->selectRaw('transaction_id, COUNT(*) as items_count')
-            ->groupBy('transaction_id');
-
+        // Avoid global aggregate subquery on transaction_details that can become expensive on large datasets.
+        // Count detail rows only for the filtered transaction rows.
         $query = $this->baseUserTransactionQuery($userId, $date)
-            ->leftJoinSub($itemCountSubQuery, 'td', function ($join) {
-                $join->on('td.transaction_id', '=', 't.id');
-            })
+            ->leftJoin('transaction_details as td', 'td.transaction_id', '=', 't.id')
             ->select([
                 't.id',
                 't.transaction_code',
                 't.total_amount',
                 't.created_at',
-                DB::raw('COALESCE(td.items_count, 0) as items_count'),
+                DB::raw('COUNT(td.id) as items_count'),
             ])
+            ->groupBy('t.id', 't.transaction_code', 't.total_amount', 't.created_at')
             ->orderByDesc('t.created_at');
 
         return $query->paginate($perPage);
@@ -37,11 +36,71 @@ class ApiTransactionService
 
     public function getRevenueSummary(int $userId, ?string $date): array
     {
-        $query = $this->baseUserTransactionQuery($userId, $date);
+        $selectedDate = $this->resolveDateOrNow($date)->toDateString();
+        $query = $this->baseUserTransactionQuery($userId, $selectedDate);
+
+        $totalRevenue = (float) (clone $query)->sum('t.total_amount');
+        $totalCount   = (int) (clone $query)->count();
+
+        // Cari menu yang paling banyak terjual pada periode yang sama
+        $dominantItemName = DB::table('transaction_details as td')
+            ->join('transactions as t', 'td.transaction_id', '=', 't.id')
+            ->join('menus', 'menus.id', '=', 'td.menu_id')
+            ->where('t.user_id', $userId)
+            ->when(! empty($selectedDate), function ($q) use ($selectedDate) {
+                $start = Carbon::parse($selectedDate)->startOfDay();
+                $end   = Carbon::parse($selectedDate)->endOfDay();
+                $q->whereBetween('t.created_at', [$start, $end]);
+            })
+            ->select('menus.name', DB::raw('SUM(td.quantity) as total_qty'))
+            ->groupBy('menus.id', 'menus.name')
+            ->orderByDesc('total_qty')
+            ->first()
+            ?->name;
+
+        $targetRevenue = 0.0;
+        $targetTransactions = 0;
+
+        if (Schema::hasTable('daily_targets')) {
+            $target = DailyTarget::query()
+                ->whereDate('target_date', '<=', $selectedDate)
+                ->orderByDesc('target_date')
+                ->first(['target_revenue', 'target_transactions']);
+
+            $targetRevenue = (float) ($target->target_revenue ?? 0);
+            $targetTransactions = (int) ($target->target_transactions ?? 0);
+        }
+
+        $revenueAchievedPct = $targetRevenue > 0
+            ? round(($totalRevenue / $targetRevenue) * 100, 1)
+            : 0.0;
+
+        $transactionAchievedPct = $targetTransactions > 0
+            ? round(($totalCount / $targetTransactions) * 100, 1)
+            : 0.0;
 
         return [
-            'total_revenue' => (float) (clone $query)->sum('t.total_amount'),
-            'total_count' => (int) (clone $query)->count(),
+            'date'               => $selectedDate,
+            'total_revenue'      => $totalRevenue,
+            'total_count'        => $totalCount,
+            'dominant_item_name' => $dominantItemName,
+            'target_revenue'     => $targetRevenue,
+            'target_count'       => $targetTransactions,
+            'target_achieved_pct' => $revenueAchievedPct,
+            'target_count_achieved_pct' => $transactionAchievedPct,
+            // Backward-compatible aliases for older mobile clients.
+            'target_harian' => $targetRevenue,
+            'target_transactions' => $targetTransactions,
+            'target_percentage' => $revenueAchievedPct,
+            'target_progress_percent' => $revenueAchievedPct,
+            'achievement_percentage' => $revenueAchievedPct,
+            'transaction_target_percentage' => $transactionAchievedPct,
+            'target' => [
+                'revenue' => $targetRevenue,
+                'transactions' => $targetTransactions,
+                'revenue_achieved_pct' => $revenueAchievedPct,
+                'transactions_achieved_pct' => $transactionAchievedPct,
+            ],
         ];
     }
 
@@ -229,7 +288,9 @@ class ApiTransactionService
                     $line['variant_id'],
                     $line['qty'],
                     $transactionId,
-                    $note
+                    $note,
+                    $userId,
+                    $now
                 );
             }
 
@@ -262,7 +323,10 @@ class ApiTransactionService
         $query = DB::table('transactions as t')->where('t.user_id', $userId);
 
         if (! empty($date)) {
-            $query->whereDate('t.created_at', $date);
+            $start = Carbon::parse($date)->startOfDay();
+            $end = Carbon::parse($date)->endOfDay();
+            // Use range query so index (user_id, created_at) can be utilized.
+            $query->whereBetween('t.created_at', [$start, $end]);
         }
 
         return $query;
@@ -298,3 +362,5 @@ class ApiTransactionService
         return "TRX-{$datePrefix}-{$nextSequence}";
     }
 }
+
+
