@@ -15,6 +15,21 @@
                 {{ $meta['pack_info_label'] }}
             </div>
         @endif
+        @if ($ingredient->selling_price > 0)
+            @php
+                $priceUnit = match($ingredient->display_unit ?? '') {
+                    'kg'  => '/kg',
+                    'l'   => '/liter',
+                    'g'   => '/gram',
+                    'ml'  => '/ml',
+                    'pcs' => '/pack',
+                    default => '',
+                };
+            @endphp
+            <div class="mt-2 text-[12px] font-bold text-emerald-600 dark:text-emerald-400">
+                Rp {{ number_format($ingredient->selling_price, 0, ',', '.') }}<span class="text-[10px] font-normal text-emerald-500/80">{{ $priceUnit }}</span>
+            </div>
+        @endif
     </td>
 
     <td class="px-6 py-5 align-top">

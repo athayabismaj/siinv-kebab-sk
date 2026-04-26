@@ -4,16 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Sistem Inventory')</title>
+    @php $pageTitle = trim($__env->yieldContent('title')); @endphp
+    <title>{{ $pageTitle !== '' ? $pageTitle . ' | Kebab SK' : 'Kebab SK | Sistem Inventory' }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     @stack('styles')
 </head>
 
-<body class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-x-hidden" style="height: 100dvh; display: flex; flex-direction: column;">
+<body class="font-sans antialiased selection:bg-blue-500/30 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-x-hidden relative" style="height: 100dvh; display: flex; flex-direction: column;">
 
-<div x-data="{ sidebarOpen: false }" class="flex flex-1 w-full relative" style="min-height: 0; overflow: hidden;">
+{{-- DECORATIVE BACKGROUND BLOBS --}}
+<div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/5 dark:bg-blue-500/10 blur-3xl mix-blend-multiply dark:mix-blend-lighten"></div>
+    <div class="absolute bottom-[-10%] right-[-5%] w-[35%] h-[35%] rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 blur-3xl mix-blend-multiply dark:mix-blend-lighten"></div>
+</div>
+
+<div x-data="{ sidebarOpen: false }" class="flex flex-1 w-full relative z-10" style="min-height: 0; overflow: hidden;">
 
     {{-- OVERLAY MOBILE --}}
     <div
@@ -26,9 +40,12 @@
     @php
         $roleName = strtolower(optional(optional(auth()->user())->role)->name ?? '');
         $useOwnerSidebar = $roleName === 'owner' || request()->routeIs('owner.*');
+        $useDeveloperSidebar = $roleName === 'developer' || request()->routeIs('developer.*');
     @endphp
 
-    @if($useOwnerSidebar)
+    @if($useDeveloperSidebar)
+        @include('partials.sidebar_developer')
+    @elseif($useOwnerSidebar)
         @include('partials.sidebar_owner')
     @else
         @include('partials.sidebar_admin')
@@ -58,3 +75,4 @@
 
 @stack('scripts')
 </body>
+</html>

@@ -52,6 +52,22 @@
                                     <div class="pr-3">
                                         <h3 class="font-bold text-slate-800 dark:text-white text-[15px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">{{ $item->name }}</h3>
                                         <p class="text-[11px] font-semibold text-slate-400 mt-1">Min: {{ $meta['minimum_text'] ?? '0' }} {{ $meta['unit'] ?? '-' }}</p>
+                                        
+                                        @if ($item->selling_price > 0)
+                                            @php
+                                                $priceUnit = match($item->display_unit ?? '') {
+                                                    'kg'  => '/kg',
+                                                    'l'   => '/liter',
+                                                    'g'   => '/gram',
+                                                    'ml'  => '/ml',
+                                                    'pcs' => '/pack',
+                                                    default => '',
+                                                };
+                                            @endphp
+                                            <div class="mt-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                Rp {{ number_format($item->selling_price, 0, ',', '.') }}<span class="text-[9px] font-normal text-emerald-500/80">{{ $priceUnit }}</span>
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="text-right flex flex-col items-end">
                                         <span class="block text-[22px] font-black {{ $isOut ? 'text-red-600 dark:text-red-400' : ($isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white') }} tabular-nums leading-none">{{ $meta['stock_text'] ?? '0' }}</span>

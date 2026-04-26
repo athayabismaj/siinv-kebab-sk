@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terjadi Kesalahan Sistem</title>
+    <title>Terjadi Kesalahan Sistem | Kebab SK</title>
     @vite('resources/css/app.css')
 </head>
 <body class="min-h-screen bg-slate-100 flex items-center justify-center px-4">

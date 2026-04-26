@@ -11,6 +11,19 @@
                 <div>
                     <p class="font-bold text-slate-900 dark:text-white">{{ $ingredient->name }}</p>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{{ $ingredient->category->name ?? 'Tanpa Kategori' }}</p>
+                    @if ($ingredient->selling_price > 0)
+                        @php
+                            $priceUnit = match($ingredient->display_unit ?? '') {
+                                'kg'  => '/kg',
+                                'l'   => '/liter',
+                                'g'   => '/gram',
+                                'ml'  => '/ml',
+                                'pcs' => '/pack',
+                                default => '',
+                            };
+                        @endphp
+                        <p class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">Rp {{ number_format($ingredient->selling_price, 0, ',', '.') }}<span class="font-normal text-emerald-500/80">{{ $priceUnit }}</span></p>
+                    @endif
                 </div>
                 @if($isOut)
                     <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-widest border border-red-200 dark:border-red-800/50">Habis</span>

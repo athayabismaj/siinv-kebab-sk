@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Restok dan Penyesuaian')
+@section('title', 'Restok dan Penyesuaian Stok')
 
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">

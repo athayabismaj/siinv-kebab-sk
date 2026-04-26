@@ -1,16 +1,8 @@
-﻿<div x-data="{ openMenu: null, openVariant: null }" class="space-y-4">
+<div x-data="{ openMenu: null, openVariant: null }" class="space-y-4">
     @forelse($menus as $menu)
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all duration-200">
             <button @click="openMenu === {{ $menu->id }} ? openMenu = null : openMenu = {{ $menu->id }}" class="w-full px-5 py-4 flex items-center justify-between gap-4 text-left bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/50 transition-colors group">
                 <div class="flex items-center gap-4">
-                    @if($menu->image_path)
-                        <img src="{{ asset('storage/'.$menu->image_path) }}" alt="{{ $menu->name }}" class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                    @else
-                        <div class="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </div>
-                    @endif
-
                     <div>
                         <h2 class="font-bold text-[15px] sm:text-base text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">{{ $menu->name }}</h2>
                         <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-1">

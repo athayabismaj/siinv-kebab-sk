@@ -4,7 +4,7 @@
     @include('partials.sidebar_admin')
 @endsection
 
-@section('title', 'Varian Menu - ' . $menu->name)
+@section('title', 'Varian Menu: ' . $menu->name)
 
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">

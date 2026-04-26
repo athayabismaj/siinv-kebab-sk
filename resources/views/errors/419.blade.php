@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Layanan Tidak Tersedia | Kebab SK</title>
+    <title>Halaman Kedaluwarsa | Kebab SK</title>
     @vite('resources/css/app.css')
 </head>
 <body class="min-h-screen bg-slate-100 flex items-center justify-center px-4">
     <div class="max-w-lg w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-        <div class="text-5xl mb-4">🔧</div>
-        <h1 class="text-xl font-semibold text-slate-800">Layanan Sedang Bermasalah</h1>
+        <div class="text-5xl mb-4">⏳</div>
+        <h1 class="text-xl font-semibold text-slate-800">Halaman Kedaluwarsa</h1>
         <p class="text-sm text-slate-500 mt-3">
-            Server sedang dalam pemeliharaan atau mengalami gangguan sementara.
-            Silakan tunggu beberapa menit lalu coba muat ulang halaman ini.
+            Sesi atau token keamanan sudah kedaluwarsa.
+            Silakan muat ulang halaman, lalu coba kirim ulang data Anda.
         </p>
         <div class="mt-6 flex items-center justify-center gap-3">
             <button onclick="window.location.reload()"
                class="inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 transition cursor-pointer">
-                Coba Lagi
+                Muat Ulang
             </button>
-            <a href="{{ url('/') }}"
+            <a href="{{ url()->previous() }}"
                class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm hover:bg-slate-50 transition">
-                Ke Beranda
+                Kembali
             </a>
         </div>
     </div>

@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Tidak Valid</title>
+    <title>Permintaan Tidak Valid | Kebab SK</title>
     @vite('resources/css/app.css')
 </head>
 <body class="min-h-screen bg-slate-100 flex items-center justify-center px-4">
     <div class="max-w-lg w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
         <div class="text-5xl mb-4">⚠️</div>
-        <h1 class="text-xl font-semibold text-slate-800">Request Tidak Valid</h1>
+        <h1 class="text-xl font-semibold text-slate-800">Permintaan Tidak Valid</h1>
         <p class="text-sm text-slate-500 mt-3">
             Permintaan yang Anda kirimkan tidak dapat diproses karena cara mengaksesnya tidak tepat.
             Silakan kembali dan coba cara lain.

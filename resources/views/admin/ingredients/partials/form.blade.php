@@ -42,9 +42,15 @@
           x-data="{ 
               submitting: false,
               unit: '{{ $selectedUnit }}',
+              initialUnit: '{{ $selectedUnit }}',
               packSize: {{ $packSize }},
               stock: '{{ $displayStock ?? '' }}',
-              minStock: '{{ $displayMinimum ?? '' }}'
+              minStock: '{{ $displayMinimum ?? '' }}',
+              sellingPrice: {{ old('selling_price', isset($ingredient) ? (int) $ingredient->selling_price : 0) }},
+              unitChanged: false,
+              get showPriceWarning() {
+                  return this.unitChanged && this.sellingPrice > 0;
+              }
           }" 
           @submit="submitting = true">
         
@@ -94,6 +100,31 @@
                             <p class="text-rose-500 text-xs font-medium mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                            Harga Jual (Rp) <span class="text-slate-500 font-normal">(Opsional)</span>
+                        </label>
+                        <input type="number"
+                               name="selling_price"
+                               x-model="sellingPrice"
+                               @input="unitChanged = false"
+                               value="{{ old('selling_price', isset($ingredient) ? (int) $ingredient->selling_price : 0) }}"
+                               placeholder="0"
+                               min="0" step="1"
+                               class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" x-text="
+                            unit === 'kg'  ? 'Harga per Kilogram (kg). Contoh: 20000 = Rp 20.000 / kg.' :
+                            unit === 'l'   ? 'Harga per Liter (l). Contoh: 15000 = Rp 15.000 / liter.' :
+                            unit === 'g'   ? 'Harga per Gram (g). Contoh: 20 = Rp 20 / gram.' :
+                            unit === 'ml'  ? 'Harga per Mililiter (ml). Contoh: 15 = Rp 15 / ml.' :
+                            unit === 'pcs' ? 'Harga per Pack. Contoh: 6000 = Rp 6.000 / pack.' :
+                            'Isi 0 jika bahan tidak dijual secara terpisah.'
+                        "></p>
+                        @error('selling_price')
+                            <p class="text-rose-500 text-xs font-medium mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
             </div>
 
@@ -112,6 +143,7 @@
                         <select name="display_unit"
                                 x-model="unit"
                                 required
+                                @change="unitChanged = (unit !== initialUnit)"
                                 class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
                             <option value="" disabled>Pilih Satuan</option>
                             @foreach($unitGroups as $groupLabel => $groupUnits)
@@ -122,7 +154,23 @@
                                 </optgroup>
                             @endforeach
                         </select>
-                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" x-text="unit === 'pcs' ? 'Mode gudang aktif. Input stok menggunakan satuan Pack.' : 'Pilih satuan sesuai kebiasaan input di dapur/gudang.'"></p>
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" x-text="unit === 'pcs' ? 'Mode gudang aktif. Input stok menggunakan satuan Pack.' : 'Pilih satuan sesuai kebiasaan input di dapur/gudang.'" x-show="!showPriceWarning"></p>
+
+                        {{-- Warning saat satuan diubah dan harga sudah terisi --}}
+                        <div x-show="showPriceWarning" x-transition
+                             class="mt-2 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2.5 dark:border-amber-700/50 dark:bg-amber-900/20">
+                            <svg class="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-[12px] font-bold text-amber-800 dark:text-amber-300">Satuan berubah — periksa Harga Jual!</p>
+                                <p class="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">Harga jual yang sudah diisi mungkin tidak sesuai dengan satuan baru. Pastikan nilainya sudah benar sebelum menyimpan.</p>
+                            </div>
+                            <button type="button" @click="unitChanged = false" class="shrink-0 text-amber-500 hover:text-amber-700 dark:text-amber-400">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
                         @error('display_unit')
                             <p class="text-rose-500 text-xs font-medium mt-1.5">{{ $message }}</p>
                         @enderror

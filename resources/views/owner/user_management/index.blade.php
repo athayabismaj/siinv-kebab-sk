@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Management')
+@section('title', 'Manajemen Pengguna')
 
 @section('sidebar')
     @include('partials.sidebar_owner')

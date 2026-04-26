@@ -73,7 +73,7 @@
                 </div>
 
                 <a href="{{ route($routePrefix.'.export', request()->query()) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-white active:scale-95 transition-all shadow-sm shrink-0">
-                    Export Data
+                    Ekspor Data
                 </a>
             </div>
 

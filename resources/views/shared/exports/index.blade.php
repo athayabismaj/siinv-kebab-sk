@@ -9,6 +9,24 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if(!empty($runtimeError))
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+            {{ $runtimeError }}
+        </div>
+    @endif
+
     <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
@@ -17,7 +35,7 @@
                         <th class="px-4 py-3 text-left">ID</th>
                         <th class="px-4 py-3 text-left">Tipe</th>
                         <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-left">Request</th>
+                        <th class="px-4 py-3 text-left">Permintaan</th>
                         <th class="px-4 py-3 text-left">Jadwal</th>
                         <th class="px-4 py-3 text-left">Selesai</th>
                         <th class="px-4 py-3 text-left">Aksi</th>

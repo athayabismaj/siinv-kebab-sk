@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Reset Password Pengguna')
+@section('title', 'Reset Kata Sandi Pengguna')
 
 @section('sidebar')
     @include('partials.sidebar_owner')

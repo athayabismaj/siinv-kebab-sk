@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Laporan Pengeluaran')
 
@@ -25,7 +25,7 @@
                     Laporan Pengeluaran
                 </h1>
                 <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                    Pantau pengeluaran operasional harian, mingguan, dan bulanan. Pemasukan kotor dihitung otomatis dari transaksi.
+                    Pantau pengeluaran operasional harian, mingguan, dan bulanan. Omzet dihitung dari transaksi penjualan menu. HPP bahan dapat dilihat di <strong>Laporan Stok Harian</strong>.
                 </p>
             </div>
 
@@ -118,30 +118,45 @@
 
     {{-- ================= SUMMARY CARDS ================= --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {{-- Omzet Kotor --}}
         <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Omzet Kotor</p>
             <p class="text-xl font-bold text-slate-900 dark:text-white">Rp {{ number_format($salesRevenue, 0, ',', '.') }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">Dari penjualan menu</p>
+            <div class="absolute bottom-0 left-0 h-1 w-full bg-blue-500/30"></div>
         </div>
 
+        {{-- Total Pengeluaran --}}
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1.5">Total Pengeluaran</p>
+            <p class="text-xl font-bold text-rose-600 dark:text-rose-400">- Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">Pengeluaran operasional</p>
+            <div class="absolute bottom-0 left-0 h-1 w-full bg-rose-500/30"></div>
+        </div>
+
+        {{-- Jumlah Log --}}
         <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Jumlah Log</p>
             <div class="flex items-baseline gap-1.5">
                 <p class="text-xl font-bold text-slate-900 dark:text-white">{{ number_format($expenseCount, 0, ',', '.') }}</p>
                 <span class="text-xs font-medium text-slate-400">Entri</span>
             </div>
+            <p class="text-[10px] text-slate-400 mt-1">Transaksi pengeluaran</p>
+            <div class="absolute bottom-0 left-0 h-1 w-full bg-slate-300/40"></div>
         </div>
 
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1.5">Total Pengeluaran</p>
-            <p class="text-xl font-bold text-rose-600 dark:text-rose-400">- Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
-        </div>
-
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold {{ $netCash >= 0 ? 'text-emerald-500' : 'text-rose-500' }} uppercase tracking-widest mb-1.5">Pemasukan Bersih</p>
-            <p class="text-xl font-bold {{ $netCash >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
-                Rp {{ number_format($netCash, 0, ',', '.') }}
+        {{-- Selisih = Omzet - Pengeluaran --}}
+        @php $selisih = $salesRevenue - $expenseTotal; @endphp
+        <div class="relative overflow-hidden p-5 col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border {{ $selisih >= 0 ? 'border-emerald-200 dark:border-emerald-800/50' : 'border-rose-200 dark:border-rose-800/50' }} rounded-2xl shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] font-bold {{ $selisih >= 0 ? 'text-emerald-500' : 'text-rose-500' }} uppercase tracking-widest mb-1.5">Selisih</p>
+            <p class="text-xl font-bold {{ $selisih >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                Rp {{ number_format($selisih, 0, ',', '.') }}
             </p>
+            <p class="text-[10px] text-slate-400 mt-1">Omzet &minus; Pengeluaran</p>
+            <div class="absolute bottom-0 left-0 h-1 w-full {{ $selisih >= 0 ? 'bg-emerald-500/40' : 'bg-rose-500/40' }}"></div>
         </div>
+
     </div>
 
     {{-- ================= DATA GROUP ================= --}}
@@ -219,29 +234,8 @@
 
     {{-- ================= PAGINATION ================= --}}
     @if($entries->hasPages())
-    <div class="pt-2">
-        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div class="text-[13px] text-slate-500 dark:text-slate-400 text-center sm:text-left font-medium">
-                Halaman <span class="font-bold text-slate-700 dark:text-slate-300">{{ $entries->currentPage() }}</span> 
-                dari <span class="font-bold text-slate-700 dark:text-slate-300">{{ $entries->lastPage() }}</span>
-                <span class="mx-1.5 text-slate-300 dark:text-slate-600">|</span>
-                Total <span class="font-bold text-slate-700 dark:text-slate-300">{{ $entries->total() }}</span> data
-            </div>
-            
-            <div class="flex items-center gap-6 text-[13px] font-semibold">
-                @if ($entries->onFirstPage())
-                    <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">&lt; Prev</span>
-                @else
-                    <a href="{{ $entries->previousPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">&lt; Prev</a>
-                @endif
-
-                @if ($entries->hasMorePages())
-                    <a href="{{ $entries->nextPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">Next &gt;</a>
-                @else
-                    <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">Next &gt;</span>
-                @endif
-            </div>
-        </div>
+    <div class="mt-8">
+        {{ $entries->links() }}
     </div>
     @endif
 </div>

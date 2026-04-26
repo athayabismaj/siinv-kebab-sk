@@ -18,85 +18,108 @@
         </p>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
-            <h2 class="text-sm text-slate-500 dark:text-slate-400">Omzet Hari Ini</h2>
-            <p class="text-xl md:text-2xl font-bold text-emerald-600 mt-2">
-                Rp {{ number_format($todayRevenue, 0, ',', '.') }}
-            </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+            <div class="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-xl shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Omzet Hari Ini</h2>
+                <p class="text-2xl font-bold text-slate-800 dark:text-white">Rp {{ number_format($todayRevenue, 0, ',', '.') }}</p>
+            </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
-            <h2 class="text-sm text-slate-500 dark:text-slate-400">Transaksi Hari Ini</h2>
-            <p class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mt-2">
-                {{ number_format($todayTransactionsCount) }} transaksi
-            </p>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+            <div class="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Transaksi Hari Ini</h2>
+                <p class="text-2xl font-bold text-slate-800 dark:text-white">{{ number_format($todayTransactionsCount) }}</p>
+            </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm sm:col-span-2 lg:col-span-1">
-            <h2 class="text-sm text-slate-500 dark:text-slate-400">Menu Terlaris</h2>
-            @if($bestSeller)
-                <p class="text-base md:text-lg font-bold text-blue-700 mt-2 break-words">
-                    {{ $bestSeller->name }}
-                </p>
-                <p class="text-sm text-slate-500 mt-1">
-                    {{ number_format($bestSeller->sold_qty) }} pcs
-                </p>
-            @else
-                <p class="text-sm text-slate-500 mt-2">Belum ada penjualan hari ini.</p>
-            @endif
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-center gap-4 sm:col-span-2 lg:col-span-1 transition-all hover:shadow-md">
+            <div class="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+            </div>
+            <div class="min-w-0">
+                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Menu Terlaris</h2>
+                @if($bestSeller)
+                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate" title="{{ $bestSeller->name }}">{{ $bestSeller->name }}</p>
+                    <p class="text-[11px] font-bold text-slate-500 mt-0.5">{{ number_format($bestSeller->sold_qty) }} <span class="uppercase tracking-wider text-[9px]">pcs</span></p>
+                @else
+                    <p class="text-xs text-slate-500 mt-1">Belum ada penjualan.</p>
+                @endif
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h2 class="text-base font-semibold text-slate-800 dark:text-white">Stok Hampir Habis</h2>
-                <span class="text-xs text-slate-500">Monitoring</span>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {{-- LOW STOCK --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center gap-2 justify-between bg-slate-50/50 dark:bg-slate-800/20">
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Stok Hampir Habis
+                </h2>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monitoring</span>
             </div>
 
-            <div class="mt-4 space-y-3">
+            <div class="p-0 flex-1">
                 @forelse($lowStockItems as $item)
                     @php
                         $isCritical = ($item['status_key'] ?? '') === 'critical';
-                        $boxClass = $isCritical
-                            ? 'border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-900/10'
-                            : 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/10';
+                        $iconClass = $isCritical ? 'text-red-500' : 'text-amber-500';
                         $badgeClass = $isCritical
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+                            ? 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400'
+                            : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800/50 dark:text-amber-400';
                     @endphp
-                    <div class="rounded-xl border px-4 py-3 {{ $boxClass }}">
-                        <div class="flex items-start justify-between gap-2">
-                            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $item['name'] }}</p>
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap {{ $badgeClass }}">
-                                {{ $item['status_label'] ?? 'Rendah' }}
-                            </span>
+                    <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/60 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="shrink-0 {{ $iconClass }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{{ $item['name'] }}</p>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Stok: <strong class="text-slate-700 dark:text-slate-300">{{ $item['stock_label'] }}</strong></p>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">{{ $item['stock_label'] }}</p>
+                        <span class="inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider {{ $badgeClass }} whitespace-nowrap">
+                            {{ $item['status_label'] ?? 'Rendah' }}
+                        </span>
                     </div>
                 @empty
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Tidak ada bahan yang mendekati minimum.</p>
+                    <div class="flex flex-col items-center justify-center h-full min-h-[150px] p-6 text-center">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 flex items-center justify-center mb-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Stok masih dalam batas aman.</p>
+                    </div>
                 @endforelse
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h2 class="text-base font-semibold text-slate-800 dark:text-white">Grafik Penjualan (7 Hari)</h2>
-                <span class="text-xs text-slate-500">Omzet</span>
+        {{-- SALES CHART --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center gap-2 justify-between bg-slate-50/50 dark:bg-slate-800/20">
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                    Grafik Penjualan (7 Hari)
+                </h2>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Omzet</span>
             </div>
 
-            <div class="mt-4 space-y-3">
+            <div class="p-5 flex-1 flex flex-col justify-center space-y-4">
                 @foreach($salesLast7Days as $day)
-                    <div class="grid grid-cols-[92px_1fr_auto] items-center gap-3">
-                        <p class="text-xs {{ $day['is_today'] ? 'font-semibold text-blue-600' : 'text-slate-500' }}">
+                    <div class="grid grid-cols-[80px_1fr_auto] items-center gap-3">
+                        <p class="text-[11px] {{ $day['is_today'] ? 'font-bold text-blue-600 dark:text-blue-400' : 'font-semibold text-slate-500 dark:text-slate-400' }}">
                             {{ $day['is_today'] ? 'Hari ini' : $day['label'] }}
                         </p>
-                        <div class="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                            <div class="h-full rounded-full bg-blue-600" style="width: {{ $day['bar_width'] }}%"></div>
+                        <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full bg-blue-500 dark:bg-blue-600 transition-all duration-500" style="width: {{ $day['bar_width'] }}%"></div>
                         </div>
-                        <p class="text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap text-right min-w-[70px]">
                             Rp {{ number_format($day['omzet'], 0, ',', '.') }}
                         </p>
                     </div>
@@ -105,48 +128,51 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <h2 class="text-base font-semibold text-slate-800 dark:text-white">Transaksi Terbaru</h2>
-            <a href="{{ route('owner.transactions.index') }}" class="text-xs text-blue-600 hover:underline">Lihat Semua</a>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center gap-2 justify-between bg-slate-50/50 dark:bg-slate-800/20">
+            <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                Transaksi Terbaru
+            </h2>
+            <a href="{{ route('owner.transactions.index') }}" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest transition-colors">Lihat Semua</a>
         </div>
 
         <div class="hidden md:block overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="text-xs uppercase text-slate-400 bg-slate-50 dark:bg-slate-800/60">
-                    <tr>
-                        <th class="px-6 py-3 text-left">Kode</th>
-                        <th class="px-6 py-3 text-left">Waktu</th>
-                        <th class="px-6 py-3 text-left">Total</th>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800/60 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold">
+                        <th class="px-5 py-3">Kode</th>
+                        <th class="px-5 py-3">Waktu</th>
+                        <th class="px-5 py-3 text-right">Total</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                     @forelse($latestTransactions as $trx)
-                        <tr class="border-t border-slate-200 dark:border-slate-800">
-                            <td class="px-6 py-4 font-medium text-slate-800 dark:text-slate-100">{{ $trx->transaction_code }}</td>
-                            <td class="px-6 py-4 text-slate-500">{{ $trx->created_at->format('d M Y H:i') }}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                            <td class="px-5 py-3 font-bold text-slate-800 dark:text-slate-200">{{ $trx->transaction_code }}</td>
+                            <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ $trx->created_at->format('d M Y H:i') }}</td>
+                            <td class="px-5 py-3 font-bold text-emerald-600 dark:text-emerald-400 text-right">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Belum ada transaksi.</td>
+                            <td colspan="3" class="px-5 py-8 text-center text-slate-500 dark:text-slate-400 font-medium">Belum ada transaksi.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        <div class="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
+        <div class="md:hidden divide-y divide-slate-100 dark:divide-slate-800/60">
             @forelse($latestTransactions as $trx)
-                <div class="px-4 py-3 space-y-1">
-                    <div class="flex items-start justify-between gap-3">
-                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $trx->transaction_code }}</p>
-                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</p>
+                <div class="px-5 py-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                    <div class="flex items-start justify-between gap-3 mb-1">
+                        <p class="text-xs font-bold text-slate-800 dark:text-slate-200">{{ $trx->transaction_code }}</p>
+                        <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</p>
                     </div>
-                    <p class="text-xs text-slate-500">{{ $trx->created_at->format('d M Y H:i') }}</p>
+                    <p class="text-[10px] font-semibold text-slate-400">{{ $trx->created_at->format('d M Y H:i') }}</p>
                 </div>
             @empty
-                <div class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada transaksi.</div>
+                <div class="px-5 py-8 text-center text-xs font-medium text-slate-500 dark:text-slate-400">Belum ada transaksi.</div>
             @endforelse
         </div>
     </div>

@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Kebab SK Inventory</title>
+    <title>Login | Kebab SK</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
     @vite('resources/css/app.css')
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
-<body class="h-full bg-slate-100 dark:bg-slate-950 m-0 p-0 selection:bg-blue-500 selection:text-white">
+<body class="font-sans antialiased h-full bg-slate-100 dark:bg-slate-950 m-0 p-0 selection:bg-blue-500 selection:text-white">
 
     <div class="min-h-screen w-full">
         <div class="flex w-full min-h-screen overflow-hidden bg-white dark:bg-slate-900">
@@ -106,7 +111,7 @@
 
                         <div class="flex items-center justify-end mt-1">
                             <a href="{{ route('password.request') }}" class="text-[12px] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
-                                Forgot password?
+                                Lupa kata sandi?
                             </a>
                         </div>
 

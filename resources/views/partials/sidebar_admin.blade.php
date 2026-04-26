@@ -1,12 +1,22 @@
 <aside
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
-    class="fixed top-0 left-0 md:relative z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out flex flex-col md:h-full"
+    class="fixed top-0 left-0 md:relative z-50 w-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/80 dark:border-slate-800/80 transform transition-transform duration-300 ease-in-out flex flex-col md:h-full"
     style="height: 100dvh;">
 
     {{-- BRAND HEADER --}}
-    <div class="h-16 flex flex-col justify-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <h2 class="text-base font-semibold text-slate-800 dark:text-white">Kebab SK</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Panel Admin</p>
+    <div class="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/25">
+                SK
+            </div>
+            <div>
+                <h2 class="text-base font-semibold text-slate-800 dark:text-white leading-tight">Kebab SK</h2>
+                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Panel Admin</p>
+            </div>
+        </div>
+        <button @click="sidebarOpen = false" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
     </div>
 
     <nav class="flex-1 overflow-y-auto px-4 py-4 md:py-6 space-y-4 md:space-y-6 text-sm">
