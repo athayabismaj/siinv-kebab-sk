@@ -6,6 +6,7 @@ use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
 use App\Models\PaymentMethod;
+use App\Services\Analytics\DailySalesSummaryService;
 use App\Services\ApiTransactionService;
 use App\Support\AdminCache;
 use Carbon\Carbon;
@@ -21,7 +22,8 @@ class TransactionController extends Controller
     use ApiResponse;
 
     public function __construct(
-        private readonly ApiTransactionService $transactionService
+        private readonly ApiTransactionService $transactionService,
+        private readonly DailySalesSummaryService $dailySalesSummaryService
     ) {
     }
 
@@ -114,6 +116,7 @@ class TransactionController extends Controller
             AdminCache::bumpUsage();
             AdminCache::bumpDailyStock();
             AdminCache::bumpTransactions();
+            $this->dailySalesSummaryService->rebuildForDate(now());
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {

@@ -40,9 +40,9 @@ class DailySalesSummaryService
         return $this->rebuildForDate($date);
     }
 
-    public function getRange(Carbon $startDate, Carbon $endDate): array
+    public function getRange(Carbon $startDate, Carbon $endDate, bool $live = false): array
     {
-        if (! $this->hasSummaryTable()) {
+        if ($live || ! $this->hasSummaryTable()) {
             return $this->buildRangeFromTransactions($startDate, $endDate);
         }
 
@@ -59,6 +59,30 @@ class DailySalesSummaryService
             }
 
             throw $exception;
+        }
+
+        $today = now()->startOfDay();
+        $rangeIncludesToday = $today->betweenIncluded(
+            $startDate->copy()->startOfDay(),
+            $endDate->copy()->endOfDay()
+        );
+
+        // Always merge with live aggregate for current day so reports stay in sync
+        // right after checkout (no need to wait for scheduler).
+        if ($rangeIncludesToday) {
+            $todayPayload = $this->buildFromTransactionsForDate($today);
+            $todayKey = $today->toDateString();
+
+            $rows = $rows
+                ->reject(fn (DailySalesSummary $row) => $row->sale_date->toDateString() === $todayKey)
+                ->push(new DailySalesSummary([
+                    'sale_date' => $todayKey,
+                    'total_transactions' => $todayPayload['total_transactions'],
+                    'total_revenue' => $todayPayload['total_revenue'],
+                    'total_items_sold' => $todayPayload['total_items_sold'],
+                ]))
+                ->sortBy(fn (DailySalesSummary $row) => $row->sale_date->toDateString())
+                ->values();
         }
 
         if ($rows->count() === 0) {

@@ -44,7 +44,7 @@ class SalesReportController extends Controller
             ->where('period_date', $thisMonth->toDateString())
             ->exists();
 
-        $preview = $isClosed ? null : $this->queryService->buildMonthlySummary($thisMonth);
+        $preview = $isClosed ? null : $this->queryService->buildMonthlySummary($thisMonth, true);
 
         return view('owner.reports.closing_index', [
             'closings' => $closings,
@@ -70,8 +70,8 @@ class SalesReportController extends Controller
         }
 
         $summary = (string) $request->input('period_type') === 'monthly'
-            ? $this->queryService->buildMonthlySummary($date)
-            : $this->queryService->buildYearlySummary((int) $date->year);
+            ? $this->queryService->buildMonthlySummary($date, true)
+            : $this->queryService->buildYearlySummary((int) $date->year, true);
 
         PeriodClosing::create([
             'period_type' => (string) $request->input('period_type'),

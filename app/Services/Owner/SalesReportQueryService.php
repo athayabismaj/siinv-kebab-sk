@@ -35,14 +35,14 @@ class SalesReportQueryService
         });
     }
 
-    public function buildMonthlySummary(Carbon $selectedMonth): array
+    public function buildMonthlySummary(Carbon $selectedMonth, bool $bypassCache = false): array
     {
         $monthStart = $selectedMonth->copy()->startOfMonth();
         $monthEnd = $selectedMonth->copy()->endOfMonth();
         $monthKey = $selectedMonth->format('Y-m');
 
-        return $this->remember('monthly_summary:' . $monthKey, function () use ($monthStart, $monthEnd) {
-            $summary = $this->dailySummaryService->getRange($monthStart, $monthEnd);
+        $resolver = function () use ($monthStart, $monthEnd, $bypassCache) {
+            $summary = $this->dailySummaryService->getRange($monthStart, $monthEnd, $bypassCache);
             $totalTransactions = (int) $summary['total_transactions'];
             $totalRevenue = (float) $summary['total_revenue'];
 
@@ -52,17 +52,19 @@ class SalesReportQueryService
                 'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
                 'dailyBreakdown' => $summary['daily_breakdown'],
             ];
-        });
+        };
+
+        return $bypassCache ? $resolver() : $this->remember('monthly_summary:' . $monthKey, $resolver);
     }
 
-    public function buildWeeklySummary(Carbon $weekAnchor): array
+    public function buildWeeklySummary(Carbon $weekAnchor, bool $bypassCache = false): array
     {
         $weekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
         $weekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
         $key = $weekStart->toDateString() . ':' . $weekEnd->toDateString();
 
-        return $this->remember('weekly_summary:' . $key, function () use ($weekStart, $weekEnd) {
-            $summary = $this->dailySummaryService->getRange($weekStart, $weekEnd);
+        $resolver = function () use ($weekStart, $weekEnd, $bypassCache) {
+            $summary = $this->dailySummaryService->getRange($weekStart, $weekEnd, $bypassCache);
             $totalTransactions = (int) $summary['total_transactions'];
             $totalRevenue = (float) $summary['total_revenue'];
 
@@ -72,16 +74,18 @@ class SalesReportQueryService
                 'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
                 'weeklyBreakdown' => $summary['daily_breakdown'],
             ];
-        });
+        };
+
+        return $bypassCache ? $resolver() : $this->remember('weekly_summary:' . $key, $resolver);
     }
 
-    public function buildYearlySummary(int $year): array
+    public function buildYearlySummary(int $year, bool $bypassCache = false): array
     {
-        return $this->remember('yearly_summary:' . $year, function () use ($year) {
+        $resolver = function () use ($year, $bypassCache) {
             $start = Carbon::create($year, 1, 1)->startOfMonth();
             $end = Carbon::create($year, 12, 31)->endOfMonth();
 
-            $summary = $this->dailySummaryService->getRange($start, $end);
+            $summary = $this->dailySummaryService->getRange($start, $end, $bypassCache);
             $totalTransactions = (int) $summary['total_transactions'];
             $totalRevenue = (float) $summary['total_revenue'];
 
@@ -105,7 +109,9 @@ class SalesReportQueryService
                 'avgTransaction' => $totalTransactions > 0 ? ($totalRevenue / $totalTransactions) : 0,
                 'monthlyBreakdown' => $monthlyBreakdown,
             ];
-        });
+        };
+
+        return $bypassCache ? $resolver() : $this->remember('yearly_summary:' . $year, $resolver);
     }
 
     public function buildPeriodMenuAnalytics(Carbon $start, Carbon $end, bool $limitTopTen = true): array
