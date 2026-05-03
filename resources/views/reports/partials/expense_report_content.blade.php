@@ -101,75 +101,126 @@
                     </a>
                 @endif
                 
-                <a href="{{ route($routePrefix.'.cashflow.export', request()->query()) }}" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 h-[38px] bg-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                    Export
-                </a>
+                <div class="relative w-full lg:w-auto" x-data="{ exportOpen: false }">
+                    <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-5 h-[38px] bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Eksport Laporan
+                        <svg class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    
+                    <div x-show="exportOpen" 
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-lg border border-slate-100 dark:bg-slate-800 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                         style="display: none;">
+                        
+                        <a href="{{ route($routePrefix.'.cashflow.export', array_merge(request()->query(), ['format' => 'html'])) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-blue-400 font-medium transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                            Format HTML
+                        </a>
+                        
+                        <a href="{{ route($routePrefix.'.cashflow.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-rose-400 font-medium transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            Format PDF
+                        </a>
+                        
+                        <a href="{{ route($routePrefix.'.cashflow.export', array_merge(request()->query(), ['format' => 'excel'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-emerald-400 font-medium transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Format Excel
+                        </a>
+                    </div>
+                </div>
 
-                @if($canInput)
-                    <a href="{{ route('admin.reports.cashflow.create') }}" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-5 h-[38px] bg-blue-600 text-white text-[13px] font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                        Input Pengeluaran
-                    </a>
-                @endif
+
             </div>
         </div>
     </form>
 
     {{-- ================= SUMMARY CARDS ================= --}}
+    @php $selisih = $salesRevenue - $expenseTotal; @endphp
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
         {{-- Omzet Kotor --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Omzet Kotor</p>
-            <p class="text-xl font-bold text-slate-900 dark:text-white">Rp {{ number_format($salesRevenue, 0, ',', '.') }}</p>
-            <p class="text-[10px] text-slate-400 mt-1">Dari penjualan menu</p>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-blue-500/30"></div>
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Omzet Kotor</p>
+                <div class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+            </div>
+            <p class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($salesRevenue, 0, ',', '.') }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">Rp · dari penjualan menu</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-blue-500/30"></div>
         </div>
 
         {{-- Total Pengeluaran --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1.5">Total Pengeluaran</p>
-            <p class="text-xl font-bold text-rose-600 dark:text-rose-400">- Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
-            <p class="text-[10px] text-slate-400 mt-1">Pengeluaran operasional</p>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-rose-500/30"></div>
-        </div>
-
-        {{-- Jumlah Log --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Jumlah Log</p>
-            <div class="flex items-baseline gap-1.5">
-                <p class="text-xl font-bold text-slate-900 dark:text-white">{{ number_format($expenseCount, 0, ',', '.') }}</p>
-                <span class="text-xs font-medium text-slate-400">Entri</span>
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Total Pengeluaran</p>
+                <div class="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-400 group-hover:bg-rose-100 dark:group-hover:bg-rose-500/20 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg>
+                </div>
             </div>
-            <p class="text-[10px] text-slate-400 mt-1">Transaksi pengeluaran</p>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-slate-300/40"></div>
+            <p class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($expenseTotal, 0, ',', '.') }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">Rp · pengeluaran operasional</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-rose-500/30"></div>
         </div>
 
-        {{-- Selisih = Omzet - Pengeluaran --}}
-        @php $selisih = $salesRevenue - $expenseTotal; @endphp
-        <div class="relative overflow-hidden p-5 col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border {{ $selisih >= 0 ? 'border-emerald-200 dark:border-emerald-800/50' : 'border-rose-200 dark:border-rose-800/50' }} rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold {{ $selisih >= 0 ? 'text-emerald-500' : 'text-rose-500' }} uppercase tracking-widest mb-1.5">Selisih</p>
-            <p class="text-xl font-bold {{ $selisih >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
-                Rp {{ number_format($selisih, 0, ',', '.') }}
-            </p>
-            <p class="text-[10px] text-slate-400 mt-1">Omzet &minus; Pengeluaran</p>
-            <div class="absolute bottom-0 left-0 h-1 w-full {{ $selisih >= 0 ? 'bg-emerald-500/40' : 'bg-rose-500/40' }}"></div>
+        {{-- Jumlah Entri --}}
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jumlah Entri</p>
+                <div class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+            </div>
+            <p class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($expenseCount, 0, ',', '.') }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">transaksi pengeluaran</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-slate-200 dark:bg-slate-700"></div>
+        </div>
+
+        {{-- Selisih --}}
+        <div class="relative overflow-hidden p-5 col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border {{ $selisih >= 0 ? 'border-emerald-200 dark:border-emerald-800/50' : 'border-rose-200 dark:border-rose-800/50' }} rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold {{ $selisih >= 0 ? 'text-emerald-500' : 'text-rose-500' }} uppercase tracking-widest">Selisih</p>
+                <div class="p-1.5 rounded-lg {{ $selisih >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-400 group-hover:bg-rose-100 dark:group-hover:bg-rose-500/20' }} transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+            </div>
+            <p class="text-2xl font-black {{ $selisih >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }} tabular-nums">{{ number_format($selisih, 0, ',', '.') }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">Rp · omzet &minus; pengeluaran</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full {{ $selisih >= 0 ? 'bg-emerald-500/40' : 'bg-rose-500/40' }}"></div>
         </div>
 
     </div>
 
     {{-- ================= DATA GROUP ================= --}}
-    <div class="space-y-6">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+
+        {{-- Table Header with Input Button --}}
+        <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex items-center justify-between gap-3">
+            <h3 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Rincian Pengeluaran</h3>
+            @if($canInput)
+                <a href="{{ route('admin.reports.cashflow.create') }}" class="inline-flex items-center gap-1.5 px-4 h-8 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    Input Pengeluaran
+                </a>
+            @endif
+        </div>
+
+        <div class="space-y-0 divide-y divide-slate-100 dark:divide-slate-800/60">
         @forelse($groupedEntries as $date => $items)
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                
-                <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/30">
-                    <h2 class="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
-                        {{ \Carbon\Carbon::parse($date)->translatedFormat('d F Y') }}
+            <div>
+                <div class="px-5 py-2.5 flex items-center justify-between gap-3 bg-slate-50/70 dark:bg-slate-800/40">
+                    <h2 class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                        {{ \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y') }}
                     </h2>
-                    <span class="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 shadow-sm">
-                        {{ $items->count() }} Data
+                    <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                        {{ $items->count() }} entri
                     </span>
                 </div>
 
@@ -223,13 +274,14 @@
                 </div>
             </div>
         @empty
-            <div class="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-16 text-center shadow-sm">
+            <div class="flex flex-col items-center justify-center p-16 text-center">
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-4 border border-slate-100 dark:border-slate-700">
                     <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
                 <p class="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Belum ada data pengeluaran pada periode ini.</p>
             </div>
         @endforelse
+        </div>
     </div>
 
     {{-- ================= PAGINATION ================= --}}

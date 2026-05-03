@@ -111,22 +111,36 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by('web-heavy:default:' . $keyBase);
         });
 
-        // Bagikan jumlah stok rendah ke partials.header untuk notifikasi
+        // Bagikan jumlah stok rendah dan habis ke partials.header untuk notifikasi
         \Illuminate\Support\Facades\View::composer('partials.header', function (\Illuminate\View\View $view) {
             // Hanya jalankan query jika user terautentikasi dan memiliki role admin/owner
             $user = auth()->user();
             $role = strtolower((string) optional(optional($user)->role)->name);
 
             if (in_array($role, ['admin', 'owner'], true)) {
-                $count = \Illuminate\Support\Facades\Cache::remember(
-                    \App\Support\AdminCache::key('dashboard', 'low_stock_notification_count'),
+                $counts = \Illuminate\Support\Facades\Cache::remember(
+                    \App\Support\AdminCache::key('dashboard', 'stock_notifications_count'),
                     now()->addMinutes(5),
-                    fn () => \App\Models\Ingredient::query()
-                        ->whereColumn('stock', '<=', 'minimum_stock')
-                        ->count()
+                    function () {
+                        $outOfStock = \App\Models\Ingredient::query()
+                            ->where('stock', '<=', 0)
+                            ->count();
+                            
+                        $lowStock = \App\Models\Ingredient::query()
+                            ->where('stock', '>', 0)
+                            ->whereColumn('stock', '<=', 'minimum_stock')
+                            ->count();
+                            
+                        return [
+                            'outOfStock' => $outOfStock,
+                            'lowStock' => $lowStock,
+                        ];
+                    }
                 );
-                $view->with('lowStockCount', $count);
+                $view->with('outOfStockCount', $counts['outOfStock']);
+                $view->with('lowStockCount', $counts['lowStock']);
             } else {
+                $view->with('outOfStockCount', 0);
                 $view->with('lowStockCount', 0);
             }
         });
