@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
+use App\Models\IngredientCategory;
 use App\Models\User;
 use App\Services\DailyStockService;
 use App\Support\IngredientUnit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -25,7 +27,21 @@ class DailyStockController extends Controller
     {
         $this->authorize('viewAny', DailyStockSession::class);
 
+        if ((string) $request->input('category_id') === '0') {
+            $request->merge(['category_id' => null]);
+        }
+
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:100',
+            'category_id' => [
+                'nullable',
+                Rule::exists((new IngredientCategory())->getTable(), 'id'),
+            ],
+        ]);
+
         $selectedDate = $this->resolveDate((string) $request->input('date', now()->toDateString()));
+        $search = trim((string) ($validated['search'] ?? ''));
+        $selectedCategoryId = (int) ($validated['category_id'] ?? 0);
 
         $cashiers = User::query()
             ->with('role:id,name')
@@ -38,7 +54,7 @@ class DailyStockController extends Controller
         $session = null;
         if ($selectedCashierId > 0) {
             $session = DailyStockSession::query()
-                ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,name,display_unit,base_unit,pack_size,selling_price'])
+                ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price'])
                 ->where('session_date', $selectedDate->toDateString())
                 ->where('cashier_id', $selectedCashierId)
                 ->first();
@@ -58,6 +74,14 @@ class DailyStockController extends Controller
         }
 
         if ($session) {
+            $sessionCategoryIds = $session->items
+                ->pluck('ingredient.category_id')
+                ->filter()
+                ->unique()
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all();
+
             $session->setRelation('items', $session->items->map(function ($item) {
                 $ingredient = $item->ingredient;
 
@@ -75,9 +99,36 @@ class DailyStockController extends Controller
 
                 return $item;
             }));
+
+            $filteredItems = $session->items;
+
+            if ($search !== '') {
+                $searchLower = mb_strtolower($search);
+                $filteredItems = $filteredItems->filter(function ($item) use ($searchLower) {
+                    $name = mb_strtolower((string) optional($item->ingredient)->name);
+                    return str_contains($name, $searchLower);
+                })->values();
+            }
+
+            if ($selectedCategoryId > 0) {
+                $filteredItems = $filteredItems->filter(function ($item) use ($selectedCategoryId) {
+                    return (int) optional($item->ingredient)->category_id === $selectedCategoryId;
+                })->values();
+            }
+
+            $session->setRelation('items', $filteredItems);
         }
 
         $summary = $this->summary($session);
+
+        $sessionCategoryIds = $sessionCategoryIds ?? [];
+
+        $categories = empty($sessionCategoryIds)
+            ? collect()
+            : IngredientCategory::query()
+                ->whereIn('id', $sessionCategoryIds)
+                ->orderBy('name')
+                ->get(['id', 'name']);
 
         return view('admin.daily_stocks.index', [
             'selectedDate' => $selectedDate,
@@ -85,6 +136,9 @@ class DailyStockController extends Controller
             'selectedCashierId' => $selectedCashierId,
             'session' => $session,
             'summary' => $summary,
+            'categories' => $categories,
+            'search' => $search,
+            'selectedCategoryId' => $selectedCategoryId,
         ]);
     }
 
@@ -92,10 +146,18 @@ class DailyStockController extends Controller
     {
         $this->authorize('transfer', DailyStockSession::class);
 
+        if ((string) $request->input('category_id') === '0') {
+            $request->merge(['category_id' => null]);
+        }
+
         $validated = $request->validate([
-            'session_id' => 'required|exists:daily_stock_sessions,id',
+            'session_id' => 'required|integer|min:1',
             'search' => 'nullable|string|max:100',
-            'ingredient_id' => 'nullable|exists:ingredients,id',
+            'category_id' => [
+                'nullable',
+                Rule::exists((new IngredientCategory())->getTable(), 'id'),
+            ],
+            'ingredient_id' => 'nullable|integer|min:1',
         ]);
 
         $session = DailyStockSession::query()
@@ -112,12 +174,16 @@ class DailyStockController extends Controller
         }
 
         $search = trim((string) ($validated['search'] ?? ''));
+        $selectedCategoryId = (int) ($validated['category_id'] ?? 0);
         $selectedIngredientId = (int) ($validated['ingredient_id'] ?? 0);
 
         $ingredients = Ingredient::query()
             ->select(['id', 'name', 'display_unit', 'base_unit', 'pack_size', 'stock'])
             ->when($search !== '', function (Builder $query) use ($search) {
                 $this->applyIngredientSearch($query, $search);
+            })
+            ->when($selectedCategoryId > 0, function (Builder $query) use ($selectedCategoryId) {
+                $query->where('category_id', $selectedCategoryId);
             })
             ->orderBy('name')
             ->paginate(12)
@@ -127,18 +193,28 @@ class DailyStockController extends Controller
             return $this->decorateTransferIngredient($ingredient);
         });
 
-        $selectedIngredient = $selectedIngredientId > 0
-            ? Ingredient::query()->find($selectedIngredientId, ['id', 'name', 'display_unit', 'base_unit', 'pack_size', 'stock'])
-            : null;
+        $selectedIngredient = null;
+        if ($selectedIngredientId > 0) {
+            $selectedIngredient = Ingredient::query()
+                ->where('id', $selectedIngredientId)
+                ->whereNull('deleted_at')
+                ->first(['id', 'name', 'display_unit', 'base_unit', 'pack_size', 'stock']);
+        }
 
         if ($selectedIngredient) {
             $this->decorateTransferIngredient($selectedIngredient);
         }
 
+        $categories = IngredientCategory::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('admin.daily_stocks.transfer', [
             'session' => $session,
             'ingredients' => $ingredients,
             'search' => $search,
+            'categories' => $categories,
+            'selectedCategoryId' => $selectedCategoryId,
             'selectedIngredient' => $selectedIngredient,
         ]);
     }
@@ -148,7 +224,10 @@ class DailyStockController extends Controller
         $this->authorize('close', DailyStockSession::class);
 
         $validated = $request->validate([
-            'session_id' => 'required|exists:daily_stock_sessions,id',
+            'session_id' => [
+                'required',
+                Rule::exists((new DailyStockSession())->getTable(), 'id'),
+            ],
         ]);
 
         $session = DailyStockSession::query()
@@ -186,7 +265,10 @@ class DailyStockController extends Controller
 
         $validated = $request->validate([
             'date' => 'required|date',
-            'cashier_id' => 'required|exists:users,id',
+            'cashier_id' => [
+                'required',
+                Rule::exists((new User())->getTable(), 'id'),
+            ],
             'notes' => 'nullable|string|max:255',
         ]);
 
@@ -216,11 +298,26 @@ class DailyStockController extends Controller
         $this->authorize('transfer', DailyStockSession::class);
 
         $validated = $request->validate([
-            'session_id' => 'required|exists:daily_stock_sessions,id',
-            'ingredient_id' => 'required|exists:ingredients,id',
+            'session_id' => [
+                'required',
+                Rule::exists((new DailyStockSession())->getTable(), 'id'),
+            ],
+            'ingredient_id' => [
+                'required',
+                Rule::exists((new Ingredient())->getTable(), 'id')->whereNull('deleted_at'),
+            ],
             'quantity' => 'required|numeric|min:0.01',
             'transfer_unit' => 'nullable|in:pack,pcs,g,kg,ml,l',
             'note' => 'nullable|string|max:255',
+        ], [
+            'session_id.required' => 'Sesi stok harian belum dipilih.',
+            'session_id.exists' => 'Sesi stok harian tidak ditemukan atau sudah tidak aktif.',
+            'ingredient_id.required' => 'Bahan belum dipilih.',
+            'ingredient_id.exists' => 'Bahan tidak ditemukan atau sudah diarsipkan.',
+            'quantity.required' => 'Jumlah transfer wajib diisi.',
+            'quantity.numeric' => 'Jumlah transfer harus berupa angka.',
+            'quantity.min' => 'Jumlah transfer minimal 0.01.',
+            'transfer_unit.in' => 'Satuan transfer tidak valid.',
         ]);
 
         try {
@@ -260,7 +357,10 @@ class DailyStockController extends Controller
         $this->authorize('close', DailyStockSession::class);
 
         $validated = $request->validate([
-            'session_id' => 'required|exists:daily_stock_sessions,id',
+            'session_id' => [
+                'required',
+                Rule::exists((new DailyStockSession())->getTable(), 'id'),
+            ],
             'remaining' => 'nullable|array',
             'remaining.*' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:255',
@@ -304,7 +404,10 @@ class DailyStockController extends Controller
         $this->authorize('reopen', DailyStockSession::class);
 
         $validated = $request->validate([
-            'session_id' => 'required|exists:daily_stock_sessions,id',
+            'session_id' => [
+                'required',
+                Rule::exists((new DailyStockSession())->getTable(), 'id'),
+            ],
             'notes' => 'nullable|string|max:255',
         ]);
 
@@ -333,7 +436,10 @@ class DailyStockController extends Controller
         $this->authorize('reopen', DailyStockSession::class);
 
         $validated = $request->validate([
-            'session_id' => 'required|exists:daily_stock_sessions,id',
+            'session_id' => [
+                'required',
+                Rule::exists((new DailyStockSession())->getTable(), 'id'),
+            ],
         ]);
 
         try {

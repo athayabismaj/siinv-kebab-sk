@@ -34,63 +34,79 @@
 @endphp
 
 <div class="space-y-8 max-w-full overflow-x-hidden">
-    <div class="mb-6">
-        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
-            <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Analisis Menu</span>
-        </nav>
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">Analisis Menu</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-            Pantau performa penjualan menu berdasarkan periode harian, mingguan, atau bulanan.
-        </p>
+    {{-- HEADER --}}
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between mb-2">
+        <div class="flex-1">
+            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+                <span class="text-slate-300 dark:text-slate-600">/</span>
+                <span class="text-blue-600 dark:text-blue-400">Analisis Menu</span>
+            </nav>
+
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+                Analisis Menu
+            </h1>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                Pantau performa penjualan menu berdasarkan periode harian, mingguan, atau bulanan.
+            </p>
+        </div>
+
+        {{-- PERIODE BADGE (kanan atas) --}}
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 mt-2 lg:mt-0">
+            <div class="inline-flex w-full sm:w-auto items-center justify-center sm:justify-start gap-2 rounded-full bg-blue-50 border border-blue-100/50 px-3 py-1.5 dark:bg-blue-500/10 dark:border-blue-800/30 shadow-sm">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <span class="text-[11px] font-bold tracking-wide text-blue-700 dark:text-blue-400 uppercase">
+                    Periode:
+                    <span class="font-medium text-slate-700 dark:text-slate-300 ml-1 normal-case">{{ $periodLabel }}</span>
+                </span>
+            </div>
+        </div>
     </div>
 
-    <form method="GET" action="{{ route('owner.analytics.menu') }}" class="flex flex-col lg:flex-row gap-3 w-full mb-6 relative z-10">
-        <div class="w-full lg:w-auto flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shrink-0 overflow-x-auto no-scrollbar justify-start sm:justify-center">
-            @foreach(['daily' => 'Harian', 'weekly' => 'Mingguan', 'monthly' => 'Bulanan'] as $key => $label)
-                <a href="{{ route('owner.analytics.menu', ['type' => $key]) }}"
-                   class="flex-1 min-w-[80px] lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 text-center
-                   {{ $type === $key ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">
-                    {{ $label }}
-                </a>
-            @endforeach
+    {{-- FILTER BAR (sama persis dengan pemakaian bahan) --}}
+    <div class="flex flex-col lg:flex-row gap-3 w-full relative z-10 items-center justify-between py-2 mb-6">
+        {{-- TAB TYPE --}}
+        <div class="flex w-full lg:w-auto rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
+            <a href="{{ route('owner.analytics.menu', ['type' => 'daily']) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</a>
+            <a href="{{ route('owner.analytics.menu', ['type' => 'weekly']) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</a>
+            <a href="{{ route('owner.analytics.menu', ['type' => 'monthly']) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</a>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 flex-1">
-            <div class="flex-1 flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-1 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all min-w-0">
-                <a href="{{ route('owner.analytics.menu', $prevParams) }}" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400 transition-all shrink-0" title="Sebelumnya">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+        {{-- DATE NAVIGATOR --}}
+        <div class="flex-1 flex items-center px-1 w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
+            {{-- Prev --}}
+            <a href="{{ route('owner.analytics.menu', $prevParams) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+            </a>
+
+            {{-- Date Input --}}
+            @if($type === 'daily')
+                <input type="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" onchange="window.location=$(this).val() ? '{{ route('owner.analytics.menu', ['type' => 'daily']) }}&date='+this.value : '#'"
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+            @elseif($type === 'weekly')
+                <input type="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" onchange="window.location=$(this).val() ? '{{ route('owner.analytics.menu', ['type' => 'weekly']) }}&week_date='+this.value : '#'"
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+            @else
+                <input type="month" value="{{ $inputValue }}" max="{{ $today->format('Y-m') }}" onchange="window.location=$(this).val() ? '{{ route('owner.analytics.menu', ['type' => 'monthly']) }}&month='+this.value : '#'"
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+            @endif
+
+            {{-- Next --}}
+            @if($isFuture)
+                <span class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                </span>
+            @else
+                <a href="{{ route('owner.analytics.menu', $nextParams) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
                 </a>
-
-                <div class="flex-1 flex px-3">
-                    <input type="hidden" name="type" value="{{ $type }}">
-                    @if($type === 'daily')
-                        <input type="date" name="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" onchange="this.form.submit()" class="w-full text-center bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none dark:[color-scheme:dark]">
-                    @elseif($type === 'weekly')
-                        <input type="date" name="week_date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" onchange="this.form.submit()" class="w-full text-center bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none dark:[color-scheme:dark]">
-                    @else
-                        <input type="month" name="month" value="{{ $inputValue }}" max="{{ $today->format('Y-m') }}" onchange="this.form.submit()" class="w-full text-center bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none dark:[color-scheme:dark]">
-                    @endif
-                </div>
-
-                @if($isFuture)
-                    <div class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-300 dark:text-slate-700 cursor-not-allowed shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                    </div>
-                @else
-                    <a href="{{ route('owner.analytics.menu', $nextParams) }}" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400 transition-all shrink-0" title="Berikutnya">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                    </a>
-                @endif
-            </div>
-
-            <div class="inline-flex items-center gap-2.5 px-4 py-2 bg-blue-50/50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl shadow-sm text-[12px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide shrink-0">
-                <span>Periode</span>
-                <span class="text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $periodLabel }}</span>
-            </div>
+            @endif
         </div>
-    </form>
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div class="relative p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl group hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 overflow-hidden">

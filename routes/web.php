@@ -24,7 +24,6 @@ use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UsageReportController;
 use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
 use App\Http\Controllers\Admin\DailyStockReportController;
-use App\Http\Controllers\ReportExportController;
 
 
 
@@ -100,15 +99,6 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
             Route::get('/archive',[UserManagementController::class, 'archive'])->name('archive');
             Route::patch('/{id}/restore', [UserManagementController::class, 'restore'])->name('restore');
         });
-        Route::prefix('exports')->name('exports.')->group(function () {
-            Route::get('/', [ReportExportController::class, 'index'])
-                ->middleware('throttle:web-heavy-role-aware')
-                ->name('index');
-            Route::get('/{reportExport}/download', [ReportExportController::class, 'download'])
-                ->middleware('throttle:web-heavy-role-aware')
-                ->name('download');
-        });
-
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockMonitoringController::class, 'index'])->name('index');
         });
@@ -223,15 +213,6 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
             });
 
 
-
-        Route::prefix('exports')->name('exports.')->group(function () {
-            Route::get('/', [ReportExportController::class, 'index'])
-                ->middleware('throttle:web-heavy-role-aware')
-                ->name('index');
-            Route::get('/{reportExport}/download', [ReportExportController::class, 'download'])
-                ->middleware('throttle:web-heavy-role-aware')
-                ->name('download');
-        });
 
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockController::class,'index'])->name('index');

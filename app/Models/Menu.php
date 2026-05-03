@@ -12,7 +12,6 @@ class Menu extends Model {
         'category_id',
         'name',
         'description',
-        'image_path',
         'is_active',
         'sort_order',
     ];

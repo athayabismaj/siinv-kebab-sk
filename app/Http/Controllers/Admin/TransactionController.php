@@ -258,8 +258,12 @@ class TransactionController extends Controller
                 $this->applyCommonFilters($summaryQuery, $request, includeUserFilter: true);
                 $this->applyDateFilters($summaryQuery, $request, false, $selectedDate, $summaryEndDate);
 
-                $totalTransactions = (int) (clone $summaryQuery)->count();
-                $totalRevenue = (float) ((clone $summaryQuery)->sum('total_amount') ?? 0);
+                $aggregate = (clone $summaryQuery)
+                    ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
+                    ->first();
+
+                $totalTransactions = (int) ($aggregate->total_transactions ?? 0);
+                $totalRevenue = (float) ($aggregate->total_revenue ?? 0);
 
                 $topCashier = (clone $summaryQuery)
                     ->join('users', 'users.id', '=', 'transactions.user_id')
@@ -274,9 +278,7 @@ class TransactionController extends Controller
                     'avg_transaction' => $totalTransactions > 0
                         ? ($totalRevenue / $totalTransactions)
                         : 0,
-                    'top_cashier_name' => $topCashier?->name
-                        ?? Transaction::query()->with('user:id,name')->latest()->first()?->user?->name
-                        ?? '-',
+                    'top_cashier_name' => (string) ($topCashier?->name ?? '-'),
                 ];
             }
         );

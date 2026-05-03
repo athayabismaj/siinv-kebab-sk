@@ -96,26 +96,83 @@ class BackupDatabaseCommand extends Command
     }
 
     /**
-     * Hapus file backup yang lebih tua dari $days hari.
+     * Hapus file backup yang lama dengan strategi Grandfather-Father-Son (GFS).
+     * Mempertahankan:
+     * - 7 hari terakhir (Daily)
+     * - 1 backup per minggu (Weekly)
+     * - 1 backup per bulan (Monthly)
      */
     private function cleanOldBackups(int $days): void
     {
-        $cutoff = Carbon::now()->subDays($days);
+        $this->info("Menjalankan GFS Backup Retention Strategy...");
 
-        $oldBackups = BackupHistory::where('status', 'success')
-            ->where('created_at', '<', $cutoff)
+        // Ambil semua backup otomatis yang berhasil
+        $allBackups = BackupHistory::where('status', 'success')
+            ->whereNull('user_id')
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        foreach ($oldBackups as $backup) {
-            if ($backup->file_path && File::exists($backup->file_path)) {
-                File::delete($backup->file_path);
-                $this->line("  Deleted old file: {$backup->file_name}");
-            }
-            $backup->update(['file_path' => null, 'file_size' => null]);
+        if ($allBackups->isEmpty()) {
+            return;
         }
 
-        if ($oldBackups->count() > 0) {
-            $this->info("Membersihkan {$oldBackups->count()} file backup lama (>{$days} hari).");
+        $now = Carbon::now();
+        $keepIds = [];
+
+        // 1. Cari Backup Bulanan (End of Month)
+        // Group by Year-Month
+        $monthlyGroups = $allBackups->groupBy(function($backup) {
+            return Carbon::parse($backup->created_at)->format('Y-m');
+        });
+
+        foreach ($monthlyGroups as $month => $backupsInMonth) {
+            // Karena sudah orderBy desc, first() adalah backup terbaru di bulan itu (mendekati akhir bulan)
+            $keepIds[] = $backupsInMonth->first()->id;
+        }
+
+        // 2. Cari Backup Mingguan (End of Week)
+        // Group by Year-Week
+        $weeklyGroups = $allBackups->groupBy(function($backup) {
+            return Carbon::parse($backup->created_at)->format('o-W'); // 'o' is ISO year, 'W' is ISO week number
+        });
+
+        foreach ($weeklyGroups as $week => $backupsInWeek) {
+            // Ambil backup terbaru di minggu itu (mendekati akhir minggu/Minggu malam)
+            $keepIds[] = $backupsInWeek->first()->id;
+        }
+
+        // 3. Cari Backup Harian (Daily) untuk 7 hari terakhir
+        $sevenDaysAgo = $now->copy()->subDays(7);
+        foreach ($allBackups as $backup) {
+            if (Carbon::parse($backup->created_at)->isAfter($sevenDaysAgo)) {
+                $keepIds[] = $backup->id;
+            }
+        }
+
+        // Hapus duplikat ID
+        $keepIds = array_unique($keepIds);
+
+        // Ambil backup yang TIDAK dipertahankan (akan dikonsolidasikan/dihapus)
+        $toDelete = BackupHistory::where('status', 'success')
+            ->whereNull('user_id')
+            ->whereNotIn('id', $keepIds)
+            ->get();
+
+        $deletedCount = 0;
+        foreach ($toDelete as $backup) {
+            if ($backup->file_path && File::exists($backup->file_path)) {
+                File::delete($backup->file_path);
+                $this->line("  Deleted consolidated backup: {$backup->file_name}");
+            }
+            // Hapus record dari database agar riwayat tetap bersih hanya menyisakan tier GFS
+            $backup->delete();
+            $deletedCount++;
+        }
+
+        if ($deletedCount > 0) {
+            $this->info("Membersihkan {$deletedCount} file backup lama (Konsolidasi GFS).");
+        } else {
+            $this->info("Tidak ada file backup yang perlu dikonsolidasikan.");
         }
     }
 }

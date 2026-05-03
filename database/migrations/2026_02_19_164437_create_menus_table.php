@@ -12,7 +12,6 @@ return new class extends Migration {
             $table->id();
             $table->string('name', 150)->unique();
             $table->text('description')->nullable();
-            $table->string('image_path')->nullable();
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);
             $table->timestamps();

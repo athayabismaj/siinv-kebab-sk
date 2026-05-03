@@ -139,7 +139,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 419);
             }
 
-            return response()->view('errors.419', [], 419);
+            return redirect()->guest(route('login'))
+                ->with('error', 'Sesi Anda telah berakhir. Silakan login kembali.');
         });
 
         // ── 503 / 500 QueryException ──────────────────────────────────────────
@@ -179,12 +180,21 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // ── 500 Fallback untuk semua error tidak terduga ──────────────────────
         $exceptions->render(function (\Throwable $e, Request $request) {
+            $message = strtolower($e->getMessage());
+            $isTimeout = str_contains($message, 'maximum execution time');
+
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Terjadi kesalahan sistem yang tidak terduga. Silakan coba lagi.',
                 ], 500);
             }
+
+            if ($isTimeout) {
+                return redirect()->guest(route('login'))
+                    ->with('error', 'Permintaan melebihi batas waktu. Silakan login kembali.');
+            }
+
             return null; // Biarkan Laravel/Symfony menangani untuk web non-API
         });
     })->create();

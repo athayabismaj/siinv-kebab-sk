@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
 use App\Models\CashflowEntry;
 use App\Models\Transaction;
-use App\Services\ReportExportDispatchService;
 use App\Support\AdminCache;
 use App\Support\ReportPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,10 +14,8 @@ use Illuminate\Support\Facades\Cache;
 
 class CashflowController extends Controller
 {
-    public function __construct(
-        private readonly ReportExportDispatchService $exportDispatch
-    ) {
-    }
+    use DirectExportResponse;
+
 
     public function index(Request $request)
     {
@@ -101,27 +99,54 @@ class CashflowController extends Controller
 
     public function export(Request $request)
     {
-        try {
-            $export = $this->exportDispatch->dispatch(
-                $request->user(),
-                'admin',
-                'admin.cashflow',
-                $request->query()
-            );
+        $format = (string) $request->query('format', 'excel');
+        return $this->exportDirect($request, $format);
+    }
 
-            $message = 'Export pengeluaran masuk antrian. ID: #' . $export->id;
-            if ($export->scheduled_for) {
-                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
-            }
+    private function exportDirect(Request $request, string $format)
+    {
+        $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
 
-            return redirect()
-                ->route('admin.exports.index')
-                ->with('success', $message);
-        } catch (\Throwable) {
-            return redirect()
-                ->route('admin.exports.index')
-                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
+        $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
+        $this->applySearch($baseQuery, $request);
+
+        $entries = (clone $baseQuery)->get();
+        $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $request, $baseQuery);
+
+        $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
+        if ($dateFrom->toDateString() === $dateTo->toDateString()) {
+            $periodeLabel = $dateFrom->translatedFormat('d F Y');
         }
+
+        $periodLabels = [
+            'daily' => 'HARIAN',
+            'weekly' => 'MINGGUAN',
+            'monthly' => 'BULANAN',
+            'custom' => 'KUSTOM'
+        ];
+        $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
+
+        $viewData = [
+            'entries' => $entries,
+            'periode' => $periodeLabel,
+            'periodLabel' => $periodLabelText,
+            'summary' => $summary,
+            'isExcel' => $format === 'excel',
+        ];
+
+        $fileName = 'laporan-pengeluaran-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString();
+
+        return $this->exportByFormat(
+            $format,
+            'exports.expense_professional',
+            $viewData,
+            $fileName,
+            fn () => \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\ExpenseReportExport($entries, $periodeLabel, $summary, $periodLabelText),
+                $fileName . '.xlsx'
+            )
+        );
     }
 
     private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder

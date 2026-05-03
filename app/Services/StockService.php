@@ -30,8 +30,11 @@ class StockService
         }
 
         $sessionDate = $transactionAt instanceof Carbon
-            ? $transactionAt->copy()->startOfDay()->toDateString()
-            : Carbon::parse((string) ($transactionAt ?? now()))->startOfDay()->toDateString();
+            ? $transactionAt->copy()->setTimezone('Asia/Jakarta')->startOfDay()->toDateString()
+            : Carbon::parse((string) ($transactionAt ?? now('Asia/Jakarta')), 'Asia/Jakarta')
+                ->setTimezone('Asia/Jakarta')
+                ->startOfDay()
+                ->toDateString();
 
         $session = DailyStockSession::query()
             ->where('cashier_id', $cashierId)

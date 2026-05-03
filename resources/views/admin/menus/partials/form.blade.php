@@ -5,7 +5,7 @@
         <h2 class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Informasi Menu</h2>
     </div>
 
-    <form method="POST" action="{{ $action }}" enctype="multipart/form-data" x-data="{ submitting: false }" @submit="submitting = true">
+    <form method="POST" action="{{ $action }}" x-data="{ submitting: false }" @submit="submitting = true">
         @csrf
         @if($method === 'PUT')
             @method('PUT')
@@ -93,40 +93,6 @@
                         <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
                         <span class="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Tampilkan di sistem POS</span>
                     </label>
-                </div>
-
-                {{-- Foto Menu --}}
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
-                        Foto Menu <span class="text-slate-400 font-normal text-xs">(Opsional)</span>
-                    </label>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        
-                        {{-- Preview Existing Image --}}
-                        @if(isset($menu) && $menu->image_path)
-                            <div class="shrink-0 flex flex-col items-center gap-2">
-                                <img src="{{ asset('storage/'.$menu->image_path) }}" alt="Preview" class="h-20 w-20 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saat ini</span>
-                            </div>
-                        @endif
-
-                        <div class="w-full">
-                            <input type="file"
-                                   name="image"
-                                   accept="image/*"
-                                   class="block w-full text-sm text-slate-500 dark:text-slate-400
-                                          file:mr-4 file:py-3 file:px-4
-                                          file:rounded-xl file:border-0
-                                          file:text-sm file:font-semibold
-                                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
-                                          dark:file:bg-slate-800 dark:file:text-slate-300 dark:hover:file:bg-slate-700
-                                          transition-all cursor-pointer border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm">
-                            <p class="mt-2 text-[11px] font-medium text-slate-500">Format yang didukung: JPG, PNG, JPEG. Ukuran maksimal 2MB.</p>
-                            @error('image')
-                                <p class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
                 </div>
 
                 {{-- Deskripsi Menu --}}

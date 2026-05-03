@@ -29,7 +29,7 @@ class DailyStockController extends Controller
             ->with(['items.ingredient'])
             ->where('cashier_id', $user->id)
             ->where('status', 'open')
-            ->where('session_date', now()->toDateString())
+            ->where('session_date', now()->subHours(4)->toDateString())
             ->first();
 
         if (! $session) {
@@ -91,7 +91,7 @@ class DailyStockController extends Controller
             ->with(['items.ingredient'])
             ->where('cashier_id', $user->id)
             ->where('status', 'open')
-            ->where('session_date', now()->toDateString())
+            ->where('session_date', now()->subHours(4)->toDateString())
             ->first();
 
         if (! $session) {

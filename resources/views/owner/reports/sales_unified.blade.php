@@ -7,84 +7,154 @@
     $type = $type ?? 'daily';
 @endphp
 
-<div class="space-y-8">
-    <div class="mb-8">
-        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
-            <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Analisis Penjualan</span>
-        </nav>
+<div class="w-full space-y-6 overflow-x-hidden pb-10">
 
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">
-            Analisis Penjualan
-        </h1>
+    {{-- HEADER --}}
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between mb-2">
+        <div class="flex-1">
+            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+                <span class="text-slate-300 dark:text-slate-600">/</span>
+                <span class="text-blue-600 dark:text-blue-400">Laporan Penjualan</span>
+            </nav>
 
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
-            Pantau performa omzet, jumlah transaksi, dan pergerakan menu terlaris secara mendetail.<br class="hidden sm:block mt-1">
-            Gunakan tab di bawah untuk beralih antara laporan harian, mingguan, atau bulanan.
-        </p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+                Laporan Penjualan
+            </h1>
 
-        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-blue-50/50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg shadow-sm">
-            <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-            <span class="text-[11px] sm:text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
-                @if($type === 'daily')
-                    Laporan Harian:
-                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedDate->format('d M Y') }}</span>
-                @elseif($type === 'weekly')
-                    Laporan Mingguan:
-                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedWeekStart->format('d M Y') }} - {{ $selectedWeekEnd->format('d M Y') }}</span>
-                @else
-                    Laporan Bulanan:
-                    <span class="ml-1 text-slate-700 dark:text-slate-200 normal-case tracking-normal">{{ $selectedMonth->translatedFormat('F Y') }}</span>
-                @endif
-            </span>
+            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                Pantau performa omzet, jumlah transaksi, dan pergerakan menu terlaris secara mendetail.
+            </p>
+        </div>
+
+        {{-- PERIODE BADGE (kanan atas) --}}
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 mt-2 lg:mt-0">
+            <div class="inline-flex w-full sm:w-auto items-center justify-center sm:justify-start gap-2 rounded-full bg-blue-50 border border-blue-100/50 px-3 py-1.5 dark:bg-blue-500/10 dark:border-blue-800/30 shadow-sm">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <span class="text-[11px] font-bold tracking-wide text-blue-700 dark:text-blue-400 uppercase">
+                    Periode:
+                    @if($type === 'daily')
+                        <span class="font-medium text-slate-700 dark:text-slate-300 ml-1 normal-case">{{ $selectedDate->format('d M Y') }}</span>
+                    @elseif($type === 'weekly')
+                        <span class="font-medium text-slate-700 dark:text-slate-300 ml-1 normal-case">{{ $selectedWeekStart->format('d M Y') }}</span>
+                        <span class="mx-0.5 text-slate-400">-</span>
+                        <span class="font-medium text-slate-700 dark:text-slate-300 normal-case">{{ $selectedWeekEnd->format('d M Y') }}</span>
+                    @else
+                        <span class="font-medium text-slate-700 dark:text-slate-300 ml-1 normal-case">{{ $selectedMonth->translatedFormat('F Y') }}</span>
+                    @endif
+                </span>
+            </div>
         </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-3 w-full mb-6 relative z-10">
-        <div class="w-full lg:w-auto flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shrink-0">
-            @foreach(['daily' => 'Harian', 'weekly' => 'Mingguan', 'monthly' => 'Bulanan'] as $key => $label)
-                <a href="{{ route('owner.reports.sales', ['type' => $key]) }}"
-                    class="flex-1 lg:px-6 flex items-center justify-center px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 text-center
-                    {{ $type === $key ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">
-                    {{ $label }}
-                </a>
-            @endforeach
+    {{-- FILTER BAR (sama persis dengan pemakaian bahan) --}}
+    <div class="flex flex-col lg:flex-row gap-3 w-full relative z-10 items-center justify-between py-2">
+        {{-- TAB TYPE --}}
+        <div class="flex w-full lg:w-auto rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
+            <a href="{{ route('owner.reports.sales', ['type' => 'daily']) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</a>
+            <a href="{{ route('owner.reports.sales', ['type' => 'weekly']) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</a>
+            <a href="{{ route('owner.reports.sales', ['type' => 'monthly']) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</a>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 flex-1">
-            <div class="flex-1 flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-                <svg class="w-5 h-5 text-slate-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        {{-- DATE NAVIGATOR --}}
+        <div class="flex-1 flex items-center px-1 w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
+            {{-- Prev --}}
+            @if($type === 'daily')
+                <a href="{{ route('owner.reports.sales', ['type' => $type, 'date' => $prevFrom]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                </a>
+            @elseif($type === 'weekly')
+                <a href="{{ route('owner.reports.sales', ['type' => $type, 'week_date' => $prevFrom]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                </a>
+            @else
+                <a href="{{ route('owner.reports.sales', ['type' => $type, 'month' => $prevFrom]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                </a>
+            @endif
 
+            {{-- Date Input --}}
+            @if($type === 'daily')
+                <input type="date"
+                       value="{{ $selectedDate->toDateString() }}"
+                       data-base-url="{{ route('owner.reports.sales', ['type' => 'daily']) }}"
+                       data-param="date"
+                       onchange="onSalesDateChange(this)"
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+            @elseif($type === 'weekly')
+                <input type="date"
+                       value="{{ $selectedWeekStart->toDateString() }}"
+                       data-base-url="{{ route('owner.reports.sales', ['type' => 'weekly']) }}"
+                       data-param="week_date"
+                       onchange="onSalesDateChange(this)"
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+            @else
+                <input type="month"
+                       value="{{ $selectedMonth->format('Y-m') }}"
+                       data-base-url="{{ route('owner.reports.sales', ['type' => 'monthly']) }}"
+                       data-param="month"
+                       onchange="onSalesDateChange(this)"
+                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+            @endif
+
+            {{-- Next --}}
+            @if($isFuture)
+                <span class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                </span>
+            @else
                 @if($type === 'daily')
-                    <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
-                        <input type="hidden" name="type" value="daily">
-                        <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" onchange="this.form.submit()"
-                            class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                    </form>
+                    <a href="{{ route('owner.reports.sales', ['type' => $type, 'date' => $nextFrom]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </a>
                 @elseif($type === 'weekly')
-                    <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
-                        <input type="hidden" name="type" value="weekly">
-                        <input type="date" name="week_date" value="{{ $selectedWeekStart->toDateString() }}" onchange="this.form.submit()"
-                            class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                    </form>
+                    <a href="{{ route('owner.reports.sales', ['type' => $type, 'week_date' => $nextFrom]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </a>
                 @else
-                    <form action="{{ route('owner.reports.sales') }}" method="GET" class="w-full flex">
-                        <input type="hidden" name="type" value="monthly">
-                        <input type="month" name="month" value="{{ $selectedMonth->format('Y-m') }}" onchange="this.form.submit()"
-                            class="w-full bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 focus:ring-0 p-0 cursor-pointer outline-none appearance-none dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                    </form>
+                    <a href="{{ route('owner.reports.sales', ['type' => $type, 'month' => $nextFrom]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </a>
                 @endif
-            </div>
+            @endif
+        </div>
 
-            <a href="{{ route('owner.reports.sales.export', ['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month')]) }}"
-                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-white active:scale-95 transition-all shadow-sm shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                Ekspor Data
-            </a>
+        {{-- EXPORT DROPDOWN --}}
+        <div class="flex items-center w-full lg:w-auto shrink-0 justify-end" x-data="{ exportOpen: false }">
+            <div class="relative w-full lg:w-auto">
+                <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-5 h-[38px] bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Eksport Laporan
+                    <svg class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                
+                <div x-show="exportOpen"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-lg border border-slate-100 dark:bg-slate-800 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                     style="display: none;">
+                    
+                    <a href="{{ route('owner.reports.sales.export', ['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'format' => 'html']) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-blue-400 font-medium transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        Format HTML
+                    </a>
+                    <a href="{{ route('owner.reports.sales.export', ['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'format' => 'pdf']) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-rose-400 font-medium transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        Format PDF
+                    </a>
+                    <a href="{{ route('owner.reports.sales.export', ['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'format' => 'excel']) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-emerald-400 font-medium transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Format Excel
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -263,6 +333,19 @@
 
 @push('scripts')
 <script>
+function onSalesDateChange(inputEl) {
+    if (!inputEl || !inputEl.value) return;
+
+    const baseUrl = inputEl.dataset.baseUrl;
+    const param = inputEl.dataset.param;
+
+    if (!baseUrl || !param) return;
+
+    const url = new URL(baseUrl, window.location.origin);
+    url.searchParams.set(param, inputEl.value);
+    window.location.href = url.toString();
+}
+
 (function() {
     const PER_PAGE = 20;
     const body = document.getElementById('table-body');
@@ -339,3 +422,4 @@
 })();
 </script>
 @endpush
+

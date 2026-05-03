@@ -27,6 +27,7 @@ class IngredientController extends Controller
                 'stock',
                 'minimum_stock',
                 'selling_price',
+                'cost_price',
                 'created_at',
             ])
             ->with('category:id,name');
@@ -70,6 +71,7 @@ class IngredientController extends Controller
         AdminCache::bumpDashboard();
         AdminCache::bumpStock();
         AdminCache::bumpDailyStock(); // selling_price mempengaruhi estimasi nilai laporan stok harian
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -92,6 +94,7 @@ class IngredientController extends Controller
         AdminCache::bumpDashboard();
         AdminCache::bumpStock();
         AdminCache::bumpDailyStock(); // selling_price mempengaruhi estimasi nilai laporan stok harian
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -103,6 +106,7 @@ class IngredientController extends Controller
         $ingredient->delete();
         AdminCache::bumpDashboard();
         AdminCache::bumpStock();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.ingredients.index')
@@ -143,6 +147,7 @@ class IngredientController extends Controller
         $ingredient->restore();
         AdminCache::bumpDashboard();
         AdminCache::bumpStock();
+        AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.ingredients.archive')
@@ -159,6 +164,7 @@ class IngredientController extends Controller
             'stock' => 'required|numeric|min:0',
             'minimum_stock' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -176,6 +182,7 @@ class IngredientController extends Controller
             'stock' => $this->normalizeStockInput($displayUnit, (float) $validated['stock'], $packSize),
             'minimum_stock' => $this->normalizeStockInput($displayUnit, (float) $validated['minimum_stock'], $packSize),
             'selling_price' => (float) $validated['selling_price'],
+            'cost_price' => isset($validated['cost_price']) ? (float) $validated['cost_price'] : 0,
         ];
     }
 

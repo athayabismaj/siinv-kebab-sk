@@ -6,11 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Support\AdminCache;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
@@ -22,7 +21,6 @@ class MenuController extends Controller
                 'category_id',
                 'name',
                 'description',
-                'image_path',
                 'is_active',
                 'sort_order',
                 'created_at',
@@ -58,10 +56,6 @@ class MenuController extends Controller
     {
         $validated = $request->validate($this->rules());
 
-        $imagePath = $request->hasFile('image')
-            ? $this->storeUploadedImage($request)
-            : null;
-
         $sortOrder = isset($validated['sort_order'])
             ? (int) $validated['sort_order']
             : ((int) Menu::max('sort_order') + 1);
@@ -70,7 +64,6 @@ class MenuController extends Controller
             'category_id' => $validated['category_id'],
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
-            'image_path' => $imagePath,
             'sort_order' => $sortOrder,
             'is_active' => $request->boolean('is_active'),
         ]);
@@ -104,11 +97,6 @@ class MenuController extends Controller
             'is_active' => $request->boolean('is_active'),
         ];
 
-        if ($request->hasFile('image')) {
-            $this->deleteExistingImage($menu->image_path);
-            $data['image_path'] = $this->storeUploadedImage($request);
-        }
-
         $menu->update($data);
         AdminCache::bumpDashboard();
         AdminCache::bumpCatalog();
@@ -137,7 +125,6 @@ class MenuController extends Controller
                 'category_id',
                 'name',
                 'description',
-                'image_path',
                 'is_active',
                 'sort_order',
                 'deleted_at',
@@ -187,7 +174,6 @@ class MenuController extends Controller
             'category_id' => 'required|exists:menu_categories,id',
             'name' => $uniqueNameRule,
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'sort_order' => 'nullable|numeric|min:0',
             'is_active' => 'nullable|boolean',
         ];
@@ -196,7 +182,7 @@ class MenuController extends Controller
     private function menuCategoryOptions()
     {
         return Cache::remember(
-            'menu_categories:list',
+            AdminCache::key('catalog', 'menu_categories:list'),
             now()->addMinutes(2),
             fn () => MenuCategory::query()
                 ->select('id', 'name')
@@ -205,7 +191,7 @@ class MenuController extends Controller
         );
     }
 
-    private function applyMenuSearch($query, string $search): void
+    private function applyMenuSearch(Builder $query, string $search): void
     {
         $search = trim($search);
         if ($search === '') {
@@ -220,23 +206,5 @@ class MenuController extends Controller
         $query->where('name', 'like', '%' . $search . '%');
     }
 
-    private function storeUploadedImage(Request $request): string
-    {
-        $file = $request->file('image');
-        $filename = Str::uuid() . '.' . $file->extension();
-
-        return $file->storeAs('menus', $filename, 'public');
-    }
-
-    private function deleteExistingImage(?string $imagePath): void
-    {
-        if (! $imagePath) {
-            return;
-        }
-
-        if (Storage::disk('public')->exists($imagePath)) {
-            Storage::disk('public')->delete($imagePath);
-        }
-    }
 }
 

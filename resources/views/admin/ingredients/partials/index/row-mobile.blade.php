@@ -11,7 +11,7 @@
                 <div>
                     <p class="font-bold text-slate-900 dark:text-white">{{ $ingredient->name }}</p>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{{ $ingredient->category->name ?? 'Tanpa Kategori' }}</p>
-                    @if ($ingredient->selling_price > 0)
+                    @if ($ingredient->selling_price > 0 || $ingredient->cost_price > 0)
                         @php
                             $priceUnit = match($ingredient->display_unit ?? '') {
                                 'kg'  => '/kg',
@@ -22,7 +22,17 @@
                                 default => '',
                             };
                         @endphp
-                        <p class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">Rp {{ number_format($ingredient->selling_price, 0, ',', '.') }}<span class="font-normal text-emerald-500/80">{{ $priceUnit }}</span></p>
+                        <div class="mt-1.5 flex items-center gap-1.5">
+                            @if ($ingredient->selling_price > 0)
+                                <span class="text-[10px] font-bold text-emerald-500 dark:text-emerald-400">Rp {{ number_format($ingredient->selling_price, 0, ',', '.') }}<span class="font-normal opacity-70">{{ $priceUnit }}</span></span>
+                            @endif
+                            @if ($ingredient->selling_price > 0 && $ingredient->cost_price > 0)
+                                <span class="text-slate-300 dark:text-slate-700">·</span>
+                            @endif
+                            @if ($ingredient->cost_price > 0)
+                                <span class="text-[9px] font-medium text-slate-400 dark:text-slate-500">Modal Rp {{ number_format($ingredient->cost_price, 0, ',', '.') }}<span class="opacity-70">{{ $priceUnit }}</span></span>
+                            @endif
+                        </div>
                     @endif
                 </div>
                 @if($isOut)

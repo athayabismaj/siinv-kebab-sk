@@ -15,7 +15,7 @@
                 {{ $meta['pack_info_label'] }}
             </div>
         @endif
-        @if ($ingredient->selling_price > 0)
+        @if ($ingredient->cost_price > 0 || $ingredient->selling_price > 0)
             @php
                 $priceUnit = match($ingredient->display_unit ?? '') {
                     'kg'  => '/kg',
@@ -26,8 +26,20 @@
                     default => '',
                 };
             @endphp
-            <div class="mt-2 text-[12px] font-bold text-emerald-600 dark:text-emerald-400">
-                Rp {{ number_format($ingredient->selling_price, 0, ',', '.') }}<span class="text-[10px] font-normal text-emerald-500/80">{{ $priceUnit }}</span>
+            <div class="mt-2.5 flex items-center gap-2">
+                @if ($ingredient->selling_price > 0)
+                    <span class="text-[11px] font-bold text-emerald-500 dark:text-emerald-400">
+                        Rp {{ number_format($ingredient->selling_price, 0, ',', '.') }}<span class="font-normal opacity-70 text-[10px]">{{ $priceUnit }}</span>
+                    </span>
+                @endif
+                @if ($ingredient->selling_price > 0 && $ingredient->cost_price > 0)
+                    <span class="text-slate-300 dark:text-slate-700 text-[10px]">·</span>
+                @endif
+                @if ($ingredient->cost_price > 0)
+                    <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                        Modal Rp {{ number_format($ingredient->cost_price, 0, ',', '.') }}<span class="opacity-70">{{ $priceUnit }}</span>
+                    </span>
+                @endif
             </div>
         @endif
     </td>

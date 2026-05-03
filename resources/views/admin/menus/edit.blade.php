@@ -37,7 +37,7 @@
                 Edit Menu
             </h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Perbarui informasi nama, kategori, foto, atau status menu yang ada di sistem.
+                Perbarui informasi nama, kategori, atau status menu yang ada di sistem.
             </p>
         </div>
     </div>

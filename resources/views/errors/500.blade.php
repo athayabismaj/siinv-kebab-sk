@@ -12,18 +12,19 @@
         <h1 class="text-xl font-semibold text-slate-800">Terjadi Kesalahan Sistem</h1>
         <p class="text-sm text-slate-500 mt-3">
             Sistem mengalami gangguan yang tidak terduga. Tim kami sudah mengetahui masalah ini.
-            Silakan coba muat ulang halaman atau kembali ke halaman sebelumnya.
+            Anda akan diarahkan ke halaman login secara otomatis.
         </p>
         <div class="mt-6 flex items-center justify-center gap-3">
-            <button onclick="window.location.reload()"
+            <a href="{{ route('login') }}"
                class="inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 transition cursor-pointer">
-                Muat Ulang
-            </button>
-            <a href="{{ url('/') }}"
-               class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm hover:bg-slate-50 transition">
-                Ke Beranda
+                Ke Login
             </a>
         </div>
     </div>
+    <script>
+        setTimeout(function () {
+            window.location.href = "{{ route('login') }}";
+        }, 1500);
+    </script>
 </body>
 </html>

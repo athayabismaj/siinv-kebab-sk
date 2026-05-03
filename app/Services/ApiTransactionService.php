@@ -15,6 +15,11 @@ use Illuminate\Support\Facades\Schema;
 
 class ApiTransactionService
 {
+    public function __construct(
+        private readonly VariantAvailabilityService $variantAvailabilityService
+    ) {
+    }
+
     public function getHistory(int $userId, ?string $date, int $perPage = 15): LengthAwarePaginator
     {
         // Avoid global aggregate subquery on transaction_details that can become expensive on large datasets.
@@ -172,7 +177,7 @@ class ApiTransactionService
         }
     }
 
-    public function buildCheckoutDraft(array $validated): array
+    public function buildCheckoutDraft(array $validated, int $cashierId): array
     {
         $lineItems = [];
         $totalAmount = 0.0;
@@ -189,7 +194,10 @@ class ApiTransactionService
             ->values();
 
         $variants = MenuVariant::query()
-            ->with('menu:id,name,is_active')
+            ->with([
+                'menu:id,name,is_active',
+                'ingredients:id,name',
+            ])
             ->whereIn('id', $requestedVariantIds)
             ->get()
             ->keyBy('id');
@@ -212,6 +220,26 @@ class ApiTransactionService
             }
 
             $qty = (int) $item['qty'];
+            $availability = $this->variantAvailabilityService->evaluateSingleForCheckout(
+                $variant,
+                $cashierId,
+                $qty
+            );
+
+            if (! ($availability['is_available'] ?? false)) {
+                return [
+                    'ok' => false,
+                    'status' => 422,
+                    'message' => "Variant '{$variant->name}' tidak tersedia untuk dijual.",
+                    'data' => [
+                        'variant_id' => $variantId,
+                        'variant_name' => $variant->name,
+                        'unavailable_reason' => $availability['unavailable_reason'] ?? null,
+                        'required_ingredients' => $availability['required_ingredients'] ?? [],
+                    ],
+                ];
+            }
+
             $price = array_key_exists('price', $item) && $item['price'] !== null
                 ? (float) $item['price']
                 : (float) $variant->price;

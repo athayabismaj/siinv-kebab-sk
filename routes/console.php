@@ -223,6 +223,11 @@ Schedule::command('ops:daily-stock-integrity-audit --days=1 --fail-on-findings=0
     ->dailyAt('03:20')
     ->withoutOverlapping();
 
+// Menutup sesi stok kasir yang menggantung dari shift sebelumnya setiap jam 04:00 pagi
+Schedule::command('ops:auto-close-stock-sessions')
+    ->dailyAt('04:00')
+    ->withoutOverlapping();
+
 Schedule::command('ops:doctor-env --strict=0')
     ->dailyAt('03:10')
     ->withoutOverlapping();
