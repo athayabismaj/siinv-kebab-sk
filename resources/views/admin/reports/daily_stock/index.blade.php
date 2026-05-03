@@ -77,57 +77,132 @@
             @endif
         </div>
 
-        <div class="flex items-center w-full lg:w-auto shrink-0 justify-end">
-            <a href="{{ route('admin.reports.daily-stock.export', request()->query()) }}" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-5 h-10 bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                Export CSV
-            </a>
+        <div class="flex items-center w-full lg:w-auto shrink-0 justify-end" x-data="{ exportOpen: false }">
+            <div class="relative w-full lg:w-auto">
+                <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-5 h-10 bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Eksport Laporan
+                    <svg class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                
+                <div x-show="exportOpen" 
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-lg border border-slate-100 dark:bg-slate-800 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                     style="display: none;">
+                    
+                    <a href="{{ route('admin.reports.daily-stock.export', array_merge(request()->query(), ['format' => 'html'])) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-blue-400 font-medium transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        Format HTML
+                    </a>
+                    
+                    <a href="{{ route('admin.reports.daily-stock.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-rose-400 font-medium transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        Format PDF
+                    </a>
+                    
+                    <a href="{{ route('admin.reports.daily-stock.export', array_merge(request()->query(), ['format' => 'excel'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-emerald-400 font-medium transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Format Excel
+                    </a>
+                </div>
+            </div>
         </div>
     </form>
 
     {{-- ================= SUMMARY CARDS ================= --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Jumlah Sesi</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['sessions_count'], 0, ',', '.') }}</span>
+    {{-- Baris 1: 4 stat card --}}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {{-- Jumlah Sesi --}}
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Jumlah Sesi</p>
+                <div class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
             </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-slate-500/20"></div>
+            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['sessions_count'], 0, ',', '.') }}</span>
+            <p class="text-[10px] text-slate-400 mt-1">sesi kasir</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-slate-200 dark:bg-slate-700"></div>
         </div>
 
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Item Aktif</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['items_count'], 0, ',', '.') }}</span>
+        {{-- Total Item --}}
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Total Item Aktif</p>
+                <div class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
             </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-blue-500/20"></div>
+            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['items_count'], 0, ',', '.') }}</span>
+            <p class="text-[10px] text-slate-400 mt-1">bahan baku</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-blue-500/30"></div>
         </div>
 
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Stok Dibawa</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{{ rtrim(rtrim(number_format($summary['total_opening'], 2, ',', '.'), '0'), ',') }}</span>
+        {{-- Total Dibawa --}}
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Total Dibawa</p>
+                <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                </div>
             </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-emerald-500/20"></div>
+            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ rtrim(rtrim(number_format($summary['total_opening'], 2, ',', '.'), '0'), ',') }}</span>
+            <p class="text-[10px] text-slate-400 mt-1">total stok awal</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-emerald-500/30"></div>
         </div>
 
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Sisa Stok</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{{ rtrim(rtrim(number_format($summary['total_remaining'], 2, ',', '.'), '0'), ',') }}</span>
+        {{-- Total Sisa --}}
+        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Total Sisa Stok</p>
+                <div class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </div>
             </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-amber-500/20"></div>
-        </div>
-
-        <div class="relative overflow-hidden p-5 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/50 rounded-2xl shadow-sm hover:shadow-md transition sm:col-span-2 lg:col-span-3 xl:col-span-1">
-            <p class="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-1.5">Estimasi Nilai Terpakai</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-sm font-bold text-rose-500 dark:text-rose-400">Rp</span>
-                <span class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none">{{ number_format($summary['total_value'], 0, ',', '.') }}</span>
-            </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-rose-500/50"></div>
+            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ rtrim(rtrim(number_format($summary['total_remaining'], 2, ',', '.'), '0'), ',') }}</span>
+            <p class="text-[10px] text-slate-400 mt-1">sisa di akhir sesi</p>
+            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-amber-500/30"></div>
         </div>
     </div>
+
+    {{-- Baris 2: Card Finansial --}}
+    <div class="relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+        <div class="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-rose-500/5 pointer-events-none"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800">
+            {{-- Est. Nilai Modal --}}
+            <div class="p-5 sm:p-6 flex items-center gap-5">
+                <div class="shrink-0 w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-500/15 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-orange-500 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Estimasi Nilai Modal</p>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-2">Biaya bahan baku terpakai (cost price)</p>
+                    <p class="text-2xl font-black text-orange-600 dark:text-orange-400 tabular-nums leading-none">
+                        <span class="text-sm font-bold mr-1">Rp</span>{{ number_format($summary['total_value'], 0, ',', '.') }}
+                    </p>
+                </div>
+            </div>
+            {{-- Est. Nilai Terjual --}}
+            <div class="p-5 sm:p-6 flex items-center gap-5">
+                <div class="shrink-0 w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-500/15 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-rose-500 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Estimasi Nilai Terjual</p>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-2">Potensi revenue dari bahan terpakai (selling price)</p>
+                    <p class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none">
+                        <span class="text-sm font-bold mr-1">Rp</span>{{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     {{-- ================= DATA TABLE (SaaS Modern Style) ================= --}}
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
@@ -146,7 +221,8 @@
                         <th class="px-6 py-4 text-right whitespace-nowrap">Bawa</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap">Sisa</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap text-blue-600 dark:text-blue-400">Terpakai</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap text-rose-500">Estimasi Nilai</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap text-orange-500">Est. Modal</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap text-rose-500">Est. Terjual</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -191,9 +267,15 @@
                                 {{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
+                                <span class="inline-flex items-center justify-end font-bold text-orange-600 dark:text-orange-400 tabular-nums text-[14px]">
+                                    <span class="text-[10px] mr-1 text-orange-400 dark:text-orange-500">Rp</span>
+                                    {{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
                                 <span class="inline-flex items-center justify-end font-bold text-rose-600 dark:text-rose-400 tabular-nums text-[14px]">
                                     <span class="text-[10px] mr-1 text-rose-400 dark:text-rose-500">Rp</span>
-                                    {{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}
+                                    {{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}
                                 </span>
                             </td>
                         </tr>
@@ -251,8 +333,12 @@
 
                                     {{-- Baris 3: Nilai Estimasi --}}
                                     <div class="flex items-center justify-between pt-1.5 px-1">
-                                        <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Nilai Terpakai</p>
-                                        <p class="font-black text-rose-600 dark:text-rose-400 text-[15px] tabular-nums"><span class="text-[10px] font-bold text-rose-400 mr-0.5">Rp</span>{{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</p>
+                                        <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Modal</p>
+                                        <p class="font-black text-orange-600 dark:text-orange-400 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-orange-400 mr-0.5">Rp</span>{{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</p>
+                                    </div>
+                                    <div class="flex items-center justify-between pt-1 px-1">
+                                        <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Terjual</p>
+                                        <p class="font-black text-rose-600 dark:text-rose-400 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-rose-400 mr-0.5">Rp</span>{{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}</p>
                                     </div>
 
                                 </div>

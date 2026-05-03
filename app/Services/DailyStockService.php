@@ -56,6 +56,7 @@ class DailyStockService
         AdminCache::bumpDailyStock();
         AdminCache::bumpDashboard();
         AdminCache::bumpUsage();
+        AdminCache::bumpCatalog();
 
         return $session;
     }
@@ -101,6 +102,7 @@ class DailyStockService
         });
 
         AdminCache::bumpDailyStock();
+        AdminCache::bumpCatalog();
 
         return $session;
     }
@@ -177,6 +179,7 @@ class DailyStockService
         AdminCache::bumpDailyStock();
         AdminCache::bumpDashboard();
         AdminCache::bumpStock();
+        AdminCache::bumpCatalog();
 
         return $item;
     }
@@ -273,6 +276,7 @@ class DailyStockService
         AdminCache::bumpDashboard();
         AdminCache::bumpUsage();
         AdminCache::bumpStock();
+        AdminCache::bumpCatalog();
 
         return $session;
     }
@@ -339,6 +343,7 @@ class DailyStockService
         AdminCache::bumpDashboard();
         AdminCache::bumpUsage();
         AdminCache::bumpStock();
+        AdminCache::bumpCatalog();
 
         return $session;
     }

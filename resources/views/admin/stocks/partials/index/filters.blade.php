@@ -11,7 +11,7 @@
     <select name="category" @change="$refs.filterForm.submit()" class="w-full sm:w-56 h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
         <option value="">Semua Kategori</option>
         @foreach($allCategories as $category)
-            <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+            <option value="{{ $category->id }}" {{ (string) request('category') === (string) $category->id ? 'selected' : '' }}>
                 {{ $category->name }} {{ $category->status_marker }}
             </option>
         @endforeach

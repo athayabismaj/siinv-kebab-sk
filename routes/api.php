@@ -39,6 +39,8 @@ Route::post('/transactions', [TransactionController::class , 'store'])
 
 Route::get('/menus', [MenuController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
+Route::get('/menus/unavailable-variants', [MenuController::class , 'unavailableVariants'])
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
 
 Route::get('/payment-methods', [PaymentMethodController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);

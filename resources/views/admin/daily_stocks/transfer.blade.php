@@ -109,8 +109,17 @@
                                class="w-full h-10 bg-transparent pl-10 pr-4 text-[13px] font-medium text-slate-700 outline-none dark:text-slate-200 placeholder:text-slate-400">
                     </div>
 
+                    <select name="category_id" class="w-full sm:w-56 h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        <option value="">Semua Kategori</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ (int) $selectedCategoryId === (int) $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
                     <div class="flex items-center gap-2 shrink-0">
-                        @if($search)
+                        @if($search || $selectedCategoryId > 0)
                             <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]) }}" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-red-500 transition-colors px-2">
                                 Reset
                             </a>
@@ -161,7 +170,7 @@
                                                 Terpilih
                                             </span>
                                         @else
-                                            <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id, 'search' => $search, 'page' => $ingredients->currentPage(), 'ingredient_id' => $ingredient->id]) }}"
+                                            <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id, 'search' => $search, 'category_id' => $selectedCategoryId ?: null, 'page' => $ingredients->currentPage(), 'ingredient_id' => $ingredient->id]) }}"
                                                class="inline-flex h-8 items-center rounded-lg bg-slate-100 dark:bg-slate-800 px-4 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                                                 Pilih
                                             </a>
@@ -183,7 +192,7 @@
                                                         Terpilih
                                                     </span>
                                                 @else
-                                                    <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id, 'search' => $search, 'page' => $ingredients->currentPage(), 'ingredient_id' => $ingredient->id]) }}"
+                                                    <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id, 'search' => $search, 'category_id' => $selectedCategoryId ?: null, 'page' => $ingredients->currentPage(), 'ingredient_id' => $ingredient->id]) }}"
                                                        class="inline-flex h-8 items-center rounded-lg bg-slate-100 dark:bg-slate-800 px-3 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-colors">
                                                         Pilih
                                                     </a>

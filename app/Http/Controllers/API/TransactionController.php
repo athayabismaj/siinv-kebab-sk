@@ -96,7 +96,7 @@ class TransactionController extends Controller
 
             $validated = $request->validated();
 
-            $draft = $this->transactionService->buildCheckoutDraft($validated);
+            $draft = $this->transactionService->buildCheckoutDraft($validated, $userId);
             if (! $draft['ok']) {
                 return $this->errorResponse(
                     $draft['message'],

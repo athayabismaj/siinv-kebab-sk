@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\StockLog;
+use App\Exports\StockLogsReportExport;
 use App\Support\AdminCache;
 use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
+use App\Support\StockLogTypeMap;
 use App\Support\StockLogView;
-use App\Services\ReportExportDispatchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -18,27 +20,23 @@ use Illuminate\Support\Facades\Log;
 
 class StockController extends Controller
 {
+    use DirectExportResponse;
+
     public function index(Request $request)
     {
-        $categoriesQuery = IngredientCategory::with([
-            'ingredients' => function ($query) use ($request) {
-                if ($request->filled('search')) {
-                    $this->applyNameSearch($query, $request->search);
-                }
+        $ingredientFilter = function ($query) use ($request) {
+            $this->applyIngredientFilters($query, $request);
+        };
 
-                if ($request->filled('has_price')) {
-                    if ($request->has_price === '1') {
-                        $query->where('selling_price', '>', 0);
-                    } elseif ($request->has_price === '0') {
-                        $query->where(function ($q) {
-                            $q->whereNull('selling_price')->orWhere('selling_price', '<=', 0);
-                        });
-                    }
-                }
-
-                $query->orderBy('name');
-            }
-        ]);
+        $categoriesQuery = IngredientCategory::query()
+            ->whereHas('ingredients', $ingredientFilter)
+            ->withCount(['ingredients as filtered_ingredients_count' => $ingredientFilter])
+            ->with([
+                'ingredients' => function ($query) use ($ingredientFilter) {
+                    $ingredientFilter($query);
+                    $query->orderBy('name');
+                },
+            ]);
 
         if ($request->filled('category')) {
             $categoriesQuery->where('id', $request->category);
@@ -68,16 +66,22 @@ class StockController extends Controller
         );
 
         $allCategories = Cache::remember(
-            AdminCache::key('stock', 'all_categories:with_counts'),
-            now()->addSeconds(120),
-            function () {
+            AdminCache::key('stock', 'all_categories:with_counts:' . md5(json_encode([
+                'search' => (string) $request->input('search', ''),
+                'has_price' => (string) $request->input('has_price', ''),
+            ]))),
+            now()->addSeconds(60),
+            function () use ($ingredientFilter) {
                 return IngredientCategory::query()
-                    ->withCount('ingredients')
+                    ->whereHas('ingredients', $ingredientFilter)
+                    ->withCount(['ingredients as filtered_ingredients_count' => $ingredientFilter])
                     ->withCount([
-                        'ingredients as out_of_stock_count' => function ($query) {
+                        'ingredients as out_of_stock_count' => function ($query) use ($ingredientFilter) {
+                            $ingredientFilter($query);
                             $query->where('stock', '<=', 0);
                         },
-                        'ingredients as low_stock_count' => function ($query) {
+                        'ingredients as low_stock_count' => function ($query) use ($ingredientFilter) {
+                            $ingredientFilter($query);
                             $query->where('stock', '>', 0)
                                 ->whereColumn('stock', '<=', 'minimum_stock');
                         },
@@ -94,6 +98,7 @@ class StockController extends Controller
                         }
 
                         $category->status_marker = $marker;
+                        $category->ingredients_count = (int) ($category->filtered_ingredients_count ?? 0);
 
                         return $category;
                     });
@@ -169,6 +174,7 @@ class StockController extends Controller
 
             AdminCache::bumpDashboard();
             AdminCache::bumpStock();
+            AdminCache::bumpCatalog();
 
             return redirect()
                 ->route('admin.stocks.index')
@@ -224,6 +230,7 @@ class StockController extends Controller
 
             AdminCache::bumpDashboard();
             AdminCache::bumpStock();
+            AdminCache::bumpCatalog();
 
             return redirect()
                 ->route('admin.stocks.index')
@@ -247,13 +254,8 @@ class StockController extends Controller
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
 
-        $logsQuery = StockLog::with('ingredient')->latest();
-        $logsQuery->whereBetween('created_at', [$rangeStart, $rangeEnd]);
-
         $typeFilter = $request->input('type');
-        if ($typeFilter && in_array($typeFilter, ['in', 'out', 'adjustment'], true)) {
-            $logsQuery->where('type', $typeFilter);
-        }
+        $logsQuery = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter);
 
         $summary = Cache::remember(
             AdminCache::key('stock', 'logs_summary:' . md5(json_encode([
@@ -266,17 +268,15 @@ class StockController extends Controller
                 $summaryBaseQuery = StockLog::query()
                     ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
-                if ($typeFilter && in_array($typeFilter, ['in', 'out', 'adjustment'], true)) {
-                    $summaryBaseQuery->where('type', $typeFilter);
-                }
+                $this->applyStockLogTypeFilter($summaryBaseQuery, $typeFilter);
 
                 $row = $summaryBaseQuery
                     ->selectRaw(
                         'COUNT(*) as total,
-                         SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as restock,
-                         SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as usage,
+                         ' . StockLogTypeMap::restockCaseSql() . ',
+                         ' . StockLogTypeMap::usageCaseSql() . ',
                          SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
-                        ['in', 'out', 'adjustment']
+                        ['adjustment']
                     )
                     ->first();
 
@@ -365,27 +365,69 @@ class StockController extends Controller
 
     public function exportLogs(Request $request)
     {
-        try {
-            $export = app(ReportExportDispatchService::class)->dispatch(
-                $request->user(),
-                'admin',
-                'admin.stock_logs',
-                $request->query()
-            );
+        $format = $request->query('format');
+        return $this->exportLogsDirect($request, in_array($format, ['html', 'pdf', 'excel'], true) ? $format : 'excel');
+    }
 
-            $message = 'Export riwayat stok masuk antrian. ID: #' . $export->id;
-            if ($export->scheduled_for) {
-                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
-            }
+    private function exportLogsDirect(Request $request, string $format)
+    {
+        $period = StockLogView::normalizePeriod($request->input('period'));
+        $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
+        [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
+        $typeFilter = $request->input('type');
 
-            return redirect()
-                ->route('admin.exports.index')
-                ->with('success', $message);
-        } catch (\Throwable) {
-            return redirect()
-                ->route('admin.exports.index')
-                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
-        }
+        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter)->get();
+        $logs = $logs->map(fn (StockLog $log) => StockLogView::decorate($log));
+
+        $summaryQuery = StockLog::query()->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        $this->applyStockLogTypeFilter($summaryQuery, $typeFilter);
+        $summaryRow = $summaryQuery
+            ->selectRaw(
+                'COUNT(*) as total,
+                 ' . StockLogTypeMap::restockCaseSql() . ',
+                 ' . StockLogTypeMap::usageCaseSql() . ',
+                 SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
+                ['adjustment']
+            )
+            ->first();
+
+        $summary = [
+            'total' => (int) ($summaryRow->total ?? 0),
+            'restock' => (int) ($summaryRow->restock ?? 0),
+            'usage' => (int) ($summaryRow->usage ?? 0),
+            'adjustment' => (int) ($summaryRow->adjustment ?? 0),
+        ];
+
+        $dateDisplay = StockLogView::dateDisplay($period, $selectedDate, $rangeStart, $rangeEnd);
+        $typeLabel = StockLogTypeMap::tabLabel($typeFilter);
+        $fileName = 'riwayat-stok-' . $period . '-' . $rangeStart->toDateString() . '_sd_' . $rangeEnd->toDateString();
+
+        $periodLabels = [
+            'daily' => 'HARIAN',
+            'weekly' => 'MINGGUAN',
+            'monthly' => 'BULANAN',
+        ];
+        $periodLabel = $periodLabels[$period] ?? strtoupper($period);
+
+        $viewData = [
+            'logs' => $logs,
+            'summary' => $summary,
+            'periode' => $dateDisplay,
+            'periodLabel' => $periodLabel,
+            'typeLabel' => $typeLabel,
+            'isExcel' => $format === 'excel',
+        ];
+
+        return $this->exportByFormat(
+            $format,
+            'exports.stock_logs_professional',
+            $viewData,
+            $fileName,
+            fn () => \Maatwebsite\Excel\Facades\Excel::download(
+                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel),
+                $fileName . '.xlsx'
+            )
+        );
     }
 
     private function applyNameSearch($query, string $search): void
@@ -411,6 +453,42 @@ class StockController extends Controller
         }
 
         return IngredientUnit::toBase((string) $ingredient->display_unit, $value);
+    }
+
+    private function applyIngredientFilters($query, Request $request): void
+    {
+        if ($request->filled('search')) {
+            $this->applyNameSearch($query, (string) $request->input('search'));
+        }
+
+        if ($request->filled('has_price')) {
+            if ($request->input('has_price') === '1') {
+                $query->where('selling_price', '>', 0);
+            } elseif ($request->input('has_price') === '0') {
+                $query->where(function ($q) {
+                    $q->whereNull('selling_price')->orWhere('selling_price', '<=', 0);
+                });
+            }
+        }
+    }
+
+    private function applyStockLogTypeFilter($query, ?string $typeFilter): void
+    {
+        if (! in_array($typeFilter, StockLogTypeMap::allowedTabs(), true)) {
+            return;
+        }
+        $query->whereIn('type', StockLogTypeMap::tabTypes($typeFilter));
+    }
+
+    private function buildStockLogsQuery($rangeStart, $rangeEnd, ?string $typeFilter)
+    {
+        $query = StockLog::with(['ingredient:id,name,display_unit,base_unit,pack_size'])
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->latest();
+
+        $this->applyStockLogTypeFilter($query, $typeFilter);
+
+        return $query;
     }
 }
 
