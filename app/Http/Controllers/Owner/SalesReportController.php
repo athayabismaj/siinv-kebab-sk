@@ -3,15 +3,17 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Models\PeriodClosing;
 use App\Services\Owner\SalesReportQueryService;
 use App\Services\Shared\PeriodFilterService;
-use App\Services\ReportExportDispatchService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class SalesReportController extends Controller
 {
+    use DirectExportResponse;
+
     public function __construct(
         private readonly SalesReportQueryService $queryService,
         private readonly PeriodFilterService $periodFilter
@@ -24,11 +26,21 @@ class SalesReportController extends Controller
 
         if ($type === 'weekly') {
             $data = array_merge($data, $this->weeklySalesPayload($request));
+            $anchor = $data['selectedWeekStart'];
         } elseif ($type === 'monthly') {
             $data = array_merge($data, $this->monthlySalesPayload($request));
+            $anchor = $data['selectedMonth'];
         } else {
             $data = array_merge($data, $this->dailySalesPayload($request));
+            $anchor = $data['selectedDate'];
         }
+
+        [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
+            $this->periodFilter->buildNavigator($type, $anchor);
+
+        $data = array_merge($data, compact(
+            'prevFrom', 'prevTo', 'nextFrom', 'nextTo', 'isFuture', 'inputValue', 'inputType'
+        ));
 
         return view('owner.reports.sales_unified', $data);
     }
@@ -97,6 +109,8 @@ class SalesReportController extends Controller
             $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
             $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
             $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false);
+            
+            $anchor = $selectedWeekStart;
 
             $data = array_merge($data, [
                 'selectedWeekStart' => $selectedWeekStart,
@@ -110,6 +124,8 @@ class SalesReportController extends Controller
                 false
             );
 
+            $anchor = $selectedMonth;
+
             $data = array_merge($data, [
                 'selectedMonth' => $selectedMonth,
             ], $this->analyticsPayload($analytics));
@@ -117,37 +133,72 @@ class SalesReportController extends Controller
             $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
             $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
 
+            $anchor = $selectedDate;
+
             $data = array_merge($data, [
                 'selectedDate' => $selectedDate,
             ], $this->analyticsPayload($analytics));
         }
+
+        [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
+            $this->periodFilter->buildNavigator($type, $anchor);
+
+        $data = array_merge($data, compact(
+            'prevFrom', 'prevTo', 'nextFrom', 'nextTo', 'isFuture', 'inputValue', 'inputType'
+        ));
 
         return view('owner.analytics.menu', $data);
     }
 
     public function export(Request $request)
     {
-        try {
-            $export = app(ReportExportDispatchService::class)->dispatch(
-                $request->user(),
-                'owner',
-                'owner.sales',
-                $request->query()
-            );
+        $format = (string) $request->query('format', 'excel');
+        return $this->exportDirect($request, $format);
+    }
 
-            $message = 'Export laporan penjualan masuk antrian. ID: #' . $export->id;
-            if ($export->scheduled_for) {
-                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
-            }
-
-            return redirect()
-                ->route('owner.exports.index')
-                ->with('success', $message);
-        } catch (\Throwable) {
-            return redirect()
-                ->route('owner.exports.index')
-                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
+    private function exportDirect(Request $request, string $format)
+    {
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
+        
+        if ($type === 'weekly') {
+            $data = $this->weeklySalesPayload($request);
+            $periodeLabel = $data['selectedWeekStart']->translatedFormat('d F Y') . ' s/d ' . $data['selectedWeekEnd']->translatedFormat('d F Y');
+            $fileName = 'laporan-penjualan-mingguan-' . $data['selectedWeekStart']->format('Y-m-d') . '-sd-' . $data['selectedWeekEnd']->format('Y-m-d');
+        } elseif ($type === 'monthly') {
+            $data = $this->monthlySalesPayload($request);
+            $periodeLabel = $data['selectedMonth']->translatedFormat('F Y');
+            $fileName = 'laporan-penjualan-bulanan-' . $data['selectedMonth']->format('Y-m');
+        } else {
+            $data = $this->dailySalesPayload($request);
+            $periodeLabel = $data['selectedDate']->translatedFormat('d F Y');
+            $fileName = 'laporan-penjualan-harian-' . $data['selectedDate']->format('Y-m-d');
         }
+
+        $periodLabels = [
+            'daily' => 'HARIAN',
+            'weekly' => 'MINGGUAN',
+            'monthly' => 'BULANAN',
+            'custom' => 'KUSTOM'
+        ];
+        $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
+
+        $viewData = array_merge($data, [
+            'type' => $type,
+            'periode' => $periodeLabel,
+            'periodLabel' => $periodLabelText,
+            'isExcel' => $format === 'excel',
+        ]);
+
+        return $this->exportByFormat(
+            $format,
+            'exports.sales_professional',
+            $viewData,
+            $fileName,
+            fn () => \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\SalesReportExport($viewData),
+                $fileName . '.xlsx'
+            )
+        );
     }
 
     public function exportDaily(Request $request)
@@ -351,5 +402,3 @@ class SalesReportController extends Controller
         }
     }
 }
-
-

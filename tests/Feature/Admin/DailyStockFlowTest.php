@@ -8,7 +8,6 @@ use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\PaymentMethod;
-use App\Models\ReportExport;
 use App\Models\Role;
 use App\Models\StockLog;
 use App\Models\Transaction;
@@ -189,41 +188,6 @@ class DailyStockFlowTest extends TestCase
             'quantity' => -30.00,
             'reference_id' => $session->id,
         ]);
-    }
-
-    public function test_admin_can_queue_daily_stock_report_export(): void
-    {
-        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset();
-
-        $this->actingAs($admin)->post(route('admin.daily-stocks.open'), [
-            'date' => now()->toDateString(),
-            'cashier_id' => $cashier->id,
-        ])->assertRedirect();
-
-        $session = DailyStockSession::query()->firstOrFail();
-        $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
-            'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 10,
-        ])->assertRedirect();
-
-        $response = $this->actingAs($admin)->get(route('admin.reports.daily-stock.export', [
-            'type' => 'daily',
-            'date_from' => now()->toDateString(),
-            'date_to' => now()->toDateString(),
-        ]));
-
-        $response->assertRedirect(route('admin.exports.index'));
-        $response->assertSessionHas('success');
-
-        $this->assertDatabaseHas('report_exports', [
-            'requested_by' => $admin->id,
-            'scope' => 'admin',
-            'type' => 'admin.daily_stock',
-        ]);
-
-        $export = ReportExport::query()->latest('id')->firstOrFail();
-        $this->assertContains($export->status, ['queued', 'processing', 'completed']);
     }
 
     public function test_reopen_reconciles_used_qty_with_transaction_usage_logs(): void

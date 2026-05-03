@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
-use App\Services\ReportExportDispatchService;
 use App\Services\Shared\PeriodFilterService;
 use App\Support\AdminCache;
 use Illuminate\Http\Request;
@@ -14,10 +14,11 @@ use Illuminate\Support\Facades\Cache;
 
 class TransactionHistoryController extends Controller
 {
+    use DirectExportResponse;
+
     public function __construct(
         private readonly TransactionHistoryQueryService $queryService,
-        private readonly PeriodFilterService $periodFilter,
-        private readonly ReportExportDispatchService $exportDispatch
+        private readonly PeriodFilterService $periodFilter
     ) {}
 
     public function index(Request $request)
@@ -73,27 +74,66 @@ class TransactionHistoryController extends Controller
 
     public function export(Request $request)
     {
-        try {
-            $export = $this->exportDispatch->dispatch(
-                $request->user(),
-                'owner',
-                'owner.transactions',
-                $request->query()
-            );
+        $format = (string) $request->query('format', 'excel');
+        return $this->exportDirect($request, $format);
+    }
 
-            $message = 'Export transaksi masuk antrian. ID: #' . $export->id;
-            if ($export->scheduled_for) {
-                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
-            }
+    private function exportDirect(Request $request, string $format)
+    {
+        $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
+        $filters = $request->only(['search', 'user_id', 'payment_method_id']);
 
-            return redirect()
-                ->route('owner.exports.index')
-                ->with('success', $message);
-        } catch (\Throwable) {
-            return redirect()
-                ->route('owner.exports.index')
-                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
+        $listQuery = $this->queryService
+            ->applyFilters(
+                $this->queryService->baseListQuery($dateFrom, $dateTo),
+                $filters
+            )
+            ->latest();
+
+        $summary = $this->queryService->summary($dateFrom, $dateTo, $filters);
+        
+        // Disable pagination for export, get all data
+        $transactions = $listQuery->get();
+
+        $periodeLabel = $dateFrom->translatedFormat('d F Y');
+        if (!$dateFrom->isSameDay($dateTo)) {
+            $periodeLabel .= ' - ' . $dateTo->translatedFormat('d F Y');
         }
+
+        $periodLabels = [
+            'daily' => 'HARIAN',
+            'weekly' => 'MINGGUAN',
+            'monthly' => 'BULANAN',
+            'custom' => 'KUSTOM'
+        ];
+        $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
+
+        $viewData = [
+            'transactions' => $transactions,
+            'periode' => $periodeLabel,
+            'periodLabel' => $periodLabelText,
+            'summary' => $summary,
+            'isExcel' => $format === 'excel',
+        ];
+
+        $fileName = 'riwayat-transaksi-' . $dateFrom->format('Y-m-d');
+        if (!$dateFrom->isSameDay($dateTo)) {
+            $fileName .= '-sd-' . $dateTo->format('Y-m-d');
+        }
+
+        return $this->exportByFormat(
+            $format,
+            'exports.transaction_professional',
+            $viewData,
+            $fileName,
+            fn () => \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\TransactionReportExport($viewData),
+                $fileName . '.xlsx'
+            ),
+            'A4',
+            'landscape'
+        );
     }
 
     public function show(Transaction $transaction)

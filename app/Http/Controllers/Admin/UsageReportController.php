@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
 use App\Models\StockLog;
-use App\Services\ReportExportDispatchService;
 use App\Support\AdminCache;
 use App\Support\ReportPeriod;
 use App\Support\UsageQuantityFormatter;
@@ -18,10 +18,7 @@ use Throwable;
 
 class UsageReportController extends Controller
 {
-    public function __construct(
-        private readonly ReportExportDispatchService $exportDispatch
-    ) {
-    }
+    use DirectExportResponse;
 
     public function index(Request $request)
     {
@@ -114,32 +111,55 @@ class UsageReportController extends Controller
 
     public function export(Request $request)
     {
-        $isOwnerScope = $request->routeIs('owner.*');
+        $format = (string) $request->query('format', 'excel');
+        return $this->exportDirect($request, $format);
+    }
 
-        try {
-            $scope = $isOwnerScope ? 'owner' : 'admin';
-            $exportType = $isOwnerScope ? 'owner.usage' : 'admin.usage';
+    private function exportDirect(Request $request, string $format)
+    {
+        $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
+        [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
+        $rangeStart = $dateFrom->copy()->startOfDay();
+        $rangeEnd = $dateTo->copy()->endOfDay();
 
-            $export = $this->exportDispatch->dispatch(
-                $request->user(),
-                $scope,
-                $exportType,
-                $request->query()
-            );
+        $rows = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd)
+            ->orderByDesc('total_quantity')
+            ->get();
 
-            $message = 'Export pemakaian bahan masuk antrian. ID: #' . $export->id;
-            if ($export->scheduled_for) {
-                $message .= ' Diproses setelah jam operasional (' . $export->scheduled_for->format('d/m/Y H:i') . ').';
-            }
-
-            return redirect()
-                ->route($isOwnerScope ? 'owner.exports.index' : 'admin.exports.index')
-                ->with('success', $message);
-        } catch (\Throwable) {
-            return redirect()
-                ->route($isOwnerScope ? 'owner.exports.index' : 'admin.exports.index')
-                ->with('error', 'Export gagal diproses. Pastikan migrasi dan worker queue sudah aktif.');
+        $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd);
+        $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
+        if ($dateFrom->toDateString() === $dateTo->toDateString()) {
+            $periodeLabel = $dateFrom->translatedFormat('d F Y');
         }
+
+        $periodLabels = [
+            'daily' => 'HARIAN',
+            'weekly' => 'MINGGUAN',
+            'monthly' => 'BULANAN',
+            'custom' => 'KUSTOM'
+        ];
+        $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
+
+        $viewData = [
+            'items' => $rows,
+            'periode' => $periodeLabel,
+            'periodLabel' => $periodLabelText,
+            'summary' => $summary,
+            'isExcel' => $format === 'excel',
+        ];
+
+        $fileName = 'laporan-pemakaian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString();
+
+        return $this->exportByFormat(
+            $format,
+            'exports.usage_professional',
+            $viewData,
+            $fileName,
+            fn () => \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\UsageReportExport($rows, $periodeLabel, $summary, $periodLabelText),
+                $fileName . '.xlsx'
+            )
+        );
     }
 
     private function baseUsageAggregateQuery(Carbon $rangeStart, Carbon $rangeEnd)
@@ -154,6 +174,8 @@ class UsageReportController extends Controller
                 ingredients.base_unit,
                 ingredients.display_unit,
                 ingredients.pack_size,
+                ingredients.stock as current_stock,
+                ingredients.minimum_stock,
                 SUM(ABS(stock_logs.quantity)) as total_quantity,
                 COUNT(*) as usage_count,
                 MAX(stock_logs.created_at) as last_used_at'
@@ -163,7 +185,9 @@ class UsageReportController extends Controller
                 'ingredients.name',
                 'ingredients.base_unit',
                 'ingredients.display_unit',
-                'ingredients.pack_size'
+                'ingredients.pack_size',
+                'ingredients.stock',
+                'ingredients.minimum_stock'
             );
     }
 
