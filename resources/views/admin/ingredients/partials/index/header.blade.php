@@ -13,11 +13,4 @@
         </p>
     </div>
 
-    <div class="shrink-0 w-full lg:w-auto mt-2 lg:mt-0">
-        <a href="{{ route('admin.ingredients.create') }}"
-           class="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-[13px] font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            Tambah Bahan
-        </a>
-    </div>
 </div>

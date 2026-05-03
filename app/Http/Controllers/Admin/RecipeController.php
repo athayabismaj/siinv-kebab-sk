@@ -8,6 +8,7 @@ use App\Models\Menu;
 use App\Models\MenuVariant;
 use App\Models\MenuCategory;
 use App\Models\IngredientCategory;
+use App\Support\AdminCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -125,6 +126,9 @@ class RecipeController extends Controller
             DB::transaction(function () use ($variant, $syncData) {
                 $variant->ingredients()->sync($syncData);
             });
+
+            AdminCache::bumpCatalog();
+            AdminCache::bumpDailyStock();
 
             return redirect()
                 ->route('admin.recipes.index')

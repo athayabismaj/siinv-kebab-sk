@@ -38,11 +38,20 @@ class OwnerCriticalFlowTest extends TestCase
         $weekEnd = $today->copy()->endOfWeek(Carbon::SUNDAY);
         $monthStart = $today->copy()->startOfMonth();
         $monthEnd = $today->copy()->endOfMonth();
+        $weekInRangeDate = $weekStart->copy()->addDay();
+        if ($weekInRangeDate->greaterThan($today)) {
+            $weekInRangeDate = $weekStart->copy();
+        }
+
+        $monthInRangeDate = $monthStart->copy()->addDay();
+        if ($monthInRangeDate->greaterThan($today)) {
+            $monthInRangeDate = $monthStart->copy();
+        }
 
         $trxToday = $this->createTransaction($owner, $menu, $paymentMethod, $today->copy()->addHours(9), 12000, 15000);
-        $trxThisWeek = $this->createTransaction($owner, $menu, $paymentMethod, $weekStart->copy()->addDays(1)->addHours(10), 13000, 15000);
-        $trxThisMonth = $this->createTransaction($owner, $menu, $paymentMethod, $monthStart->copy()->addDays(5)->addHours(11), 14000, 15000);
-        $trxOld = $this->createTransaction($owner, $menu, $paymentMethod, $monthStart->copy()->subMonth()->addDays(3), 16000, 20000);
+        $trxThisWeek = $this->createTransaction($owner, $menu, $paymentMethod, $weekInRangeDate->copy()->addHours(10), 13000, 15000);
+        $trxThisMonth = $this->createTransaction($owner, $menu, $paymentMethod, $monthInRangeDate->copy()->addHours(11), 14000, 15000);
+        $trxOld = $this->createTransaction($owner, $menu, $paymentMethod, $monthStart->copy()->subMonth()->startOfMonth()->addDays(3)->addHours(8), 16000, 20000);
 
         $daily = $this->actingAs($owner)->get(route('owner.transactions.index', [
             'type' => 'daily',
@@ -84,21 +93,21 @@ class OwnerCriticalFlowTest extends TestCase
             'date' => now()->toDateString(),
         ]));
         $daily->assertOk();
-        $daily->assertSee('Analisis Penjualan');
+        $daily->assertSee('Laporan Penjualan');
 
         $weekly = $this->actingAs($owner)->get(route('owner.reports.sales', [
             'type' => 'weekly',
             'week_date' => now()->startOfWeek(Carbon::MONDAY)->toDateString(),
         ]));
         $weekly->assertOk();
-        $weekly->assertSee('Analisis Penjualan');
+        $weekly->assertSee('Laporan Penjualan');
 
         $monthly = $this->actingAs($owner)->get(route('owner.reports.sales', [
             'type' => 'monthly',
             'month' => now()->format('Y-m'),
         ]));
         $monthly->assertOk();
-        $monthly->assertSee('Analisis Penjualan');
+        $monthly->assertSee('Laporan Penjualan');
     }
 
     /**

@@ -1,13 +1,23 @@
 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-base font-semibold text-slate-900 dark:text-white">Daftar Menu Aktif</h2>
+    <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <h2 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Daftar Menu Aktif</h2>
+            @if(method_exists($menus, 'total'))
+            <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                {{ $menus->total() }} menu
+            </span>
+            @endif
         </div>
-        @if(method_exists($menus, 'total'))
-        <div class="text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
-            Menampilkan <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $menus->firstItem() ?? 0 }} - {{ $menus->lastItem() ?? 0 }}</span> dari <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $menus->total() }}</span> data
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.menus.archive') }}" class="inline-flex items-center justify-center gap-1.5 px-3 h-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[12px] font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">
+                <svg class="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                Arsip
+            </a>
+            <a href="{{ route('admin.menus.create') }}" class="inline-flex items-center justify-center gap-1.5 px-4 h-8 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Tambah Menu
+            </a>
         </div>
-        @endif
     </div>
 
     <div class="overflow-x-auto">
@@ -26,13 +36,6 @@
                     <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-4">
-                                @if($menu->image_path)
-                                    <img src="{{ asset('storage/'.$menu->image_path) }}" alt="{{ $menu->name }}" class="h-12 w-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                                @else
-                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    </div>
-                                @endif
                                 <div>
                                     <p class="font-bold text-slate-900 dark:text-white text-[15px]">{{ $menu->name }}</p>
                                     <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{{ $menu->category->name ?? 'Tanpa Kategori' }}</p>
@@ -80,13 +83,6 @@
                             <div class="p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                                 <div class="flex justify-between items-start gap-3 mb-4">
                                     <div class="flex gap-3">
-                                        @if($menu->image_path)
-                                            <img src="{{ asset('storage/'.$menu->image_path) }}" alt="{{ $menu->name }}" class="h-12 w-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                                        @else
-                                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                                                <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                            </div>
-                                        @endif
                                         <div>
                                             <p class="font-bold text-slate-900 dark:text-white text-[15px] leading-tight">{{ $menu->name }}</p>
                                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ $menu->category->name ?? 'Tanpa Kategori' }}</p>

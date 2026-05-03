@@ -36,15 +36,6 @@
                     Kelola pengelompokan menu untuk sistem POS. Kategori memudahkan kasir menemukan menu yang tepat saat transaksi.
                 </p>
             </div>
-
-            {{-- TOMBOL TAMBAH KATEGORI --}}
-            <div class="shrink-0 w-full lg:w-auto mt-2 lg:mt-0">
-                <a href="{{ route('admin.menu-categories.create') }}"
-                   class="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-[13px] font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Tambah Kategori
-                </a>
-            </div>
         </div>
     </div>
 
@@ -66,15 +57,19 @@
     {{-- ================= TABLE & CARD SECTION ================= --}}
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         
-        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Daftar Kategori Menu</h2>
+        <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <h2 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Daftar Kategori Menu</h2>
+                @if(method_exists($categories, 'total'))
+                <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                    {{ $categories->total() }} kategori
+                </span>
+                @endif
             </div>
-            @if(method_exists($categories, 'total'))
-            <div class="text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
-                Menampilkan <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $categories->firstItem() ?? 0 }} - {{ $categories->lastItem() ?? 0 }}</span> dari <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $categories->total() }}</span> data
-            </div>
-            @endif
+            <a href="{{ route('admin.menu-categories.create') }}" class="inline-flex items-center justify-center gap-1.5 px-4 h-8 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                Tambah Kategori
+            </a>
         </div>
 
         <div class="overflow-x-auto">

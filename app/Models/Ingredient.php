@@ -17,12 +17,14 @@ class Ingredient extends Model
         'pack_size',
         'stock',
         'minimum_stock',
-        'selling_price'
+        'selling_price',
+        'cost_price',
     ];
 
     protected $casts = [
         'pack_size' => 'integer',
         'selling_price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
     ];
 
 

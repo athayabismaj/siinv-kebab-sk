@@ -103,6 +103,22 @@
 
                     <div>
                         <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                            Harga Modal (Rp) <span class="text-slate-500 font-normal">(Opsional)</span>
+                        </label>
+                        <input type="number"
+                               name="cost_price"
+                               value="{{ old('cost_price', isset($ingredient) ? (int) $ingredient->cost_price : 0) }}"
+                               placeholder="0"
+                               min="0" step="1"
+                               class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Harga dasar pembelian bahan baku per satuan.</p>
+                        @error('cost_price')
+                            <p class="text-rose-500 text-xs font-medium mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
                             Harga Jual (Rp) <span class="text-slate-500 font-normal">(Opsional)</span>
                         </label>
                         <input type="number"
