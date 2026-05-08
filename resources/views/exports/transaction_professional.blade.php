@@ -33,7 +33,7 @@
             <td colspan="7"></td>
         </tr>
         <tr>
-            <th style="font-weight: bold; border: 1px solid #000000;">Tanggal & Waktu</th>
+            <th style="font-weight: bold; border: 1px solid #000000;">Tanggal &amp; Waktu</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Kode Transaksi</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Kasir</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Pembayaran</th>
@@ -50,7 +50,7 @@
                 <td style="border: 1px solid #000000;">{{ $trx->paymentMethod->name ?? '-' }}</td>
                 <td style="border: 1px solid #000000;">{{ $isPaid ? 'Lunas' : 'Kurang' }}</td>
                 <td style="text-align: center; border: 1px solid #000000;">{{ $trx->details_count }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ number_format((float) $trx->total_amount, 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #000000;">{{ (float) $trx->total_amount }}</td>
             </tr>
         @empty
             <tr>

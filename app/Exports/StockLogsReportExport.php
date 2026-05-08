@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\View\View;
+use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -23,11 +24,11 @@ class StockLogsReportExport implements FromView, ShouldAutoSize, WithStyles
         string $periodLabel,
         string $typeLabel
     ) {
-        $this->logs = $logs;
-        $this->summary = $summary;
-        $this->periode = $periode;
-        $this->periodLabel = $periodLabel;
-        $this->typeLabel = $typeLabel;
+        $this->logs = Utf8ExportSanitizer::clean($logs);
+        $this->summary = Utf8ExportSanitizer::clean($summary);
+        $this->periode = Utf8ExportSanitizer::clean($periode);
+        $this->periodLabel = Utf8ExportSanitizer::clean($periodLabel);
+        $this->typeLabel = Utf8ExportSanitizer::clean($typeLabel);
     }
 
     public function view(): View

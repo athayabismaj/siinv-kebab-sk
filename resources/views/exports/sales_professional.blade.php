@@ -42,8 +42,8 @@
             @forelse($contributions ?? [] as $row)
                 <tr>
                     <td style="border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->menu_name }}</td>
-                    <td style="text-align: center; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ number_format($row->total_qty) }}</td>
-                    <td style="text-align: right; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ number_format($row->total_sales, 0, ',', '.') }}</td>
+                    <td style="text-align: center; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->total_qty }}</td>
+                    <td style="text-align: right; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->total_sales }}</td>
                 </tr>
             @empty
                 <tr>
@@ -59,8 +59,8 @@
             @forelse($weeklyBreakdown ?? [] as $row)
                 <tr>
                     <td style="border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ \Carbon\Carbon::parse($row->date)->translatedFormat('d F Y') }}</td>
-                    <td style="text-align: center; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ number_format($row->trx_count) }}</td>
-                    <td style="text-align: right; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ number_format($row->revenue, 0, ',', '.') }}</td>
+                    <td style="text-align: center; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->trx_count }}</td>
+                    <td style="text-align: right; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->revenue }}</td>
                 </tr>
             @empty
                 <tr>
@@ -76,8 +76,8 @@
             @forelse($dailyBreakdown ?? [] as $row)
                 <tr>
                     <td style="border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ \Carbon\Carbon::parse($row->date)->translatedFormat('d F Y') }}</td>
-                    <td style="text-align: center; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ number_format($row->trx_count) }}</td>
-                    <td style="text-align: right; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ number_format($row->revenue, 0, ',', '.') }}</td>
+                    <td style="text-align: center; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->trx_count }}</td>
+                    <td style="text-align: right; border: 1px solid #000000; font-size: 11px; padding: 7px 10px;">{{ $row->revenue }}</td>
                 </tr>
             @empty
                 <tr>
