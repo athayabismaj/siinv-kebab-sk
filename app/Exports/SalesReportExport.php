@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\View\View;
+use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -14,7 +15,7 @@ class SalesReportExport implements FromView, ShouldAutoSize, WithStyles
 
     public function __construct(array $viewData)
     {
-        $this->viewData = $viewData;
+        $this->viewData = Utf8ExportSanitizer::clean($viewData);
     }
 
     public function view(): View

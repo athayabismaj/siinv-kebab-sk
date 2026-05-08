@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\View\View;
+use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -17,10 +18,10 @@ class ExpenseReportExport implements FromView, ShouldAutoSize, WithStyles
 
     public function __construct($entries, string $periode, array $summary, string $periodLabel = '')
     {
-        $this->entries = $entries;
-        $this->periode = $periode;
-        $this->summary = $summary;
-        $this->periodLabel = $periodLabel;
+        $this->entries = Utf8ExportSanitizer::clean($entries);
+        $this->periode = Utf8ExportSanitizer::clean($periode);
+        $this->summary = Utf8ExportSanitizer::clean($summary);
+        $this->periodLabel = Utf8ExportSanitizer::clean($periodLabel);
     }
 
     public function view(): View

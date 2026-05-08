@@ -19,11 +19,11 @@
         </tr>
         <tr>
             <td style="font-weight: bold;">Jumlah Entri</td>
-            <td colspan="5">: {{ number_format($summary['expenseCount'] ?? 0, 0, ',', '.') }} Entri</td>
+            <td colspan="5">: {{ (int) ($summary['expenseCount'] ?? 0) }} Entri</td>
         </tr>
         <tr>
             <td style="font-weight: bold;">Total Pengeluaran</td>
-            <td colspan="5">: Rp {{ number_format($summary['expenseTotal'] ?? 0, 0, ',', '.') }}</td>
+            <td colspan="5">: Rp {{ (int) round((float) ($summary['expenseTotal'] ?? 0)) }}</td>
         </tr>
         <tr>
             <td colspan="6"></td>
@@ -43,7 +43,7 @@
                 <td style="border: 1px solid #000000;">{{ $entry->source ?: '-' }}</td>
                 <td style="border: 1px solid #000000;">{{ $entry->note ?: '-' }}</td>
                 <td style="border: 1px solid #000000;">{{ $entry->creator->name ?? 'System' }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ number_format((float) $entry->amount, 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #000000;">{{ (int) round((float) $entry->amount) }}</td>
             </tr>
         @empty
             <tr>
