@@ -6,6 +6,7 @@ use App\Http\Controllers\API\DailyStockController;
 use App\Http\Controllers\API\MenuController;
 use App\Http\Controllers\API\PaymentMethodController;
 use App\Http\Controllers\API\TransactionController;
+use App\Http\Controllers\API\CloseSessionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -36,6 +37,8 @@ Route::get('/transactions', [TransactionController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::post('/transactions', [TransactionController::class , 'store'])
     ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+Route::post('/transactions/{transactionId}/void', [\App\Http\Controllers\API\VoidTransactionController::class, 'voidTransaction'])
+    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
 
 Route::get('/menus', [MenuController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
@@ -53,3 +56,9 @@ Route::post('/daily-stock-sessions/close', [DailyStockController::class, 'closeS
 
 Route::post('/cashflow/expenses', [CashflowController::class, 'storeExpense'])
     ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+
+Route::post('/sessions/{id}/close', [CloseSessionController::class, 'close'])
+    ->middleware(['api.token', 'throttle:6,1']);
+
+Route::get('/sessions/current-status', [\App\Http\Controllers\API\SessionStatusController::class, 'currentStatus'])
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
