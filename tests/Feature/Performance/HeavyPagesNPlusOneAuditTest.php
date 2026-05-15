@@ -196,11 +196,25 @@ class HeavyPagesNPlusOneAuditTest extends TestCase
 
     private function seedDailyStockSessions(int $cashierId, int $ingredientId, int $count): void
     {
+        $cashierRoleId = User::query()->findOrFail($cashierId)->role_id;
+
         for ($i = 1; $i <= $count; $i++) {
+            $sessionCashierId = $cashierId;
+            if ($i > 1) {
+                $suffix = uniqid((string) $i . '_', true);
+                $sessionCashierId = User::create([
+                    'name' => 'Kasir Report ' . $i,
+                    'username' => 'kasir_report_' . $suffix,
+                    'email' => 'kasir-report-' . $suffix . '@example.test',
+                    'password' => 'secret123',
+                    'role_id' => $cashierRoleId,
+                ])->id;
+            }
+
             $session = DailyStockSession::create([
                 'session_date' => now()->toDateString(),
-                'cashier_id' => $cashierId,
-                'opened_by' => $cashierId,
+                'cashier_id' => $sessionCashierId,
+                'opened_by' => $sessionCashierId,
                 'status' => 'closed',
             ]);
 

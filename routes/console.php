@@ -151,7 +151,9 @@ Artisan::command('ops:daily-stock-integrity-audit {--date=} {--days=0} {--fail-o
         ]);
     }
 
-    return ($failOnFindings && (int) $result['findings_count'] > 0) ? 1 : 0;
+    if ($failOnFindings && (int) $result['findings_count'] > 0) {
+        $this->fail('Daily stock integrity findings detected.');
+    }
 })->purpose('Audit data consistency between daily stock session items and usage logs');
 
 Artisan::command('ops:doctor-env {--strict=0}', function () {

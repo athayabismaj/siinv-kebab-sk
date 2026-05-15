@@ -98,6 +98,16 @@ return new class extends Migration {
             return (bool) $exists;
         }
 
+        if ($driver === 'sqlite') {
+            $indexes = DB::select("pragma index_list('$table')");
+
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 };

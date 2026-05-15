@@ -21,7 +21,8 @@ class DailyStockIntegrityAuditService
         $end = $dateTo->copy()->endOfDay();
 
         $sessions = DailyStockSession::query()
-            ->whereBetween('session_date', [$start->toDateString(), $end->toDateString()])
+            ->whereDate('session_date', '>=', $start->toDateString())
+            ->whereDate('session_date', '<=', $end->toDateString())
             ->with('items:id,daily_stock_session_id,ingredient_id,opening_qty,remaining_qty,used_qty')
             ->get(['id', 'session_date', 'cashier_id', 'status']);
 

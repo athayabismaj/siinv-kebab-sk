@@ -284,8 +284,10 @@ class ApiTransactionService
     public function createCheckoutTransaction(int $userId, array $draft, ?string $note): array
     {
         return DB::transaction(function () use ($userId, $draft, $note) {
-            DB::statement("SET LOCAL lock_timeout = '5s'");
-            DB::statement("SET LOCAL statement_timeout = '12s'");
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement("SET LOCAL lock_timeout = '5s'");
+                DB::statement("SET LOCAL statement_timeout = '12s'");
+            }
 
             $now = now();
             $transactionCode = $this->generateTransactionCode();
@@ -373,21 +375,16 @@ class ApiTransactionService
 
     private function generateTransactionCode(): string
     {
-        $datePrefix = now()->format('Ymd');
+        $now = now();
+        $datePrefix = $now->format('Ymd');
+        $timePart = $now->format('His'); // Format jam:menit:detik
+        
+        // Menambahkan 4 karakter acak untuk memastikan keunikan mutlak
+        // tanpa bergantung pada query ke database (menghindari race condition).
+        // Peluang tabrakan di detik yang persis sama adalah 1 berbanding 1.6 juta (36^4).
+        $randomPart = strtoupper(\Illuminate\Support\Str::random(4));
 
-        $latestTransaction = DB::table('transactions')
-            ->where('transaction_code', 'like', "TRX-{$datePrefix}-%")
-            ->orderByDesc('id')
-            ->first();
-
-        if ($latestTransaction) {
-            $sequence = (int) substr($latestTransaction->transaction_code, -4);
-            $nextSequence = str_pad((string) ($sequence + 1), 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextSequence = '0001';
-        }
-
-        return "TRX-{$datePrefix}-{$nextSequence}";
+        return "TRX-{$datePrefix}-{$timePart}-{$randomPart}";
     }
 }
 

@@ -24,13 +24,7 @@ class DailyStockController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        // Cari sesi stok harian kasir yang berstatus 'open' hari ini
-        $session = DailyStockSession::query()
-            ->with(['items.ingredient'])
-            ->where('cashier_id', $user->id)
-            ->where('status', 'open')
-            ->where('session_date', now()->subHours(4)->toDateString())
-            ->first();
+        $session = $this->openSessionForCashier((int) $user->id);
 
         if (! $session) {
             return $this->successResponse('Sesi stok harian belum dibuka oleh admin hari ini.', [
@@ -86,13 +80,7 @@ class DailyStockController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
-        // Cari sesi yang sedang open untuk kasir ini hari ini
-        $session = DailyStockSession::query()
-            ->with(['items.ingredient'])
-            ->where('cashier_id', $user->id)
-            ->where('status', 'open')
-            ->where('session_date', now()->subHours(4)->toDateString())
-            ->first();
+        $session = $this->openSessionForCashier((int) $user->id);
 
         if (! $session) {
             return $this->errorResponse('Tidak ada sesi stok harian yang aktif untuk ditutup.', null, 404);
@@ -193,6 +181,17 @@ class DailyStockController extends Controller
         }
 
         return is_numeric($normalized) ? (float) $normalized : null;
+    }
+
+    private function openSessionForCashier(int $cashierId): ?DailyStockSession
+    {
+        return DailyStockSession::query()
+            ->with(['items.ingredient'])
+            ->where('cashier_id', $cashierId)
+            ->whereRaw("LOWER(TRIM(status)) = 'open'")
+            ->latest('session_date')
+            ->latest('id')
+            ->first();
     }
 }
 

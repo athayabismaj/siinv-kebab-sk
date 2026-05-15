@@ -208,6 +208,15 @@ class DailyStockService
                 ->lockForUpdate()
                 ->get();
 
+            $ingredientIds = $items->pluck('ingredient_id')->unique()->sort()->values()->all();
+
+            $ingredients = Ingredient::query()
+                ->whereIn('id', $ingredientIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
             foreach ($items as $item) {
                 $opening = (float) $item->opening_qty;
                 $usedBefore = (float) $item->used_qty;
@@ -233,10 +242,10 @@ class DailyStockService
                 $item->returned_qty = $returned;
                 $item->save();
 
-                $ingredient = Ingredient::query()
-                    ->whereKey($item->ingredient_id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                $ingredient = $ingredients->get($item->ingredient_id);
+                if (! $ingredient) {
+                    throw new RuntimeException("Bahan dengan ID {$item->ingredient_id} tidak ditemukan.");
+                }
 
                 $additionalUsage = max(0, $used - $usedBefore);
                 if ($additionalUsage > 0) {
@@ -298,14 +307,23 @@ class DailyStockService
                 ->lockForUpdate()
                 ->get();
 
+            $ingredientIds = $items->pluck('ingredient_id')->unique()->sort()->values()->all();
+
+            $ingredients = Ingredient::query()
+                ->whereIn('id', $ingredientIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
             foreach ($items as $item) {
                 $returned = (float) $item->returned_qty;
 
                 if ($returned > 0) {
-                    $ingredient = Ingredient::query()
-                        ->whereKey($item->ingredient_id)
-                        ->lockForUpdate()
-                        ->firstOrFail();
+                    $ingredient = $ingredients->get($item->ingredient_id);
+                    if (! $ingredient) {
+                        throw new RuntimeException("Bahan dengan ID {$item->ingredient_id} tidak ditemukan.");
+                    }
 
                     if ((float) $ingredient->stock < $returned) {
                         throw new RuntimeException(
