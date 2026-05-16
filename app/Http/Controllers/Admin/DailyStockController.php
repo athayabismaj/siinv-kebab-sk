@@ -144,8 +144,6 @@ class DailyStockController extends Controller
 
     public function transferForm(Request $request)
     {
-        $this->authorize('transfer', DailyStockSession::class);
-
         if ((string) $request->input('category_id') === '0') {
             $request->merge(['category_id' => null]);
         }
@@ -163,6 +161,8 @@ class DailyStockController extends Controller
         $session = DailyStockSession::query()
             ->with(['cashier:id,name', 'items.ingredient:id,name,display_unit,pack_size'])
             ->findOrFail((int) $validated['session_id']);
+
+        $this->authorize('transfer', $session);
 
         if (! $this->isOpenStatus($session->status)) {
             return redirect()
@@ -221,8 +221,6 @@ class DailyStockController extends Controller
 
     public function closeForm(Request $request)
     {
-        $this->authorize('close', DailyStockSession::class);
-
         $validated = $request->validate([
             'session_id' => [
                 'required',
@@ -233,6 +231,8 @@ class DailyStockController extends Controller
         $session = DailyStockSession::query()
             ->with(['cashier:id,name', 'items.ingredient:id,name,display_unit,pack_size'])
             ->findOrFail((int) $validated['session_id']);
+
+        $this->authorize('close', $session);
 
         if (! $this->isOpenStatus($session->status)) {
             return redirect()
@@ -295,8 +295,6 @@ class DailyStockController extends Controller
 
     public function transfer(Request $request)
     {
-        $this->authorize('transfer', DailyStockSession::class);
-
         $validated = $request->validate([
             'session_id' => [
                 'required',
@@ -321,6 +319,9 @@ class DailyStockController extends Controller
         ]);
 
         try {
+            $session = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
+            $this->authorize('transfer', $session);
+
             $ingredient = Ingredient::query()->findOrFail((int) $validated['ingredient_id']);
             $transferUnit = (string) ($validated['transfer_unit'] ?? 'pack');
             $quantityBase = $this->normalizeQuantityForIngredient(
@@ -354,8 +355,6 @@ class DailyStockController extends Controller
 
     public function close(Request $request)
     {
-        $this->authorize('close', DailyStockSession::class);
-
         $validated = $request->validate([
             'session_id' => [
                 'required',
@@ -370,6 +369,8 @@ class DailyStockController extends Controller
             $session = DailyStockSession::query()
                 ->with('items.ingredient')
                 ->findOrFail((int) $validated['session_id']);
+
+            $this->authorize('close', $session);
 
             $remainingRaw = $validated['remaining'] ?? [];
             $remainingByIngredient = [];
@@ -401,8 +402,6 @@ class DailyStockController extends Controller
 
     public function reopen(Request $request)
     {
-        $this->authorize('reopen', DailyStockSession::class);
-
         $validated = $request->validate([
             'session_id' => [
                 'required',
@@ -412,6 +411,9 @@ class DailyStockController extends Controller
         ]);
 
         try {
+            $sessionModel = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
+            $this->authorize('reopen', $sessionModel);
+
             $session = $this->dailyStockService->reopenSession(
                 (int) $validated['session_id'],
                 (int) auth()->id(),
@@ -433,8 +435,6 @@ class DailyStockController extends Controller
 
     public function reconcile(Request $request)
     {
-        $this->authorize('reopen', DailyStockSession::class);
-
         $validated = $request->validate([
             'session_id' => [
                 'required',
@@ -443,6 +443,9 @@ class DailyStockController extends Controller
         ]);
 
         try {
+            $sessionModel = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
+            $this->authorize('reopen', $sessionModel);
+
             $session = $this->dailyStockService->reconcileSessionUsage((int) $validated['session_id']);
 
             return redirect()

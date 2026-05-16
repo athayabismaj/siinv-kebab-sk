@@ -180,47 +180,71 @@
         @endphp
 
         {{-- ================= SUMMARY CARDS (Jika Sesi Ada) ================= --}}
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Bahan</p>
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ $summary['items_count'] }}</span>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            {{-- Card 1: Total Bahan --}}
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Bahan<br>Tersedia</p>
                 </div>
-                <div class="absolute bottom-0 left-0 h-1 w-full bg-blue-500/30"></div>
+                <div>
+                    <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ $summary['items_count'] }}</span>
+                </div>
             </div>
 
-            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Dibawa (Base)</p>
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['total_opening'], 2, ',', '.') }}</span>
+            {{-- Card 2: Total Dibawa --}}
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Total<br>Dibawa</p>
                 </div>
-                <div class="absolute bottom-0 left-0 h-1 w-full bg-emerald-500/30"></div>
+                <div>
+                    <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ number_format($summary['total_opening'], 2, ',', '.') }}</span>
+                </div>
             </div>
 
-            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Sisa (Base)</p>
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['total_remaining'], 2, ',', '.') }}</span>
+            {{-- Card 3: Total Sisa --}}
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-amber-50 dark:bg-slate-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Total<br>Sisa</p>
                 </div>
-                <div class="absolute bottom-0 left-0 h-1 w-full bg-amber-500/30"></div>
+                <div>
+                    <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ number_format($summary['total_remaining'], 2, ',', '.') }}</span>
+                </div>
             </div>
 
-            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Terpakai (Base)</p>
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($summary['total_used'], 2, ',', '.') }}</span>
+            {{-- Card 4: Total Terpakai --}}
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-orange-50 dark:bg-slate-800 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Total<br>Terpakai</p>
                 </div>
-                <div class="absolute bottom-0 left-0 h-1 w-full bg-rose-500/50"></div>
+                <div>
+                    <span class="text-2xl font-extrabold text-orange-600 dark:text-orange-400 tabular-nums">{{ number_format($summary['total_used'], 2, ',', '.') }}</span>
+                </div>
             </div>
 
-            {{-- Estimasi Nilai Card --}}
-            <div class="relative overflow-hidden p-5 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/50 rounded-2xl shadow-sm col-span-2 lg:col-span-1">
-                <p class="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-1.5">Est. Nilai Terpakai</p>
+            {{-- Card 5: Est Nilai Terpakai --}}
+            <div class="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow col-span-2 lg:col-span-1">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v8m0-8V6m0 12v2M5 12a7 7 0 1114 0 7 7 0 01-14 0z"></path></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest leading-tight">Nilai<br>Terpakai</p>
+                </div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-sm font-bold text-rose-500">Rp</span>
-                    <span class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($summary['total_value'] ?? 0, 0, ',', '.') }}</span>
+                    <span class="text-xs font-bold text-rose-400 dark:text-rose-500">Rp</span>
+                    <span class="text-2xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($summary['total_value'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="absolute bottom-0 left-0 h-1 w-full bg-rose-500/50"></div>
             </div>
         </div>
 
@@ -258,37 +282,53 @@
                     </div>
                 </div>
 
-                {{-- Tombol Aksi Kanan --}}
-                <div class="flex flex-col sm:flex-row items-center gap-2.5">
-                    <form method="POST" action="{{ route('admin.daily-stocks.reconcile') }}" class="w-full sm:w-auto">
-                        @csrf
-                        <input type="hidden" name="session_id" value="{{ $session->id }}">
-                        <button type="submit" class="w-full sm:w-auto h-10 inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                            Reconcile Data
-                        </button>
-                    </form>
+                {{-- Tombol Aksi Kanan — Responsif & Modern --}}
+                <div class="grid grid-cols-2 md:flex md:flex-row md:items-center gap-3 w-full md:w-auto mt-5 md:mt-0">
 
                     @if($isSessionOpen)
+                        {{-- Tambah Bahan --}}
                         <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]) }}"
-                           class="w-full sm:w-auto h-10 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-5 text-[12px] font-bold text-white hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           class="col-span-1 md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 md:px-5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-sm active:scale-95">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                             </svg>
-                            Tambah Bahan Dibawa
+                            <span class="whitespace-nowrap">Tambah Bahan</span>
                         </a>
+
+                        {{-- Tutup Sesi --}}
                         <a href="{{ route('admin.daily-stocks.close.form', ['session_id' => $session->id]) }}"
-                           class="w-full sm:w-auto h-10 inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-6 text-[13px] font-bold text-amber-700 hover:bg-amber-100 transition-all dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30">
-                            Tutup Sesi
+                           class="col-span-1 md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400 bg-amber-50 px-4 md:px-5 text-sm font-bold text-amber-700 hover:bg-amber-100 transition-all dark:border-amber-600 dark:bg-slate-800 dark:text-amber-400 dark:hover:bg-slate-700 active:scale-95">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            <span class="whitespace-nowrap">Tutup Sesi</span>
                         </a>
                     @else
-                        <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="w-full sm:w-auto">
+                        {{-- Reopen Sesi --}}
+                        <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="col-span-2 md:w-auto">
                             @csrf
                             <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <button type="submit" class="w-full sm:w-auto h-10 inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-6 text-[13px] font-bold text-white hover:bg-amber-600 transition-all shadow-sm shadow-amber-500/20">
-                                Reopen Sesi
+                            <button type="submit" class="w-full md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 text-sm font-bold text-white hover:bg-amber-600 transition-all shadow-sm active:scale-95">
+                                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span>Buka Kembali</span>
                             </button>
                         </form>
                     @endif
+
+                    {{-- Reconcile Data --}}
+                    <form method="POST" action="{{ route('admin.daily-stocks.reconcile') }}" class="col-span-2 md:w-auto md:ml-2">
+                        @csrf
+                        <input type="hidden" name="session_id" value="{{ $session->id }}">
+                        <button type="submit" class="w-full md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 md:px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white active:scale-95 shadow-sm">
+                            <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span class="md:hidden lg:inline whitespace-nowrap">Reconcile Data</span>
+                        </button>
+                    </form>
+
                 </div>
 
             </div>

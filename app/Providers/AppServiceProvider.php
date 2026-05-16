@@ -17,7 +17,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Contracts\Services\VoidTransactionServiceInterface::class,
+            \App\Services\VoidTransactionService::class
+        );
+
+        $this->app->bind(
+            \App\Contracts\Services\CloseSessionServiceInterface::class,
+            \App\Services\CloseSessionService::class
+        );
     }
 
     /**
