@@ -30,10 +30,11 @@ class ApiTransactionService
                 't.id',
                 't.transaction_code',
                 't.total_amount',
+                't.status',
                 't.created_at',
                 DB::raw('COUNT(td.id) as items_count'),
             ])
-            ->groupBy('t.id', 't.transaction_code', 't.total_amount', 't.created_at')
+            ->groupBy('t.id', 't.transaction_code', 't.total_amount', 't.status', 't.created_at')
             ->orderByDesc('t.created_at');
 
         return $query->paginate($perPage);
@@ -292,6 +293,13 @@ class ApiTransactionService
             $now = now();
             $transactionCode = $this->generateTransactionCode();
 
+            // Cari sesi kasir yang aktif hari ini untuk menautkan transaksi ke sesi
+            $activeSessionId = \App\Models\DailyStockSession::query()
+                ->where('cashier_id', $userId)
+                ->whereDate('session_date', $now->toDateString())
+                ->whereRaw("LOWER(TRIM(status)) = 'open'")
+                ->value('id');
+
             $transactionId = DB::table('transactions')->insertGetId([
                 'transaction_code' => $transactionCode,
                 'user_id' => $userId,
@@ -299,6 +307,8 @@ class ApiTransactionService
                 'payment_method_id' => (int) $draft['payment_method']->id,
                 'paid_amount' => $draft['paid_amount'],
                 'change_amount' => $draft['paid_amount'] - $draft['total_amount'],
+                'status' => 'SUCCESS',
+                'daily_stock_session_id' => $activeSessionId,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -307,6 +317,7 @@ class ApiTransactionService
                 DB::table('transaction_details')->insert([
                     'transaction_id' => $transactionId,
                     'menu_id' => $line['menu_id'],
+                    'menu_variant_id' => $line['variant_id'],
                     'quantity' => $line['qty'],
                     'price' => $line['price'],
                     'subtotal' => $line['subtotal'],

@@ -15,6 +15,8 @@ class Transaction extends Model
         'payment_method_id',
         'paid_amount',
         'change_amount',
+        'status',
+        'daily_stock_session_id',
     ];
 
     public function user(): BelongsTo

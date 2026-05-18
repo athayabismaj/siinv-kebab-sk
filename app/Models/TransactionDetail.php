@@ -10,6 +10,7 @@ class TransactionDetail extends Model
     protected $fillable = [
         'transaction_id',
         'menu_id',
+        'menu_variant_id',
         'quantity',
         'price',
         'subtotal',
@@ -23,5 +24,10 @@ class TransactionDetail extends Model
     public function menu(): BelongsTo
     {
         return $this->belongsTo(Menu::class)->withTrashed();
+    }
+
+    public function menuVariant(): BelongsTo
+    {
+        return $this->belongsTo(MenuVariant::class);
     }
 }

@@ -44,7 +44,7 @@ class TransactionController extends Controller
             'id' => $transaction->id,
             'transaction_code' => $transaction->transaction_code,
             'total_amount' => (float) $transaction->total_amount,
-            'status' => 'Sukses',
+            'status' => strtolower($transaction->status ?? 'success') === 'success' ? 'Sukses' : ucfirst(str_replace('_', ' ', $transaction->status)),
             'created_at' => $this->formatCreatedAt($transaction->created_at),
             'items_count' => (int) $transaction->items_count,
         ]);

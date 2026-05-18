@@ -33,8 +33,8 @@ class Ingredient extends Model
     }
 
 
-    public function menus() {
-        return $this->belongsToMany(Menu::class, 'menu_ingredients')->withPivot('quantity')->withTimestamps();
+    public function menuVariants() {
+        return $this->belongsToMany(MenuVariant::class, 'menu_variant_ingredients', 'ingredient_id', 'menu_variant_id')->withPivot('quantity')->withTimestamps();
     }
 
     public function getConvertedStockAttribute() {

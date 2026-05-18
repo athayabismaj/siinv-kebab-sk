@@ -17,45 +17,64 @@ class VoidTransactionController extends Controller
 
     public function voidTransaction(Request $request, $transactionId): JsonResponse
     {
-        // Fail-Fast Validation
+        // Fail-Fast Validation — eksplisit menerima JSON dari Android
         $validated = $request->validate([
             'current_session_id' => 'required|integer',
-            'inventory_action' => 'required|in:restock,waste',
+            'reason' => 'required|string|in:restock,waste',
+        ], [
+            'reason.required' => 'Alasan pembatalan (reason) wajib diisi.',
+            'reason.in' => 'Alasan pembatalan harus berupa "restock" atau "waste".',
+            'current_session_id.required' => 'ID sesi kasir aktif wajib dikirim.',
+            'current_session_id.integer' => 'ID sesi kasir harus berupa angka.',
         ]);
 
+        // Validasi Idempotency Key
         $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
         if (!$idempotencyKey) {
-            return response()->json(['message' => 'Idempotency Key is missing dari Header atau Body.'], 400);
+            return response()->json([
+                'success' => false,
+                'message' => 'Idempotency Key wajib dikirim melalui header X-Idempotency-Key atau body idempotency_key.',
+            ], 400);
         }
 
         try {
-            // Mapping ke DTO Readonly
             $dto = new VoidTransactionRequestDto(
-                transactionId: $transactionId,
-                currentSessionId: $validated['current_session_id'],
+                transactionId: (int) $transactionId,
+                currentSessionId: (int) $validated['current_session_id'],
                 actor: $request->user(),
                 idempotencyKey: $idempotencyKey,
-                inventoryAction: VoidInventoryActionEnum::from($validated['inventory_action'])
+                inventoryAction: VoidInventoryActionEnum::from($validated['reason'])
             );
 
-            // Eksekusi Service (Murni, aman dari deadlock, mengembalikan float absolut)
             $newDrawerBalance = $this->voidService->voidTransaction($dto);
 
-            // Return Single Source of Truth ke Android
             return response()->json([
+                'success' => true,
                 'message' => 'Transaksi berhasil dibatalkan.',
                 'data' => [
-                    'new_drawer_balance' => $newDrawerBalance
-                ]
+                    'new_drawer_balance' => $newDrawerBalance,
+                ],
             ], 200);
 
         } catch (\Exception $e) {
-            // Handler khusus jika conflict (Idempotency tertabrak)
             if (str_contains($e->getMessage(), 'Idempotency conflict')) {
-                return response()->json(['message' => 'Permintaan sedang diproses, harap tunggu.'], 409);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Permintaan sedang diproses, harap tunggu.',
+                ], 409);
             }
-            
-            return response()->json(['message' => $e->getMessage()], 422);
+
+            if (str_contains($e->getMessage(), 'sudah dibatalkan sebelumnya')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 409);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 }

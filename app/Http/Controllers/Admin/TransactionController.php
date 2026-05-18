@@ -83,6 +83,7 @@ class TransactionController extends Controller
                 'total_amount',
                 'paid_amount',
                 'change_amount',
+                'status',
                 'created_at',
             ])
             ->with(['user:id,name,username', 'paymentMethod:id,name'])

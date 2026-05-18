@@ -145,13 +145,20 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
                         @foreach($items as $trx)
-                            @php $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount; @endphp
+                            @php 
+                                $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount; 
+                                $isSuccess = strtolower($trx->status ?? 'success') === 'success';
+                                $statusLabel = $isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', $trx->status));
+                                $badgeClass = $isSuccess 
+                                    ? ($isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700')
+                                    : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400 line-through';
+                            @endphp
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                <td class="px-6 py-4 font-bold text-slate-800 dark:text-white">{{ $trx->transaction_code }}</td>
+                                <td class="px-6 py-4 font-bold text-slate-800 dark:text-white {{ !$isSuccess ? 'line-through opacity-60' : '' }}">{{ $trx->transaction_code }}</td>
                                 <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ $trx->user->name ?? '-' }}</td>
                                 <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ $trx->paymentMethod->name ?? '-' }}</td>
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold {{ $isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">{{ $isPaid ? 'Lunas' : 'Kurang' }}</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold {{ $badgeClass }}">{{ $statusLabel }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-center">{{ $trx->details_count }}</td>
                                 <td class="px-6 py-4 text-right font-black text-slate-900 dark:text-white">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
@@ -165,11 +172,18 @@
 
             <div class="md:hidden p-4 space-y-3">
                 @foreach($items as $trx)
-                    @php $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount; @endphp
+                    @php 
+                        $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount; 
+                        $isSuccess = strtolower($trx->status ?? 'success') === 'success';
+                        $statusLabel = $isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', $trx->status));
+                        $badgeClass = $isSuccess 
+                            ? ($isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700')
+                            : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400 line-through';
+                    @endphp
                     <div class="rounded-xl border border-slate-100 dark:border-slate-800 p-4 space-y-2">
                         <div class="flex items-start justify-between gap-2">
-                            <p class="font-bold text-slate-800 dark:text-white text-sm break-all">{{ $trx->transaction_code }}</p>
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">{{ $isPaid ? 'Lunas' : 'Kurang' }}</span>
+                            <p class="font-bold text-slate-800 dark:text-white text-sm break-all {{ !$isSuccess ? 'line-through opacity-60' : '' }}">{{ $trx->transaction_code }}</p>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $badgeClass }}">{{ $statusLabel }}</span>
                         </div>
                         <p class="text-xs text-slate-500">{{ $trx->user->name ?? '-' }} - {{ $trx->paymentMethod->name ?? '-' }}</p>
                         <p class="text-xs text-slate-500">Total Rp {{ number_format($trx->total_amount, 0, ',', '.') }} - {{ $trx->created_at->format('H:i') }}</p>
