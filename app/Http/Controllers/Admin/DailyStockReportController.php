@@ -53,9 +53,7 @@ class DailyStockReportController extends Controller
             $summary = [
                 'sessions_count' => 0,
                 'items_count' => 0,
-                'total_opening' => 0,
-                'total_remaining' => 0,
-                'total_used' => 0,
+                'by_unit' => [],
                 'total_value' => 0,
                 'total_revenue' => 0,
             ];

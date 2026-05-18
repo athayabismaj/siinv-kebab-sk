@@ -115,8 +115,12 @@
     </form>
 
     {{-- ================= SUMMARY CARDS ================= --}}
-    {{-- Baris 1: 4 stat card --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {{-- Tailwind safelist: md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
+    @php
+        $unitColors = ['emerald', 'amber', 'violet', 'cyan', 'rose'];
+    @endphp
+    {{-- Baris 1: Sesi + Item + Per-Unit Cards --}}
+    <div class="grid grid-cols-2 md:grid-cols-{{ min(count($summary['by_unit']) + 2, 5) }} gap-4">
         {{-- Jumlah Sesi --}}
         <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
             <div class="flex items-start justify-between mb-3">
@@ -133,7 +137,7 @@
         {{-- Total Item --}}
         <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
             <div class="flex items-start justify-between mb-3">
-                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Total Item Aktif</p>
+                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Total Item</p>
                 <div class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                 </div>
@@ -143,31 +147,45 @@
             <div class="absolute bottom-0 left-0 h-0.5 w-full bg-blue-500/30"></div>
         </div>
 
-        {{-- Total Dibawa --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
-            <div class="flex items-start justify-between mb-3">
-                <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Total Dibawa</p>
-                <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+        {{-- Per-Unit Cards (Dinamis) --}}
+        @foreach($summary['by_unit'] as $idx => $unitData)
+            @php $color = $unitColors[$idx % count($unitColors)]; @endphp
+            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
+                <div class="flex items-start justify-between mb-2">
+                    <p class="text-[10px] font-bold text-{{ $color }}-500 uppercase tracking-widest">
+                        Stok {{ $unitData['unit'] }}
+                    </p>
+                    <div class="p-1.5 rounded-lg bg-{{ $color }}-50 dark:bg-{{ $color }}-500/10 text-{{ $color }}-400 group-hover:bg-{{ $color }}-100 dark:group-hover:bg-{{ $color }}-500/20 transition">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                    </div>
                 </div>
-            </div>
-            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ rtrim(rtrim(number_format($summary['total_opening'], 2, ',', '.'), '0'), ',') }}</span>
-            <p class="text-[10px] text-slate-400 mt-1">total stok awal</p>
-            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-emerald-500/30"></div>
-        </div>
 
-        {{-- Total Sisa --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
-            <div class="flex items-start justify-between mb-3">
-                <p class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Total Sisa Stok</p>
-                <div class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                {{-- Mini metric rows --}}
+                <div class="space-y-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Dibawa</span>
+                        <span class="text-[13px] font-extrabold text-slate-800 dark:text-white tabular-nums">
+                            {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Sisa</span>
+                        <span class="text-[13px] font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
+                            {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
+                        </span>
+                    </div>
+                    <div class="h-px bg-slate-100 dark:bg-slate-800"></div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Terpakai</span>
+                        <span class="text-[14px] font-black text-orange-600 dark:text-orange-400 tabular-nums">
+                            {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
+                        </span>
+                    </div>
                 </div>
+
+                <div class="absolute bottom-0 left-0 h-0.5 w-full bg-{{ $color }}-500/30"></div>
             </div>
-            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ rtrim(rtrim(number_format($summary['total_remaining'], 2, ',', '.'), '0'), ',') }}</span>
-            <p class="text-[10px] text-slate-400 mt-1">sisa di akhir sesi</p>
-            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-amber-500/30"></div>
-        </div>
+        @endforeach
     </div>
 
     {{-- Baris 2: Card Finansial --}}

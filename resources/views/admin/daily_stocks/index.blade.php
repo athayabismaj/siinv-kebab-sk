@@ -179,61 +179,73 @@
             $isSessionOpen = $sessionStatus === 'open';
         @endphp
 
-        {{-- ================= SUMMARY CARDS (Jika Sesi Ada) ================= --}}
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+        {{-- ================= SUMMARY CARDS (Grouped by Unit) ================= --}}
+        {{-- Tailwind safelist: md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
+        <div class="grid grid-cols-2 md:grid-cols-{{ count($summary['by_unit']) + 2 > 5 ? 5 : count($summary['by_unit']) + 2 }} gap-3 mb-6">
             {{-- Card 1: Total Bahan --}}
             <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-8 h-8 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     </div>
-                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Bahan<br>Tersedia</p>
+                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Jenis<br>Bahan</p>
                 </div>
                 <div>
                     <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ $summary['items_count'] }}</span>
+                    <span class="text-[10px] font-medium text-slate-400 ml-1">item</span>
                 </div>
             </div>
 
-            {{-- Card 2: Total Dibawa --}}
-            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
+            @php
+                $unitColors = [
+                    ['bg' => 'emerald', 'icon' => 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z'],
+                    ['bg' => 'amber', 'icon' => 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4'],
+                    ['bg' => 'violet', 'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'],
+                ];
+            @endphp
+
+            {{-- Per-Unit Cards (Dinamis) --}}
+            @foreach($summary['by_unit'] as $idx => $unitData)
+                @php
+                    $colorSet = $unitColors[$idx % count($unitColors)];
+                    $bgColor = $colorSet['bg'];
+                @endphp
+                <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-full bg-{{ $bgColor }}-50 dark:bg-slate-800 flex items-center justify-center text-{{ $bgColor }}-600 dark:text-{{ $bgColor }}-400 shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $colorSet['icon'] }}"></path></svg>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">
+                            Stok<br><span class="text-{{ $bgColor }}-600 dark:text-{{ $bgColor }}-400">{{ $unitData['unit'] }}</span>
+                        </p>
                     </div>
-                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Total<br>Dibawa</p>
-                </div>
-                <div>
-                    <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ number_format($summary['total_opening'], 2, ',', '.') }}</span>
-                </div>
-            </div>
 
-            {{-- Card 3: Total Sisa --}}
-            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-full bg-amber-50 dark:bg-slate-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    {{-- Mini metrics per unit --}}
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Dibawa</span>
+                            <span class="text-[13px] font-extrabold text-slate-800 dark:text-white tabular-nums">
+                                {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Sisa</span>
+                            <span class="text-[13px] font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
+                                {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
+                            </span>
+                        </div>
+                        <div class="h-px bg-slate-100 dark:bg-slate-800"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Terpakai</span>
+                            <span class="text-[14px] font-black text-orange-600 dark:text-orange-400 tabular-nums">
+                                {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
+                            </span>
+                        </div>
                     </div>
-                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Total<br>Sisa</p>
                 </div>
-                <div>
-                    <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ number_format($summary['total_remaining'], 2, ',', '.') }}</span>
-                </div>
-            </div>
+            @endforeach
 
-            {{-- Card 4: Total Terpakai --}}
-            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-full bg-orange-50 dark:bg-slate-800 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
-                    </div>
-                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Total<br>Terpakai</p>
-                </div>
-                <div>
-                    <span class="text-2xl font-extrabold text-orange-600 dark:text-orange-400 tabular-nums">{{ number_format($summary['total_used'], 2, ',', '.') }}</span>
-                </div>
-            </div>
-
-            {{-- Card 5: Est Nilai Terpakai --}}
+            {{-- Card Terakhir: Est Nilai Terpakai (Rupiah - selalu bisa dijumlahkan) --}}
             <div class="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow col-span-2 lg:col-span-1">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">

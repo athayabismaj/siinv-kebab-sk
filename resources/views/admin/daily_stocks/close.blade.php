@@ -58,39 +58,51 @@
         </div>
     </div>
 
-    {{-- ================= SUMMARY CARDS ================= --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {{-- ================= SUMMARY CARDS (Per-Unit) ================= --}}
+    {{-- Tailwind safelist: md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
+    @php $unitColors = ['emerald', 'amber', 'violet', 'cyan', 'rose']; @endphp
+    <div class="grid grid-cols-2 md:grid-cols-{{ min(count($summary['by_unit']) + 1, 5) }} gap-4">
+        {{-- Card: Total Bahan --}}
         <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Bahan</p>
             <div class="flex items-baseline gap-1.5">
                 <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ $summary['items_count'] }}</span>
+                <span class="text-[10px] font-medium text-slate-400">item</span>
             </div>
             <div class="absolute bottom-0 left-0 h-1 w-full bg-slate-500/20"></div>
         </div>
 
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Dibawa (Base)</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['total_opening'], 2, ',', '.') }}</span>
+        {{-- Per-Unit Cards --}}
+        @foreach($summary['by_unit'] as $idx => $unitData)
+            @php $color = $unitColors[$idx % count($unitColors)]; @endphp
+            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                <p class="text-[10px] font-bold text-{{ $color }}-500 uppercase tracking-widest mb-2">
+                    Stok {{ $unitData['unit'] }}
+                </p>
+                <div class="space-y-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Dibawa</span>
+                        <span class="text-[13px] font-extrabold text-slate-800 dark:text-white tabular-nums">
+                            {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Sisa</span>
+                        <span class="text-[13px] font-extrabold text-amber-600 dark:text-amber-400 tabular-nums" id="summary-remaining-{{ $idx }}">
+                            {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
+                        </span>
+                    </div>
+                    <div class="h-px bg-slate-100 dark:bg-slate-800"></div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Terpakai</span>
+                        <span class="text-[14px] font-black text-orange-600 dark:text-orange-400 tabular-nums" id="summary-used-{{ $idx }}">
+                            {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="absolute bottom-0 left-0 h-1 w-full bg-{{ $color }}-500/30"></div>
             </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-emerald-500/30"></div>
-        </div>
-
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Total Sisa (Base)</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums" id="summary-remaining">{{ number_format($summary['total_remaining'], 2, ',', '.') }}</span>
-            </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-amber-500/30"></div>
-        </div>
-
-        <div class="relative overflow-hidden p-5 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/50 rounded-2xl shadow-sm">
-            <p class="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-1.5">Total Terpakai (Base)</p>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums" id="summary-used">{{ number_format($summary['total_used'], 2, ',', '.') }}</span>
-            </div>
-            <div class="absolute bottom-0 left-0 h-1 w-full bg-rose-500/50"></div>
-        </div>
+        @endforeach
     </div>
 
     {{-- ================= FORM GRID INPUT PENUTUPAN SESI ================= --}}
@@ -198,36 +210,40 @@ document.addEventListener('DOMContentLoaded', function () {
     const inputs = document.querySelectorAll('.daily-remaining-input');
     if (!inputs.length) return;
 
-    const remainingEl = document.getElementById('summary-remaining');
-    const usedEl = document.getElementById('summary-used');
+    // Baca mapping unit dari PHP (by_unit array)
+    const unitMap = @json(collect($summary['by_unit'])->pluck('unit')->values());
 
     const toNumber = (v) => {
         const n = parseFloat(v);
         return Number.isFinite(n) ? n : 0;
     };
 
-    const toBase = (displayQty, unit, packSize) => {
+    const toBase = (displayQty, unit) => {
         if (unit === 'kg' || unit === 'l') return displayQty * 1000;
-        if (unit === 'pcs') return displayQty;
         return displayQty;
     };
 
     const fmt = (n) => {
-        return n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Format tanpa trailing zeros
+        let s = n.toFixed(2);
+        s = s.replace(/0+$/, '').replace(/\.$/, '');
+        return s || '0';
     };
 
     const recompute = () => {
-        let totalOpening = 0;
-        let totalRemaining = 0;
+        // Group by unit
+        const groups = {};
+        unitMap.forEach((unit, idx) => {
+            groups[unit] = { opening: 0, remaining: 0 };
+        });
 
         inputs.forEach((input) => {
             const openingBase = toNumber(input.dataset.openingBase);
-            const unit = (input.dataset.displayUnit || '').toLowerCase();
-            const packSize = parseInt(input.dataset.packSize || '1', 10);
-            
+            const unit = (input.dataset.displayUnit || 'unit').toUpperCase();
+
             const maxDisplay = toNumber(input.getAttribute('max'));
             let currentDisplay = toNumber(input.value);
-            
+
             if (currentDisplay > maxDisplay) {
                 input.value = maxDisplay;
                 currentDisplay = maxDisplay;
@@ -236,16 +252,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentDisplay = 0;
             }
 
-            const remainingBase = toBase(currentDisplay, unit, packSize);
+            const remainingBase = toBase(currentDisplay, (input.dataset.displayUnit || '').toLowerCase());
 
-            totalOpening += openingBase;
-            totalRemaining += remainingBase;
+            if (!groups[unit]) {
+                groups[unit] = { opening: 0, remaining: 0 };
+            }
+            groups[unit].opening += openingBase;
+            groups[unit].remaining += remainingBase;
         });
 
-        const totalUsed = Math.max(0, totalOpening - totalRemaining);
+        // Update each unit card
+        unitMap.forEach((unit, idx) => {
+            const group = groups[unit];
+            if (!group) return;
 
-        if (remainingEl) remainingEl.textContent = fmt(totalRemaining);
-        if (usedEl) usedEl.textContent = fmt(totalUsed);
+            const used = Math.max(0, group.opening - group.remaining);
+            // Convert base back to display for the card
+            const isConvertUnit = unit === 'KG' || unit === 'L';
+            const dispRemaining = isConvertUnit ? group.remaining / 1000 : group.remaining;
+            const dispUsed = isConvertUnit ? used / 1000 : used;
+
+            const remainingEl = document.getElementById('summary-remaining-' + idx);
+            const usedEl = document.getElementById('summary-used-' + idx);
+            if (remainingEl) remainingEl.textContent = fmt(dispRemaining);
+            if (usedEl) usedEl.textContent = fmt(dispUsed);
+        });
     };
 
     inputs.forEach((input) => {
@@ -255,8 +286,8 @@ document.addEventListener('DOMContentLoaded', function () {
             recompute();
         });
     });
-    
-    recompute(); 
+
+    recompute();
 });
 </script>
 @endpush

@@ -43,16 +43,34 @@ class DailyStockReportQueryService
                 ->whereBetween('session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->count();
 
-            $aggregate = DailyStockSession::query()
+            $itemsCount = DailyStockSession::query()
                 ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
                 ->whereBetween('daily_stock_sessions.session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
-                ->selectRaw(
-                    'COALESCE(COUNT(dsi.id), 0) as items_count,
-                     COALESCE(SUM(dsi.opening_qty), 0) as total_opening,
-                     COALESCE(SUM(dsi.remaining_qty), 0) as total_remaining,
-                     COALESCE(SUM(dsi.used_qty), 0) as total_used'
-                )
-                ->first();
+                ->count('dsi.id');
+
+            // Kelompokkan per-satuan (display_unit) agar tidak menjumlahkan PCS + Liter + kg
+            $byUnit = DailyStockSession::query()
+                ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
+                ->leftJoin('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
+                ->whereBetween('daily_stock_sessions.session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->whereNotNull('dsi.id')
+                ->selectRaw("
+                    UPPER(COALESCE(NULLIF(ingredients.base_unit, ''), NULLIF(ingredients.display_unit, ''), 'unit')) as unit_label,
+                    COALESCE(SUM(dsi.opening_qty), 0) as total_opening,
+                    COALESCE(SUM(dsi.remaining_qty), 0) as total_remaining,
+                    COALESCE(SUM(dsi.used_qty), 0) as total_used
+                ")
+                ->groupBy('unit_label')
+                ->orderByDesc('total_used')
+                ->get()
+                ->map(fn ($row) => [
+                    'unit'      => $row->unit_label,
+                    'opening'   => round((float) $row->total_opening, 2),
+                    'remaining' => round((float) $row->total_remaining, 2),
+                    'used'      => round((float) $row->total_used, 2),
+                ])
+                ->values()
+                ->toArray();
 
             $valueAggregate = DailyStockSession::query()
                 ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
@@ -70,10 +88,8 @@ class DailyStockReportQueryService
 
             return [
                 'sessions_count'  => (int) $sessionsCount,
-                'items_count'     => (int) ($aggregate->items_count ?? 0),
-                'total_opening'   => (float) ($aggregate->total_opening ?? 0),
-                'total_remaining' => (float) ($aggregate->total_remaining ?? 0),
-                'total_used'      => (float) ($aggregate->total_used ?? 0),
+                'items_count'     => (int) $itemsCount,
+                'by_unit'         => $byUnit,
                 'total_value'     => (float) ($valueAggregate ?? 0),
                 'total_revenue'   => (float) ($revenueAggregate ?? 0),
             ];

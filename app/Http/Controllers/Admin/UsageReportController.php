@@ -78,7 +78,7 @@ class UsageReportController extends Controller
             $summary = [
                 'ingredients_count' => 0,
                 'logs_count' => 0,
-                'total_base_quantity' => 0.0,
+                'by_unit' => [],
             ];
         }
 
@@ -204,10 +204,26 @@ class UsageReportController extends Controller
                 ->whereIn('type', ['out', 'daily_usage'])
                 ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
+            // Kelompokkan total pemakaian per satuan dasar (base_unit)
+            $byUnit = StockLog::query()
+                ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
+                ->whereIn('stock_logs.type', ['out', 'daily_usage'])
+                ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
+                ->selectRaw('UPPER(COALESCE(NULLIF(ingredients.base_unit, \'\'), \'unit\')) as unit_label, SUM(ABS(stock_logs.quantity)) as total')
+                ->groupBy('unit_label')
+                ->orderByDesc('total')
+                ->get()
+                ->map(fn ($row) => [
+                    'unit'  => $row->unit_label,
+                    'total' => round((float) $row->total, 2),
+                ])
+                ->values()
+                ->toArray();
+
             return [
                 'ingredients_count' => (int) (clone $summaryBaseQuery)->distinct('ingredient_id')->count('ingredient_id'),
                 'logs_count' => (int) (clone $summaryBaseQuery)->count(),
-                'total_base_quantity' => (float) ((clone $summaryBaseQuery)->selectRaw('COALESCE(SUM(ABS(quantity)), 0) as total')->value('total') ?? 0),
+                'by_unit' => $byUnit,
             ];
         });
     }

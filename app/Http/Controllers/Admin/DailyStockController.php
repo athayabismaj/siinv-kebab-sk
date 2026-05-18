@@ -475,17 +475,30 @@ class DailyStockController extends Controller
         if (! $session) {
             return [
                 'items_count' => 0,
-                'total_opening' => 0,
-                'total_remaining' => 0,
-                'total_used' => 0,
+                'by_unit'     => [],
+                'total_value' => 0,
+            ];
+        }
+
+        // Kelompokkan per-satuan agar tidak menjumlahkan PCS + Liter + kg (tidak bermakna)
+        $grouped = $session->items->groupBy(function ($item) {
+            return strtoupper(trim((string) ($item->ingredient->base_unit ?? $item->ingredient->display_unit ?? 'Unit')));
+        });
+
+        $byUnit = [];
+        foreach ($grouped as $unit => $unitItems) {
+            $byUnit[] = [
+                'unit'      => $unit,
+                'count'     => $unitItems->count(),
+                'opening'   => round((float) $unitItems->sum('opening_qty'), 2),
+                'remaining' => round((float) $unitItems->sum('remaining_qty'), 2),
+                'used'      => round((float) $unitItems->sum('used_qty'), 2),
             ];
         }
 
         return [
             'items_count'     => $session->items->count(),
-            'total_opening'   => (float) $session->items->sum('opening_qty'),
-            'total_remaining' => (float) $session->items->sum('remaining_qty'),
-            'total_used'      => (float) $session->items->sum('used_qty'),
+            'by_unit'         => $byUnit,
             'total_value'     => (float) $session->items->sum(function ($item) {
                 $usedQty  = (float) $item->used_qty;
                 $selPrice = (float) ($item->ingredient->selling_price ?? 0);
