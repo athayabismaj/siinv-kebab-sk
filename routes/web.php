@@ -231,25 +231,19 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
                 ->middleware('can:viewAny,App\Models\DailyStockSession')
                 ->name('index');
             Route::get('/transfer', [DailyStockController::class, 'transferForm'])
-                ->middleware('can:transfer,App\Models\DailyStockSession')
                 ->name('transfer.form');
             Route::get('/close', [DailyStockController::class, 'closeForm'])
-                ->middleware('can:close,App\Models\DailyStockSession')
                 ->name('close.form');
             Route::post('/open', [DailyStockController::class, 'open'])
                 ->middleware('can:open,App\Models\DailyStockSession')
                 ->name('open');
             Route::post('/transfer', [DailyStockController::class, 'transfer'])
-                ->middleware('can:transfer,App\Models\DailyStockSession')
                 ->name('transfer');
             Route::post('/close', [DailyStockController::class, 'close'])
-                ->middleware('can:close,App\Models\DailyStockSession')
                 ->name('close');
             Route::post('/reopen', [DailyStockController::class, 'reopen'])
-                ->middleware('can:reopen,App\Models\DailyStockSession')
                 ->name('reopen');
             Route::post('/reconcile', [DailyStockController::class, 'reconcile'])
-                ->middleware('can:reopen,App\Models\DailyStockSession')
                 ->name('reconcile');
         });
 
