@@ -4,6 +4,7 @@ namespace Tests\Feature\Owner;
 
 use App\Models\Menu;
 use App\Models\MenuCategory;
+use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
 use App\Models\Role;
 use App\Models\Transaction;
@@ -110,6 +111,86 @@ class OwnerCriticalFlowTest extends TestCase
         $monthly->assertSee('Laporan Penjualan');
     }
 
+    public function test_owner_menu_analysis_groups_by_menu_item_and_excludes_addons(): void
+    {
+        [$owner, $menu, $paymentMethod] = $this->createBaseOwnerDataset();
+        $menuVariant = MenuVariant::create([
+            'menu_id' => $menu->id,
+            'name' => 'Mini',
+            'price' => 18000,
+            'is_available' => true,
+            'sort_order' => 1,
+        ]);
+
+        $addonCategory = MenuCategory::create([
+            'name' => 'Kategori Add On Test',
+            'is_addon' => true,
+        ]);
+
+        $addonMenu = Menu::create([
+            'category_id' => $addonCategory->id,
+            'name' => 'Extra Cheese Test',
+            'description' => null,
+            'image_path' => null,
+            'is_active' => true,
+            'sort_order' => 2,
+        ]);
+        $addonVariant = MenuVariant::create([
+            'menu_id' => $addonMenu->id,
+            'name' => 'Extra Cheese',
+            'price' => 3000,
+            'is_available' => true,
+            'sort_order' => 1,
+        ]);
+
+        $soldAt = now()->startOfDay()->addHours(10);
+        $this->createTransaction($owner, $menu, $paymentMethod, $soldAt, 18000, 20000, $menuVariant);
+        $this->createTransaction($owner, $addonMenu, $paymentMethod, $soldAt->copy()->addMinutes(5), 3000, 5000, $addonVariant);
+
+        $response = $this->actingAs($owner)->get(route('owner.analytics.menu', [
+            'type' => 'daily',
+            'date' => now()->toDateString(),
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Menu Test Mini');
+        $response->assertDontSee('Extra Cheese Test');
+    }
+
+    public function test_owner_menu_analysis_separates_sales_by_variant_name(): void
+    {
+        [$owner, $menu, $paymentMethod] = $this->createBaseOwnerDataset();
+
+        $mini = MenuVariant::create([
+            'menu_id' => $menu->id,
+            'name' => 'Mini',
+            'price' => 12000,
+            'is_available' => true,
+            'sort_order' => 1,
+        ]);
+
+        $jumbo = MenuVariant::create([
+            'menu_id' => $menu->id,
+            'name' => 'Jumbo',
+            'price' => 20000,
+            'is_available' => true,
+            'sort_order' => 2,
+        ]);
+
+        $soldAt = now()->startOfDay()->addHours(10);
+        $this->createTransaction($owner, $menu, $paymentMethod, $soldAt, 12000, 15000, $mini);
+        $this->createTransaction($owner, $menu, $paymentMethod, $soldAt->copy()->addMinutes(5), 20000, 25000, $jumbo);
+
+        $response = $this->actingAs($owner)->get(route('owner.analytics.menu', [
+            'type' => 'daily',
+            'date' => now()->toDateString(),
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Menu Test Mini');
+        $response->assertSee('Menu Test Jumbo');
+    }
+
     /**
      * @return array{0:User, 1:Menu, 2:PaymentMethod}
      */
@@ -146,7 +227,8 @@ class OwnerCriticalFlowTest extends TestCase
         PaymentMethod $paymentMethod,
         Carbon $createdAt,
         float $totalAmount,
-        float $paidAmount
+        float $paidAmount,
+        ?MenuVariant $variant = null
     ): Transaction {
         $transaction = Transaction::create([
             'transaction_code' => 'TRX-' . $createdAt->format('YmdHis') . '-' . random_int(100, 999),
@@ -166,6 +248,7 @@ class OwnerCriticalFlowTest extends TestCase
         $detail = TransactionDetail::create([
             'transaction_id' => $transaction->id,
             'menu_id' => $menu->id,
+            'menu_variant_id' => $variant?->id,
             'quantity' => 1,
             'price' => $totalAmount,
             'subtotal' => $totalAmount,

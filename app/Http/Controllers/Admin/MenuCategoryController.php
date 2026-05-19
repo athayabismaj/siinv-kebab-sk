@@ -28,13 +28,16 @@ class MenuCategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|max:100|unique:menu_categories,name',
+            'is_addon' => 'nullable|boolean',
         ]);
 
         MenuCategory::create([
-            'name' => $request->name
+            'name' => $request->name,
+            'is_addon' => $request->boolean('is_addon'),
         ]);
 
         AdminCache::bumpCatalog();
+        AdminCache::bumpTransactions();
 
         return redirect()
             ->route('admin.menu-categories.index')
@@ -50,13 +53,16 @@ class MenuCategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|max:100|unique:menu_categories,name,' . $menuCategory->id,
+            'is_addon' => 'nullable|boolean',
         ]);
 
         $menuCategory->update([
-            'name' => $request->name
+            'name' => $request->name,
+            'is_addon' => $request->boolean('is_addon'),
         ]);
 
         AdminCache::bumpCatalog();
+        AdminCache::bumpTransactions();
 
         return redirect()
             ->route('admin.menu-categories.index')
@@ -73,6 +79,7 @@ class MenuCategoryController extends Controller
 
         $menuCategory->delete();
         AdminCache::bumpCatalog();
+        AdminCache::bumpTransactions();
 
         return redirect()
             ->route('admin.menu-categories.index')

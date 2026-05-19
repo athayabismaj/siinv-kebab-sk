@@ -29,6 +29,22 @@
                     <p class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{{ $message }}</p>
                 @enderror
             </div>
+
+            <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                <input
+                    type="checkbox"
+                    name="is_addon"
+                    value="1"
+                    class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                    {{ old('is_addon', (bool) ($category->is_addon ?? false)) ? 'checked' : '' }}
+                >
+                <span>
+                    <span class="block text-sm font-semibold text-slate-800 dark:text-slate-200">Kategori Add On</span>
+                    <span class="mt-1 block text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                        Menu pada kategori ini tidak dihitung di halaman Analisis Menu.
+                    </span>
+                </span>
+            </label>
         </div>
 
         {{-- Footer Actions --}}

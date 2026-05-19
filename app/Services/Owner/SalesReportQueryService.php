@@ -157,13 +157,50 @@ class SalesReportQueryService
 
         return TransactionDetail::query()
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
-            ->leftJoin('menus', 'menus.id', '=', 'transaction_details.menu_id')
+            ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
+            ->leftJoin('menu_variants', 'menu_variants.id', '=', 'transaction_details.menu_variant_id')
+            ->leftJoin('menu_categories', 'menu_categories.id', '=', 'menus.category_id')
             ->whereBetween('transactions.created_at', [$startDateTime, $endDateTime])
-            ->selectRaw('transaction_details.menu_id, COALESCE(menus.name, ?) as menu_name, SUM(transaction_details.quantity) as total_qty, SUM(transaction_details.subtotal) as total_sales', ['Menu Terhapus'])
-            ->groupBy('transaction_details.menu_id', 'menus.name')
+            ->where(function ($query) {
+                $query->whereNull('menu_categories.id')
+                    ->orWhere('menu_categories.is_addon', false);
+            })
+            ->selectRaw('
+                menus.id as menu_id,
+                menus.name as base_menu_name,
+                menu_variants.id as menu_variant_id,
+                menu_variants.name as variant_name,
+                SUM(transaction_details.quantity) as total_qty,
+                SUM(transaction_details.subtotal) as total_sales
+            ')
+            ->groupBy('menus.id', 'menus.name', 'menu_variants.id', 'menu_variants.name')
             ->orderByDesc('total_qty')
             ->orderByDesc('total_sales')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->menu_name = $this->formatVariantLabel(
+                    (string) $item->base_menu_name,
+                    $item->variant_name === null ? null : (string) $item->variant_name
+                );
+
+                return $item;
+            });
+    }
+
+    private function formatVariantLabel(string $menuName, ?string $variantName): string
+    {
+        $menuName = trim($menuName);
+        $variantName = trim((string) $variantName);
+
+        if ($variantName === '') {
+            return $menuName;
+        }
+
+        if (str_starts_with(strtolower($variantName), strtolower($menuName))) {
+            return $variantName;
+        }
+
+        return trim($menuName . ' ' . $variantName);
     }
 
     private function toDateTimeRange(Carbon $start, Carbon $end): array

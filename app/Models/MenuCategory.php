@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class MenuCategory extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'is_addon'];
+
+    protected $casts = [
+        'is_addon' => 'boolean',
+    ];
 
     public function menus()
     {

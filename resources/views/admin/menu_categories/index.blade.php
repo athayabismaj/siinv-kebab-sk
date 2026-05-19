@@ -77,6 +77,7 @@
                 <thead class="hidden md:table-header-group text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                     <tr>
                         <th class="px-6 py-4">Nama Kategori</th>
+                        <th class="px-6 py-4 text-center">Tipe</th>
                         <th class="px-6 py-4 text-center">Jumlah Menu</th>
                         <th class="px-6 py-4 text-right">Aksi</th>
                     </tr>
@@ -87,6 +88,17 @@
                         <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
                             <td class="px-6 py-4">
                                 <p class="font-semibold text-slate-800 dark:text-white">{{ $category->name }}</p>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                @if($category->is_addon)
+                                    <span class="px-2.5 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-semibold rounded-md text-xs">
+                                        Add On
+                                    </span>
+                                @else
+                                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-semibold rounded-md text-xs">
+                                        Menu Utama
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded-md text-xs">
@@ -111,13 +123,16 @@
                         </tr>
 
                         <tr class="md:hidden">
-                            <td colspan="3" class="p-0">
+                            <td colspan="4" class="p-0">
                                 <div class="p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                                     <div class="flex justify-between items-start gap-3 mb-4">
-                                        <p class="font-bold text-slate-900 dark:text-white">{{ $category->name }}</p>
-                                        <span class="shrink-0 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded-md text-[11px] whitespace-nowrap">
-                                            {{ $category->menus_count }} Menu
-                                        </span>
+                                        <div>
+                                            <p class="font-bold text-slate-900 dark:text-white">{{ $category->name }}</p>
+                                            <span class="mt-2 inline-flex px-2.5 py-1 {{ $category->is_addon ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' }} font-semibold rounded-md text-[11px] whitespace-nowrap">
+                                                {{ $category->is_addon ? 'Add On' : 'Menu Utama' }}
+                                            </span>
+                                        </div>
+                                        <span class="shrink-0 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded-md text-[11px] whitespace-nowrap">{{ $category->menus_count }} Menu</span>
                                     </div>
                                     <div class="flex items-center justify-start gap-4 text-xs font-semibold mt-2 pt-4 border-t border-slate-100 dark:border-slate-800/50">
                                         <a href="{{ route('admin.menu-categories.edit', $category->id) }}" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -138,7 +153,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="px-6 py-16 text-center">
+                            <td colspan="4" class="px-6 py-16 text-center">
                                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-3 border border-slate-100 dark:border-slate-700">
                                     <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                 </div>
