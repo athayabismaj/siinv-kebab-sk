@@ -153,22 +153,27 @@ class StockController extends Controller
 
     public function restock(Request $request, Ingredient $ingredient)
     {
+        $validated = $request->validate([
+            'quantity' => 'required|numeric|min:0.01',
+            'input_unit' => 'nullable|string|in:pack,pcs',
+            'note' => 'nullable|string|max:255'
+        ]);
+
         try {
-            $request->validate([
-                'quantity' => 'required|numeric|min:0.01',
-                'note' => 'nullable|string|max:255'
-            ]);
+            $quantityInBaseUnit = $this->normalizeQuantityForIngredient(
+                $ingredient,
+                (float) $validated['quantity'],
+                $validated['input_unit'] ?? null
+            );
 
-            $quantityInBaseUnit = $this->normalizeQuantityForIngredient($ingredient, (float) $request->quantity);
-
-            DB::transaction(function () use ($request, $ingredient, $quantityInBaseUnit) {
+            DB::transaction(function () use ($validated, $ingredient, $quantityInBaseUnit) {
                 $ingredient->increment('stock', $quantityInBaseUnit);
 
                 StockLog::create([
                     'ingredient_id' => $ingredient->id,
                     'type' => 'in',
                     'quantity' => $quantityInBaseUnit,
-                    'note' => $request->note
+                    'note' => $validated['note'] ?? null
                 ]);
             });
 
@@ -199,13 +204,18 @@ class StockController extends Controller
 
     public function adjust(Request $request, Ingredient $ingredient)
     {
-        try {
-            $request->validate([
-                'new_stock' => 'required|numeric|min:0',
-                'note' => 'required|string|max:255'
-            ]);
+        $validated = $request->validate([
+            'new_stock' => 'required|numeric|min:0',
+            'input_unit' => 'nullable|string|in:pack,pcs',
+            'note' => 'required|string|max:255'
+        ]);
 
-            $newStockInBaseUnit = $this->normalizeQuantityForIngredient($ingredient, (float) $request->new_stock);
+        try {
+            $newStockInBaseUnit = $this->normalizeQuantityForIngredient(
+                $ingredient,
+                (float) $validated['new_stock'],
+                $validated['input_unit'] ?? null
+            );
 
             if (round($newStockInBaseUnit, 2) === round((float) $ingredient->stock, 2)) {
                 return back()
@@ -213,7 +223,7 @@ class StockController extends Controller
                     ->with('error', 'Stok baru sama dengan stok saat ini. Tidak ada perubahan yang disimpan.');
             }
 
-            DB::transaction(function () use ($request, $ingredient, $newStockInBaseUnit) {
+            DB::transaction(function () use ($validated, $ingredient, $newStockInBaseUnit) {
                 $difference = $newStockInBaseUnit - $ingredient->stock;
 
                 $ingredient->update([
@@ -224,7 +234,7 @@ class StockController extends Controller
                     'ingredient_id' => $ingredient->id,
                     'type' => 'adjustment',
                     'quantity' => $difference,
-                    'note' => $request->note
+                    'note' => $validated['note']
                 ]);
             });
 
@@ -446,9 +456,13 @@ class StockController extends Controller
         $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
     }
 
-    private function normalizeQuantityForIngredient(Ingredient $ingredient, float $value): float
+    private function normalizeQuantityForIngredient(Ingredient $ingredient, float $value, ?string $inputUnit = null): float
     {
         if ((string) $ingredient->display_unit === 'pcs') {
+            if ($inputUnit === 'pcs') {
+                return $value;
+            }
+
             return $value * max(1, (int) ($ingredient->pack_size ?? 1));
         }
 
@@ -491,5 +505,3 @@ class StockController extends Controller
         return $query;
     }
 }
-
-
