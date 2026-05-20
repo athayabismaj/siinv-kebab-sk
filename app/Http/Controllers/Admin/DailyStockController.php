@@ -186,7 +186,7 @@ class DailyStockController extends Controller
                 $query->where('category_id', $selectedCategoryId);
             })
             ->orderBy('name')
-            ->paginate(12)
+            ->paginate(20)
             ->withQueryString();
 
         $ingredients->getCollection()->transform(function (Ingredient $ingredient) {
@@ -300,52 +300,70 @@ class DailyStockController extends Controller
                 'required',
                 Rule::exists((new DailyStockSession())->getTable(), 'id'),
             ],
-            'ingredient_id' => [
-                'required',
-                Rule::exists((new Ingredient())->getTable(), 'id')->whereNull('deleted_at'),
-            ],
-            'quantity' => 'required|numeric|min:0.01',
-            'transfer_unit' => 'nullable|in:pack,pcs,g,kg,ml,l',
-            'note' => 'nullable|string|max:255',
+            'transfers' => 'nullable|array',
+            'transfers.*.quantity' => 'nullable|numeric|min:0',
+            'transfers.*.note' => 'nullable|string|max:255',
+            'transfers.*.transfer_unit' => 'nullable|in:pack,pcs,g,kg,ml,l',
         ], [
             'session_id.required' => 'Sesi stok harian belum dipilih.',
             'session_id.exists' => 'Sesi stok harian tidak ditemukan atau sudah tidak aktif.',
-            'ingredient_id.required' => 'Bahan belum dipilih.',
-            'ingredient_id.exists' => 'Bahan tidak ditemukan atau sudah diarsipkan.',
-            'quantity.required' => 'Jumlah transfer wajib diisi.',
-            'quantity.numeric' => 'Jumlah transfer harus berupa angka.',
-            'quantity.min' => 'Jumlah transfer minimal 0.01.',
-            'transfer_unit.in' => 'Satuan transfer tidak valid.',
+            'transfers.array' => 'Data transfer tidak valid.',
         ]);
 
         try {
             $session = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
             $this->authorize('transfer', $session);
 
-            $ingredient = Ingredient::query()->findOrFail((int) $validated['ingredient_id']);
-            $transferUnit = (string) ($validated['transfer_unit'] ?? 'pack');
-            $quantityBase = $this->normalizeQuantityForIngredient(
-                $ingredient,
-                (float) $validated['quantity'],
-                $transferUnit
-            );
+            $rawTransfers = $validated['transfers'] ?? [];
+            $batchTransfers = [];
+            
+            if (!empty($rawTransfers)) {
+                $ingredientIds = array_keys($rawTransfers);
+                $ingredients = Ingredient::query()->whereIn('id', $ingredientIds)->get()->keyBy('id');
+                
+                foreach ($rawTransfers as $ingredientId => $data) {
+                    $qty = (float) ($data['quantity'] ?? 0);
+                    if ($qty <= 0) {
+                        continue;
+                    }
+                    
+                    $ingredient = $ingredients->get($ingredientId);
+                    if (!$ingredient) {
+                        continue;
+                    }
+                    
+                    $transferUnit = (string) ($data['transfer_unit'] ?? 'pack');
+                    $quantityBase = $this->normalizeQuantityForIngredient(
+                        $ingredient,
+                        $qty,
+                        $transferUnit
+                    );
+                    
+                    $batchTransfers[$ingredient->id] = [
+                        'qty' => $quantityBase,
+                        'note' => $data['note'] ?? null,
+                    ];
+                }
+            }
 
-            $item = $this->dailyStockService->transferToDaily(
-                (int) $validated['session_id'],
-                (int) $validated['ingredient_id'],
-                $quantityBase,
-                (int) auth()->id(),
-                $validated['note'] ?? null
-            );
+            if (!empty($batchTransfers)) {
+                $this->dailyStockService->batchTransferToDaily(
+                    (int) $validated['session_id'],
+                    $batchTransfers,
+                    (int) auth()->id()
+                );
+                
+                return redirect()
+                    ->route('admin.daily-stocks.transfer.form', [
+                        'session_id' => $session->id,
+                        'search' => $request->query('search'),
+                        'category_id' => $request->query('category_id'),
+                        'page' => $request->query('page'),
+                    ])
+                    ->with('success', "Transfer batch stok harian berhasil disimpan.");
+            }
 
-            $session = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
-
-            return redirect()
-                ->route('admin.daily-stocks.transfer.form', [
-                    'session_id' => $session->id,
-                    'ingredient_id' => $item->ingredient_id,
-                ])
-                ->with('success', "Transfer stok harian untuk {$item->ingredient->name} berhasil.");
+            return back()->with('success', "Tidak ada bahan yang ditransfer (jumlah 0).");
         } catch (RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         } catch (\Throwable) {

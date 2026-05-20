@@ -185,6 +185,99 @@ class DailyStockService
     }
 
     /**
+     * @param array<int, array{qty: float, note: ?string}> $transfers  Key: ingredient_id, Value: array of qty (base unit) and note
+     */
+    public function batchTransferToDaily(
+        int $sessionId,
+        array $transfers,
+        int $actorId
+    ): DailyStockSession {
+        $session = DB::transaction(function () use ($sessionId, $transfers, $actorId) {
+            $session = DailyStockSession::query()
+                ->whereKey($sessionId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($session->status !== 'open') {
+                throw new RuntimeException('Sesi stok harian sudah ditutup, tidak bisa transfer.');
+            }
+
+            if (empty($transfers)) {
+                return $session; // Nothing to do
+            }
+
+            $ingredientIds = array_keys($transfers);
+            $ingredients = Ingredient::query()
+                ->whereIn('id', $ingredientIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            foreach ($transfers as $ingredientId => $data) {
+                $qty = $this->normalizeQuantity($data['qty'] ?? 0);
+                if ($qty <= 0) {
+                    continue; // Skip zero transfers
+                }
+
+                $ingredient = $ingredients->get($ingredientId);
+                if (!$ingredient) {
+                    throw new RuntimeException("Bahan dengan ID {$ingredientId} tidak ditemukan.");
+                }
+
+                if ((float) $ingredient->stock < $qty) {
+                    throw new RuntimeException("Stok gudang {$ingredient->name} tidak cukup (sisa " . (float)$ingredient->stock . ", diminta {$qty}).");
+                }
+
+                $ingredient->decrement('stock', $qty);
+
+                $item = DailyStockItem::query()
+                    ->where('daily_stock_session_id', $session->id)
+                    ->where('ingredient_id', $ingredient->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $note = $data['note'] ?? null;
+
+                if (! $item) {
+                    DailyStockItem::query()->create([
+                        'daily_stock_session_id' => $session->id,
+                        'ingredient_id' => $ingredient->id,
+                        'opening_qty' => $qty,
+                        'remaining_qty' => $qty,
+                        'used_qty' => 0,
+                        'returned_qty' => 0,
+                        'note' => $note,
+                    ]);
+                } else {
+                    $item->opening_qty = (float) $item->opening_qty + $qty;
+                    $item->remaining_qty = (float) $item->remaining_qty + $qty;
+                    if ($note !== null && trim($note) !== '') {
+                        $item->note = $note;
+                    }
+                    $item->save();
+                }
+
+                StockLog::query()->create([
+                    'ingredient_id' => $ingredient->id,
+                    'type' => 'transfer_daily',
+                    'quantity' => -$qty,
+                    'reference_id' => $session->id,
+                    'note' => $note ?: "Transfer batch stok harian sesi #{$session->id} oleh user #{$actorId}",
+                ]);
+            }
+
+            return $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']);
+        });
+
+        AdminCache::bumpDailyStock();
+        AdminCache::bumpDashboard();
+        AdminCache::bumpStock();
+        AdminCache::bumpCatalog();
+
+        return $session;
+    }
+
+    /**
      * @param array<int, float|int|string> $remainingByIngredient
      */
     public function closeSession(
