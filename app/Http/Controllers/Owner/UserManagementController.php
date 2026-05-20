@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
 {
@@ -16,7 +18,7 @@ class UserManagementController extends Controller
     {
         $users = User::query()
             ->with('role')
-            ->whereHas('role', fn ($q) => $q->whereIn('name', self::MANAGED_ROLE_NAMES))
+            ->whereHas('role', fn ($q) => $this->whereManagedRole($q))
             ->paginate(10);
 
         return view('owner.user_management.index', compact('users'));
@@ -31,7 +33,7 @@ class UserManagementController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate($this->storeRules());
+        $validated = $request->validate($this->storeRules(), $this->validationMessages());
         $roleId = (int) $validated['role_id'];
 
         $this->ensureRoleAssignable($roleId, 'Tidak diizinkan membuat role owner.');
@@ -55,7 +57,7 @@ class UserManagementController extends Controller
     {
         $this->ensureUserManageable($user);
 
-        $validated = $request->validate($this->updateRules($user));
+        $validated = $request->validate($this->updateRules($user), $this->validationMessages());
         $roleId = (int) $validated['role_id'];
 
         $this->ensureRoleAssignable($roleId, 'Tidak diizinkan mengubah menjadi owner.');
@@ -102,7 +104,7 @@ class UserManagementController extends Controller
     public function archive()
     {
         $users = User::onlyTrashed()
-            ->whereHas('role', fn ($q) => $q->whereIn('name', self::MANAGED_ROLE_NAMES))
+            ->whereHas('role', fn ($q) => $this->whereManagedRole($q))
             ->with('role')
             ->paginate(10);
 
@@ -166,14 +168,14 @@ class UserManagementController extends Controller
     {
         $role = Role::findOrFail($roleId);
 
-        if (! in_array((string) $role->name, self::MANAGED_ROLE_NAMES, true)) {
+        if (! in_array($this->normalizeRoleName($role->name), self::MANAGED_ROLE_NAMES, true)) {
             abort(403, $message);
         }
     }
 
     private function ensureUserManageable(User $user): void
     {
-        $roleName = (string) optional($user->role)->name;
+        $roleName = $this->normalizeRoleName(optional($user->role)->name);
 
         if (! in_array($roleName, self::MANAGED_ROLE_NAMES, true)) {
             abort(403);
@@ -183,7 +185,34 @@ class UserManagementController extends Controller
     private function managedRoles()
     {
         return Role::query()
-            ->whereIn('name', self::MANAGED_ROLE_NAMES)
+            ->whereIn(DB::raw('LOWER(TRIM(name))'), self::MANAGED_ROLE_NAMES)
+            ->orderByRaw("CASE LOWER(TRIM(name)) WHEN 'admin' THEN 1 WHEN 'kasir' THEN 2 ELSE 3 END")
             ->get();
+    }
+
+    private function whereManagedRole($query): void
+    {
+        $query->whereIn(DB::raw('LOWER(TRIM(name))'), self::MANAGED_ROLE_NAMES);
+    }
+
+    private function normalizeRoleName(?string $name): string
+    {
+        return Str::lower(trim((string) $name));
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'username.required' => 'Username wajib diisi.',
+            'username.unique' => 'Username sudah digunakan. Gunakan username lain atau cek arsip user.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah digunakan. Gunakan email lain atau cek arsip user.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 6 karakter.',
+            'role_id.required' => 'Role wajib dipilih.',
+            'role_id.exists' => 'Role yang dipilih tidak tersedia.',
+        ];
     }
 }

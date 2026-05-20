@@ -13,6 +13,17 @@
     </div>
 
     <div class="p-6 sm:px-8 sm:py-8">
+        @if($errors->any())
+            <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200">
+                <p class="font-bold">Data belum bisa disimpan.</p>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form method="POST" action="{{ $action }}">
             @csrf
             @if($method === 'PUT')
@@ -29,6 +40,9 @@
                         <input type="text" name="name" value="{{ old('name', $user->name ?? '') }}" required placeholder="Contoh: Budi Santoso"
                                class="flex-1 w-full border-none p-0 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 outline-none bg-white dark:bg-slate-900 dark:[color-scheme:dark]">
                     </div>
+                    @error('name')
+                        <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- USERNAME --}}
@@ -39,6 +53,9 @@
                         <input type="text" name="username" value="{{ old('username', $user->username ?? '') }}" required placeholder="Contoh: budi_s"
                                class="flex-1 w-full border-none p-0 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 outline-none bg-white dark:bg-slate-900 dark:[color-scheme:dark]">
                     </div>
+                    @error('username')
+                        <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- EMAIL --}}
@@ -49,6 +66,9 @@
                         <input type="email" name="email" value="{{ old('email', $user->email ?? '') }}" required placeholder="Contoh: budi@gmail.com"
                                class="flex-1 w-full border-none p-0 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 outline-none bg-white dark:bg-slate-900 dark:[color-scheme:dark]">
                     </div>
+                    @error('email')
+                        <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- ROLE --}}
@@ -65,6 +85,9 @@
                                 @endforeach
                             </select>
                         </div>
+                        @error('role_id')
+                            <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
+                        @enderror
                     </div>
                 @endif
 
@@ -84,6 +107,9 @@
                                 </svg>
                             </button>
                         </div>
+                        @error('password')
+                            <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
+                        @enderror
                     </div>
                 @endif
 
