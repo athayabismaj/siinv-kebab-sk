@@ -15,7 +15,7 @@ class SessionStatusController extends Controller
 
         // Query efisien: index-friendly, limit 1, tanpa eager load yang tidak perlu
         $session = DailyStockSession::where('cashier_id', $userId)
-            ->where('status', 'open')
+            ->whereRaw("LOWER(TRIM(status)) = 'open'")
             ->orderByDesc('created_at')
             ->first(['id', 'status', 'opened_at', 'session_date']);
 
