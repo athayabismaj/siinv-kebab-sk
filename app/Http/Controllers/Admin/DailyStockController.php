@@ -45,7 +45,7 @@ class DailyStockController extends Controller
 
         $cashiers = User::query()
             ->with('role:id,name')
-            ->whereHas('role', fn ($q) => $q->where('name', 'kasir'))
+            ->whereHas('role', fn ($q) => $q->whereRaw("LOWER(TRIM(name)) = 'kasir'"))
             ->orderBy('name')
             ->get(['id', 'name', 'role_id']);
 
@@ -132,6 +132,8 @@ class DailyStockController extends Controller
 
         return view('admin.daily_stocks.index', [
             'selectedDate' => $selectedDate,
+            'isSelectedPastDate' => $this->isPastSessionDate($selectedDate),
+            'isSelectedFutureDate' => $this->isFutureSessionDate($selectedDate),
             'cashiers' => $cashiers,
             'selectedCashierId' => $selectedCashierId,
             'session' => $session,
@@ -272,9 +274,22 @@ class DailyStockController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
+        $sessionDate = $this->resolveDate((string) $validated['date']);
+        if ($this->isPastSessionDate($sessionDate)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Sesi stok harian untuk tanggal yang sudah lewat tidak dapat dibuka.');
+        }
+
+        if ($this->isFutureSessionDate($sessionDate)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Sesi stok harian hanya dapat dibuka untuk hari ini.');
+        }
+
         try {
             $session = $this->dailyStockService->openSession(
-                $validated['date'],
+                $sessionDate,
                 (int) $validated['cashier_id'],
                 (int) auth()->id(),
                 $validated['notes'] ?? null
@@ -300,13 +315,14 @@ class DailyStockController extends Controller
                 'required',
                 Rule::exists((new DailyStockSession())->getTable(), 'id'),
             ],
-            'transfers' => 'nullable|array',
+            'transfers' => 'required|array',
             'transfers.*.quantity' => 'nullable|numeric|min:0',
             'transfers.*.note' => 'nullable|string|max:255',
             'transfers.*.transfer_unit' => 'nullable|in:pack,pcs,g,kg,ml,l',
         ], [
             'session_id.required' => 'Sesi stok harian belum dipilih.',
             'session_id.exists' => 'Sesi stok harian tidak ditemukan atau sudah tidak aktif.',
+            'transfers.required' => 'Pilih bahan dan isi jumlah transfer terlebih dahulu.',
             'transfers.array' => 'Data transfer tidak valid.',
         ]);
 
@@ -363,7 +379,9 @@ class DailyStockController extends Controller
                     ->with('success', "Transfer batch stok harian berhasil disimpan.");
             }
 
-            return back()->with('success', "Tidak ada bahan yang ditransfer (jumlah 0).");
+            return back()
+                ->withInput()
+                ->with('error', 'Isi jumlah transfer minimal pada satu bahan.');
         } catch (RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         } catch (\Throwable) {
@@ -432,6 +450,10 @@ class DailyStockController extends Controller
             $sessionModel = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
             $this->authorize('reopen', $sessionModel);
 
+            if ($this->isPastSessionDate($sessionModel->session_date)) {
+                return back()->with('error', 'Sesi stok harian tanggal yang sudah lewat tidak dapat dibuka kembali.');
+            }
+
             $session = $this->dailyStockService->reopenSession(
                 (int) $validated['session_id'],
                 (int) auth()->id(),
@@ -486,6 +508,24 @@ class DailyStockController extends Controller
         }
 
         return $parsed;
+    }
+
+    private function isPastSessionDate(Carbon|string $date): bool
+    {
+        $sessionDate = $date instanceof Carbon
+            ? $date->copy()->startOfDay()
+            : Carbon::parse($date)->startOfDay();
+
+        return $sessionDate->lt(now()->startOfDay());
+    }
+
+    private function isFutureSessionDate(Carbon|string $date): bool
+    {
+        $sessionDate = $date instanceof Carbon
+            ? $date->copy()->startOfDay()
+            : Carbon::parse($date)->startOfDay();
+
+        return $sessionDate->gt(now()->startOfDay());
     }
 
     private function summary(?DailyStockSession $session): array

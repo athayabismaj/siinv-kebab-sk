@@ -68,6 +68,7 @@
                             type="date"
                             name="date"
                             value="{{ $selectedDate->toDateString() }}"
+                            max="{{ $todayDate->toDateString() }}"
                             onchange="this.form.submit()"
                             class="h-[38px] w-full bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]"
                         >
@@ -158,20 +159,50 @@
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-4 border border-slate-100 dark:border-slate-700">
                 <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </div>
-            <p class="text-slate-500 dark:text-slate-400 text-[14px] font-medium max-w-md mb-6">
-                Belum ada sesi operasional untuk tanggal dan kasir ini.
-            </p>
-            
-            {{-- Tombol Buka Sesi di letakkan di tengah jika belum ada sesi --}}
-            <form method="POST" action="{{ route('admin.daily-stocks.open') }}">
-                @csrf
-                <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
-                <input type="hidden" name="cashier_id" value="{{ $selectedCashierId }}">
-                <button type="submit" class="h-11 px-8 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white text-[13px] font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-                    Buka Sesi Harian Baru
-                </button>
-            </form>
+            @if($isSelectedPastDate)
+                <p class="text-slate-500 dark:text-slate-400 text-[14px] font-medium max-w-md mb-4">
+                    Tidak ada sesi operasional yang tercatat pada tanggal ini.
+                </p>
+                <div class="inline-flex max-w-md items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-left shadow-sm dark:border-slate-700/70 dark:bg-slate-800/50 dark:shadow-none">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200 dark:bg-slate-900/80 dark:text-slate-300 dark:ring-slate-700">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"></path>
+                        </svg>
+                    </span>
+                    <p class="text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-300">
+                        Tanggal ini sudah lewat. Sesi tidak dapat dibuka mundur.
+                    </p>
+                </div>
+            @elseif($isSelectedFutureDate)
+                <p class="text-slate-500 dark:text-slate-400 text-[14px] font-medium max-w-md mb-4">
+                    Belum ada sesi operasional untuk tanggal ini.
+                </p>
+                <div class="inline-flex max-w-md items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-left shadow-sm dark:border-slate-700/70 dark:bg-slate-800/50 dark:shadow-none">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200 dark:bg-slate-900/80 dark:text-slate-300 dark:ring-slate-700">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-6 4h.01M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </span>
+                    <p class="text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-300">
+                        Sesi harian hanya dapat dibuka pada hari berjalan.
+                    </p>
+                </div>
+            @else
+                <p class="text-slate-500 dark:text-slate-400 text-[14px] font-medium max-w-md mb-6">
+                    Belum ada sesi operasional untuk tanggal dan kasir ini.
+                </p>
+
+                {{-- Tombol Buka Sesi di letakkan di tengah jika belum ada sesi --}}
+                <form method="POST" action="{{ route('admin.daily-stocks.open') }}">
+                    @csrf
+                    <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+                    <input type="hidden" name="cashier_id" value="{{ $selectedCashierId }}">
+                    <button type="submit" class="h-11 px-8 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white text-[13px] font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        Buka Sesi Harian Baru
+                    </button>
+                </form>
+            @endif
         </div>
     @else
         @php
@@ -315,7 +346,7 @@
                             </svg>
                             <span class="whitespace-nowrap">Tutup Sesi</span>
                         </a>
-                    @else
+                    @elseif(!$isSelectedPastDate)
                         {{-- Reopen Sesi --}}
                         <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="col-span-2 md:w-auto">
                             @csrf
@@ -327,6 +358,13 @@
                                 <span>Buka Kembali</span>
                             </button>
                         </form>
+                    @else
+                        <div class="col-span-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 text-[12px] font-bold text-slate-500 shadow-sm dark:border-slate-700/70 dark:bg-slate-800/50 dark:text-slate-300 dark:shadow-none md:w-auto">
+                            <svg class="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"></path>
+                            </svg>
+                            <span class="whitespace-nowrap">Sesi Dikunci</span>
+                        </div>
                     @endif
 
                     {{-- Reconcile Data --}}
@@ -466,4 +504,3 @@
 </div>
 
 @endsection
-

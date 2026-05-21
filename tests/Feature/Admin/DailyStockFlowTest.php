@@ -33,8 +33,12 @@ class DailyStockFlowTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
             'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 20,
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 20,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
         ])->assertRedirect();
 
         $ingredient->refresh();
@@ -73,8 +77,12 @@ class DailyStockFlowTest extends TestCase
             ]))
             ->post(route('admin.daily-stocks.transfer'), [
                 'session_id' => $session->id,
-                'ingredient_id' => $ingredient->id,
-                'quantity' => 50,
+                'transfers' => [
+                    $ingredient->id => [
+                        'quantity' => 50,
+                        'transfer_unit' => 'pcs',
+                    ],
+                ],
             ]);
 
         $response->assertRedirect();
@@ -84,6 +92,35 @@ class DailyStockFlowTest extends TestCase
         $this->assertSame(10.0, (float) $ingredient->stock);
         $this->assertDatabaseCount('daily_stock_items', 0);
         $this->assertDatabaseCount('stock_logs', 0);
+    }
+
+    public function test_transfer_requires_positive_batch_quantity(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset();
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.open'), [
+            'date' => now()->toDateString(),
+            'cashier_id' => $cashier->id,
+        ])->assertRedirect();
+
+        $session = DailyStockSession::query()->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.daily-stocks.transfer'), [
+                'session_id' => $session->id,
+                'transfers' => [
+                    $ingredient->id => [
+                        'quantity' => 0,
+                        'transfer_unit' => 'pcs',
+                    ],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $ingredient->refresh();
+        $this->assertSame(100.0, (float) $ingredient->stock);
+        $this->assertDatabaseCount('daily_stock_items', 0);
     }
 
     public function test_close_session_calculates_usage_correctly(): void
@@ -99,8 +136,12 @@ class DailyStockFlowTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
             'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 30,
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 30,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
         ])->assertRedirect();
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.close'), [
@@ -152,9 +193,12 @@ class DailyStockFlowTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
             'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 2,
-            'transfer_unit' => 'pack',
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 2,
+                    'transfer_unit' => 'pack',
+                ],
+            ],
         ])->assertRedirect();
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.close'), [
@@ -190,6 +234,95 @@ class DailyStockFlowTest extends TestCase
         ]);
     }
 
+    public function test_past_date_without_session_is_read_only_for_admin(): void
+    {
+        [$admin, $cashier] = $this->baseDailyStockDataset();
+        $pastDate = now()->subDay()->toDateString();
+
+        $this->actingAs($admin)
+            ->get(route('admin.daily-stocks.index', [
+                'date' => $pastDate,
+                'cashier_id' => $cashier->id,
+            ]))
+            ->assertOk()
+            ->assertSee('Tanggal ini sudah lewat.')
+            ->assertDontSee('Buka Sesi Harian Baru');
+    }
+
+    public function test_admin_cannot_open_past_daily_stock_session(): void
+    {
+        [$admin, $cashier] = $this->baseDailyStockDataset();
+        $pastDate = now()->subDay()->toDateString();
+
+        $this->actingAs($admin)
+            ->from(route('admin.daily-stocks.index', [
+                'date' => $pastDate,
+                'cashier_id' => $cashier->id,
+            ]))
+            ->post(route('admin.daily-stocks.open'), [
+                'date' => $pastDate,
+                'cashier_id' => $cashier->id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('daily_stock_sessions', [
+            'session_date' => $pastDate,
+            'cashier_id' => $cashier->id,
+        ]);
+    }
+
+    public function test_admin_cannot_open_future_daily_stock_session(): void
+    {
+        [$admin, $cashier] = $this->baseDailyStockDataset();
+        $futureDate = now()->addDay()->toDateString();
+
+        $this->actingAs($admin)
+            ->from(route('admin.daily-stocks.index', [
+                'date' => $futureDate,
+                'cashier_id' => $cashier->id,
+            ]))
+            ->post(route('admin.daily-stocks.open'), [
+                'date' => $futureDate,
+                'cashier_id' => $cashier->id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('daily_stock_sessions', [
+            'session_date' => $futureDate,
+            'cashier_id' => $cashier->id,
+        ]);
+    }
+
+    public function test_admin_cannot_reopen_past_daily_stock_session(): void
+    {
+        [$admin, $cashier] = $this->baseDailyStockDataset();
+
+        $session = DailyStockSession::query()->create([
+            'session_date' => now()->subDay()->toDateString(),
+            'cashier_id' => $cashier->id,
+            'opened_by' => $admin->id,
+            'closed_by' => $admin->id,
+            'status' => 'closed',
+            'opened_at' => now()->subDay(),
+            'closed_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.daily-stocks.index', [
+                'date' => $session->session_date->toDateString(),
+                'cashier_id' => $cashier->id,
+            ]))
+            ->post(route('admin.daily-stocks.reopen'), [
+                'session_id' => $session->id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame('closed', $session->refresh()->status);
+    }
+
     public function test_reopen_reconciles_used_qty_with_transaction_usage_logs(): void
     {
         [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 500);
@@ -203,9 +336,12 @@ class DailyStockFlowTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
             'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 200,
-            'transfer_unit' => 'pcs',
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 200,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
         ])->assertRedirect();
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.close'), [
@@ -276,9 +412,12 @@ class DailyStockFlowTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
             'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 0.2,
-            'transfer_unit' => 'l',
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 0.2,
+                    'transfer_unit' => 'l',
+                ],
+            ],
         ])->assertRedirect();
 
         $apiToken = $this->createApiTokenForUser($cashier);
@@ -321,8 +460,12 @@ class DailyStockFlowTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
             'session_id' => $session->id,
-            'ingredient_id' => $ingredient->id,
-            'quantity' => 100,
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 100,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
         ])->assertRedirect();
 
         DailyStockItem::query()->where('daily_stock_session_id', $session->id)->update([
