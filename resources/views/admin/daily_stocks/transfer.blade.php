@@ -45,7 +45,7 @@
     {{-- ================= HEADER & BREADCRUMB ================= --}}
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex-1 w-full overflow-hidden">
-            
+
             {{-- BREADCRUMB --}}
             <nav class="flex items-center gap-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 overflow-x-auto pb-1">
                 <a href="{{ route('admin.panel') }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
@@ -83,7 +83,7 @@
             <div>
                 <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Sesi Aktif #{{ $session->id }}</p>
                 <h2 class="font-extrabold text-slate-800 dark:text-white text-[16px] leading-tight mb-0.5">
-                    {{ $session->cashier->name ?? 'User Tidak Diketahui' }} 
+                    {{ $session->cashier->name ?? 'User Tidak Diketahui' }}
                 </h2>
                 <p class="text-xs font-medium text-slate-500">
                     {{ $session->session_date->translatedFormat('d F Y') }}
@@ -101,7 +101,7 @@
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden mb-6">
         <form method="GET" action="{{ route('admin.daily-stocks.transfer.form') }}" class="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800 relative z-10">
             <input type="hidden" name="session_id" value="{{ $session->id }}">
-            
+
             <div class="flex-1 relative flex items-center bg-transparent">
                 <svg class="w-4 h-4 text-slate-400 absolute left-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z"/></svg>
                 <input type="text"
@@ -149,7 +149,7 @@
             </div>
         </div>
 
-        <div class="p-6 bg-slate-50/30 dark:bg-slate-900">
+        <div class="p-4 sm:p-6 bg-slate-50/30 dark:bg-slate-900 overflow-x-hidden md:overflow-visible">
             @if($ingredients->isEmpty())
                 <div class="flex flex-col items-center justify-center text-center py-12">
                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 mb-4 border border-slate-200 dark:border-slate-700">
@@ -159,62 +159,166 @@
                     <p class="text-[13px] font-medium text-slate-500 dark:text-slate-400 max-w-md">Tidak ada bahan yang cocok dengan kata kunci pencarian atau filter yang Anda gunakan.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                            <tr class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                <th class="px-4 py-3 whitespace-nowrap">Bahan & Stok Gudang</th>
-                                <th class="px-4 py-3 whitespace-nowrap w-48">Satuan Transfer</th>
-                                <th class="px-4 py-3 whitespace-nowrap w-40">Jml Dibawa <span class="text-rose-500">*</span></th>
-                                <th class="px-4 py-3 whitespace-nowrap min-w-[200px]">Catatan (Opsional)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                            @foreach($ingredients as $ingredient)
-                                @php
-                                    $displayUnit = strtolower((string) $ingredient->display_unit);
-                                    $transferInputUnit = strtolower((string) $ingredient->transfer_input_unit);
-                                    $transferUnitOptions = $ingredient->transfer_unit_options ?? [$transferInputUnit => $transferInputUnit];
-                                    $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
-                                    $stockAvailable = (float) $ingredient->transfer_stock_value;
-                                    $defaultUnit = $displayUnit === 'pcs' ? 'pack' : $transferInputUnit;
-                                @endphp
-                                
-                                <tr x-data="{ unit: '{{ $defaultUnit }}' }" class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 focus-within:bg-blue-50/30 dark:focus-within:bg-blue-900/10 transition-colors">
-                                    {{-- Info Bahan --}}
-                                    <td class="px-4 py-3 align-top">
-                                        <p class="text-[13px] font-bold text-slate-800 dark:text-slate-200 leading-tight mb-1">{{ $ingredient->name }}</p>
-                                        <div class="flex items-center gap-1">
-                                            <span class="inline-flex h-5 items-center px-1.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] font-medium text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
-                                                Tersedia: <span class="font-bold ml-1 tabular-nums">{{ number_format($stockAvailable, 2, ',', '.') }}</span> <span class="ml-0.5 uppercase tracking-wider">{{ $ingredient->transfer_stock_unit }}</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    
-                                    {{-- Satuan Input --}}
-                                    <td class="px-4 py-3 align-top">
+                <!-- ALPINE ROOT FOR RESPONSIVE FORM SUBMISSION -->
+                <div x-data="{ isMobile: window.innerWidth < 768 }" @resize.window="isMobile = window.innerWidth < 768">
+
+                    <!-- ========================================== -->
+                    <!-- DESKTOP VIEW (PURE TABLE)                  -->
+                    <!-- ========================================== -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                <tr class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                    <th class="px-4 py-3 whitespace-nowrap">Bahan & Stok Gudang</th>
+                                    <th class="px-4 py-3 whitespace-nowrap w-48">Satuan Transfer</th>
+                                    <th class="px-4 py-3 whitespace-nowrap w-40">Jml Dibawa <span class="text-rose-500">*</span></th>
+                                    <th class="px-4 py-3 whitespace-nowrap min-w-[200px]">Catatan (Opsional)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                @foreach($ingredients as $ingredient)
+                                    @php
+                                        $displayUnit = strtolower((string) $ingredient->display_unit);
+                                        $transferInputUnit = strtolower((string) $ingredient->transfer_input_unit);
+                                        $transferUnitOptions = $ingredient->transfer_unit_options ?? [$transferInputUnit => $transferInputUnit];
+                                        $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
+                                        $stockAvailable = (float) $ingredient->transfer_stock_value;
+                                        $defaultUnit = $displayUnit === 'pcs' ? 'pack' : $transferInputUnit;
+                                    @endphp
+
+                                    <tr x-data="{ unit: '{{ $defaultUnit }}' }" class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 focus-within:bg-blue-50/30 dark:focus-within:bg-blue-900/10 transition-colors">
+                                        {{-- Info Bahan --}}
+                                        <td class="px-4 py-3 align-top">
+                                            <p class="text-[13px] font-bold text-slate-800 dark:text-slate-200 leading-tight mb-1">{{ $ingredient->name }}</p>
+                                            <div class="flex items-center gap-1">
+                                                <span class="inline-flex h-5 items-center px-1.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] font-medium text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
+                                                    Tersedia: <span class="font-bold ml-1 tabular-nums">{{ number_format($stockAvailable, 2, ',', '.') }}</span> <span class="ml-0.5 uppercase tracking-wider">{{ $ingredient->transfer_stock_unit }}</span>
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        {{-- Satuan Input --}}
+                                        <td class="px-4 py-3 align-top">
+                                            @if($displayUnit === 'pcs')
+                                                <div class="w-full">
+                                                    <div class="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-md w-full border border-slate-200 dark:border-slate-700">
+                                                        <label class="cursor-pointer flex-1 relative">
+                                                            <input type="radio" x-bind:disabled="isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="pack" class="peer sr-only" x-model="unit">
+                                                            <div class="flex items-center justify-center py-1.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md dark:text-slate-400 dark:peer-checked:bg-blue-600 dark:peer-checked:text-white transition-all duration-300">Pack</div>
+                                                        </label>
+                                                        <label class="cursor-pointer flex-1 relative">
+                                                            <input type="radio" x-bind:disabled="isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="pcs" class="peer sr-only" x-model="unit">
+                                                            <div class="flex items-center justify-center py-1.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md dark:text-slate-400 dark:peer-checked:bg-blue-600 dark:peer-checked:text-white transition-all duration-300">Pcs</div>
+                                                        </label>
+                                                    </div>
+                                                    @if($packSize > 1)
+                                                        <div class="text-center mt-1">
+                                                            <p class="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider">
+                                                                <i class="fa-solid fa-box-open mr-1 opacity-70"></i> 1 PACK = {{ $packSize }} PCS
+                                                            </p>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @elseif(count($transferUnitOptions) > 1)
+                                                <select x-bind:disabled="isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" x-model="unit" class="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+                                                    @foreach($transferUnitOptions as $unitValue => $unitLabel)
+                                                        <option value="{{ $unitValue }}" {{ $transferInputUnit === $unitValue ? 'selected' : '' }}>
+                                                            {{ $unitLabel }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            @else
+                                                <input type="hidden" x-bind:disabled="isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="{{ $transferInputUnit }}">
+                                                <span class="inline-flex h-8 items-center px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest w-full">
+                                                    {{ strtoupper($transferInputUnit) }}
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        {{-- Input Jumlah --}}
+                                        <td class="px-4 py-3 align-top">
+                                            <div class="relative w-full">
+                                                <input
+                                                    type="number"
+                                                    x-bind:disabled="isMobile"
+                                                    name="transfers[{{ $ingredient->id }}][quantity]"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="0"
+                                                    class="w-full h-8 pl-3 pr-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-[13px] font-bold text-slate-900 dark:text-white outline-none tabular-nums focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                                                >
+                                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest" x-text="unit"></span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {{-- Input Catatan --}}
+                                        <td class="px-4 py-3 align-top">
+                                            <input
+                                                type="text"
+                                                x-bind:disabled="isMobile"
+                                                name="transfers[{{ $ingredient->id }}][note]"
+                                                placeholder="Catatan..."
+                                                class="w-full h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-[12px] text-slate-700 dark:text-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-800 transition-all"
+                                            />
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- MOBILE VIEW (CARDS)                        -->
+                    <!-- ========================================== -->
+                    <div class="md:hidden space-y-4">
+                        @foreach($ingredients as $ingredient)
+                            @php
+                                $displayUnit = strtolower((string) $ingredient->display_unit);
+                                $transferInputUnit = strtolower((string) $ingredient->transfer_input_unit);
+                                $transferUnitOptions = $ingredient->transfer_unit_options ?? [$transferInputUnit => $transferInputUnit];
+                                $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
+                                $stockAvailable = (float) $ingredient->transfer_stock_value;
+                                $defaultUnit = $displayUnit === 'pcs' ? 'pack' : $transferInputUnit;
+                            @endphp
+
+                            <div x-data="{ unit: '{{ $defaultUnit }}' }" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                                {{-- Header Card --}}
+                                <div class="px-4 py-3 bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-700/50">
+                                    <p class="text-[14px] font-bold text-slate-800 dark:text-slate-200 leading-tight mb-1.5 break-words whitespace-normal">{{ $ingredient->name }}</p>
+                                    <span class="inline-flex h-5 items-center px-1.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] font-medium text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
+                                        Tersedia: <span class="font-bold ml-1 tabular-nums">{{ number_format($stockAvailable, 2, ',', '.') }}</span> <span class="ml-0.5 uppercase tracking-wider">{{ $ingredient->transfer_stock_unit }}</span>
+                                    </span>
+                                </div>
+
+                                {{-- Body Card --}}
+                                <div class="p-4 space-y-4">
+                                    {{-- Satuan --}}
+                                    <div>
+                                        <div class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-1.5 tracking-widest">Satuan Transfer</div>
                                         @if($displayUnit === 'pcs')
                                             <div class="w-full">
                                                 <div class="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-md w-full border border-slate-200 dark:border-slate-700">
                                                     <label class="cursor-pointer flex-1 relative">
-                                                        <input type="radio" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="pack" class="peer sr-only" x-model="unit">
-                                                        <div class="flex items-center justify-center py-1.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md dark:text-slate-400 dark:peer-checked:bg-blue-600 dark:peer-checked:text-white transition-all duration-300">Pack</div>
+                                                        <input type="radio" x-bind:disabled="!isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="pack" class="peer sr-only" x-model="unit">
+                                                        <div class="flex items-center justify-center py-2 rounded text-[11px] font-bold uppercase tracking-widest text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md dark:text-slate-400 dark:peer-checked:bg-blue-600 dark:peer-checked:text-white transition-all duration-300">Pack</div>
                                                     </label>
                                                     <label class="cursor-pointer flex-1 relative">
-                                                        <input type="radio" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="pcs" class="peer sr-only" x-model="unit">
-                                                        <div class="flex items-center justify-center py-1.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md dark:text-slate-400 dark:peer-checked:bg-blue-600 dark:peer-checked:text-white transition-all duration-300">Pcs</div>
+                                                        <input type="radio" x-bind:disabled="!isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="pcs" class="peer sr-only" x-model="unit">
+                                                        <div class="flex items-center justify-center py-2 rounded text-[11px] font-bold uppercase tracking-widest text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md dark:text-slate-400 dark:peer-checked:bg-blue-600 dark:peer-checked:text-white transition-all duration-300">Pcs</div>
                                                     </label>
                                                 </div>
                                                 @if($packSize > 1)
-                                                    <div class="text-center mt-1">
-                                                        <p class="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider">
-                                                            1 PACK = {{ $packSize }} PCS
+                                                    <div class="text-center mt-1.5">
+                                                        <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider">
+                                                            <i class="fa-solid fa-box-open mr-1 opacity-70"></i> 1 PACK = {{ $packSize }} PCS
                                                         </p>
                                                     </div>
                                                 @endif
                                             </div>
                                         @elseif(count($transferUnitOptions) > 1)
-                                            <select name="transfers[{{ $ingredient->id }}][transfer_unit]" x-model="unit" class="w-full h-8 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+                                            <select x-bind:disabled="!isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" x-model="unit" class="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-[12px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
                                                 @foreach($transferUnitOptions as $unitValue => $unitLabel)
                                                     <option value="{{ $unitValue }}" {{ $transferInputUnit === $unitValue ? 'selected' : '' }}>
                                                         {{ $unitLabel }}
@@ -222,43 +326,47 @@
                                                 @endforeach
                                             </select>
                                         @else
-                                            <input type="hidden" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="{{ $transferInputUnit }}">
-                                            <span class="inline-flex h-8 items-center px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest w-full">
+                                            <input type="hidden" x-bind:disabled="!isMobile" name="transfers[{{ $ingredient->id }}][transfer_unit]" value="{{ $transferInputUnit }}">
+                                            <span class="inline-flex h-9 items-center px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest w-full">
                                                 {{ strtoupper($transferInputUnit) }}
                                             </span>
                                         @endif
-                                    </td>
+                                    </div>
 
-                                    {{-- Input Jumlah --}}
-                                    <td class="px-4 py-3 align-top">
+                                    {{-- Jumlah --}}
+                                    <div>
+                                        <div class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-1.5 tracking-widest">Jumlah Dibawa <span class="text-rose-500">*</span></div>
                                         <div class="relative w-full">
                                             <input
                                                 type="number"
+                                                x-bind:disabled="!isMobile"
                                                 name="transfers[{{ $ingredient->id }}][quantity]"
                                                 min="0"
                                                 step="0.01"
                                                 placeholder="0"
-                                                class="w-full h-8 pl-3 pr-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-[13px] font-bold text-slate-900 dark:text-white outline-none tabular-nums focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                                                class="w-full h-9 pl-3 pr-14 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white outline-none tabular-nums focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
                                             >
                                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest" x-text="unit"></span>
+                                                <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest" x-text="unit"></span>
                                             </div>
                                         </div>
-                                    </td>
+                                    </div>
 
-                                    {{-- Input Catatan --}}
-                                    <td class="px-4 py-3 align-top">
+                                    {{-- Catatan --}}
+                                    <div>
+                                        <div class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-1.5 tracking-widest">Catatan (Opsional)</div>
                                         <input
                                             type="text"
+                                            x-bind:disabled="!isMobile"
                                             name="transfers[{{ $ingredient->id }}][note]"
                                             placeholder="Catatan..."
-                                            class="w-full h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-[12px] text-slate-700 dark:text-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-800 transition-all"
-                                        >
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                            class="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-[13px] text-slate-700 dark:text-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-slate-800 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
         </div>
