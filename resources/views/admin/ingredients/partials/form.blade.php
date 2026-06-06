@@ -37,30 +37,73 @@
 @endphp
 
 <div class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-    
-    <form method="POST" action="{{ $action }}" 
-          x-data="{ 
+
+    <form method="POST" action="{{ $action }}"
+          x-data="{
               submitting: false,
               unit: '{{ $selectedUnit }}',
               initialUnit: '{{ $selectedUnit }}',
               packSize: {{ $packSize }},
               stock: '{{ $displayStock ?? '' }}',
               minStock: '{{ $displayMinimum ?? '' }}',
-              sellingPrice: {{ old('selling_price', isset($ingredient) ? (int) $ingredient->selling_price : 0) }},
+              actualCostPrice: '{{ old('cost_price', isset($ingredient) && $ingredient->cost_price > 0 ? (float) $ingredient->cost_price : '') }}',
+              actualSellingPrice: '{{ old('selling_price', isset($ingredient) && $ingredient->selling_price > 0 ? (float) $ingredient->selling_price : '') }}',
+
+              priceMode: 'pack',
+
+              inputCostPrice: '{{ old('cost_price', isset($ingredient) && $ingredient->cost_price > 0 ? (float) $ingredient->cost_price : '') }}',
+              inputSellingPrice: '{{ old('selling_price', isset($ingredient) && $ingredient->selling_price > 0 ? (float) $ingredient->selling_price : '') }}',
+
               unitChanged: false,
               get showPriceWarning() {
-                  return this.unitChanged && this.sellingPrice > 0;
+                  return this.unitChanged && this.actualSellingPrice > 0;
+              },
+
+              updateActualPrices() {
+                  let cPrice = parseFloat(this.inputCostPrice) || 0;
+                  let sPrice = parseFloat(this.inputSellingPrice) || 0;
+                  let pSize = parseInt(this.packSize) || 1;
+
+                  if (this.unit === 'pcs' && this.priceMode === 'pcs') {
+                      this.actualCostPrice = Math.round(cPrice * pSize);
+                      this.actualSellingPrice = Math.round(sPrice * pSize);
+                  } else {
+                      this.actualCostPrice = cPrice;
+                      this.actualSellingPrice = sPrice;
+                  }
+              },
+
+              togglePriceMode(mode) {
+                  this.priceMode = mode;
+                  if (mode === 'pcs' && this.unit === 'pcs') {
+                      let pSize = parseInt(this.packSize) || 1;
+                      this.inputCostPrice = pSize > 0 ? Math.round(this.actualCostPrice / pSize) : this.actualCostPrice;
+                      this.inputSellingPrice = pSize > 0 ? Math.round(this.actualSellingPrice / pSize) : this.actualSellingPrice;
+                  } else {
+                      this.inputCostPrice = this.actualCostPrice;
+                      this.inputSellingPrice = this.actualSellingPrice;
+                  }
+              },
+
+              init() {
+                  this.$watch('inputCostPrice', () => this.updateActualPrices());
+                  this.$watch('inputSellingPrice', () => this.updateActualPrices());
+                  this.$watch('packSize', () => {
+                      if(this.unit === 'pcs' && this.priceMode === 'pcs') {
+                          this.updateActualPrices();
+                      }
+                  });
               }
-          }" 
+          }"
           @submit="submitting = true">
-        
+
         @csrf
         @if($method === 'PUT')
             @method('PUT')
         @endif
 
         <div class="p-6 md:p-8 space-y-10">
-            
+
             {{-- ================= 1. INFORMASI DASAR ================= --}}
             <div class="space-y-6">
                 <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -101,17 +144,70 @@
                         @enderror
                     </div>
 
+                    <!-- TOGGLE MODE HARGA -->
+                    <div class="col-span-1 md:col-span-2" x-show="unit === 'pcs'" x-transition x-cloak>
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 sm:p-5 rounded-2xl border border-blue-100/50 dark:border-blue-800/30">
+
+                            <div class="flex items-center gap-4 sm:gap-5">
+                                <div class="flex aspect-square h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-inner">
+                                    <i class="fa-solid fa-tags text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <div class="text-[13px] font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wide">
+                                        Mode Input Harga
+                                    </div>
+                                    <div class="text-[11px] text-blue-700/80 dark:text-blue-300/80 leading-relaxed font-medium">
+                                        Pilih cara termudah untuk menginput harga. Sistem akan otomatis<br class="hidden sm:block">mengonversi dan menyimpan harga total per Pack di database.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex w-full lg:w-auto bg-white/80 dark:bg-slate-900/80 p-1.5 rounded-xl border border-blue-200/50 dark:border-blue-700/50 shadow-sm backdrop-blur-md">
+                                <button type="button"
+                                        @click="togglePriceMode('pack')"
+                                        :class="priceMode === 'pack' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300'"
+                                        class="flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-xs font-bold transition-all text-center">
+                                    Per Pack
+                                </button>
+                                <button type="button"
+                                        @click="togglePriceMode('pcs')"
+                                        :class="priceMode === 'pcs' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300'"
+                                        class="flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-xs font-bold transition-all text-center">
+                                    Per Pcs
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
                             Harga Modal (Rp) <span class="text-slate-500 font-normal">(Opsional)</span>
                         </label>
+                        <input type="hidden" name="cost_price" x-bind:value="actualCostPrice">
                         <input type="number"
-                               name="cost_price"
-                               value="{{ old('cost_price', isset($ingredient) ? (int) $ingredient->cost_price : 0) }}"
-                               placeholder="0"
+                               x-model="inputCostPrice"
+                               :placeholder="unit === 'pcs' ? (priceMode === 'pcs' ? 'Harga modal per 1 pcs...' : 'Harga modal per 1 pack...') : '0'"
                                min="0" step="1"
                                class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
-                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Harga dasar pembelian bahan baku per satuan.</p>
+
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" x-show="unit !== 'pcs'">Harga dasar pembelian bahan baku per satuan.</p>
+                        <p class="mt-1.5 text-xs font-medium" :class="actualCostPrice > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'" x-show="unit === 'pcs'" x-cloak>
+                            <span x-show="priceMode === 'pcs'">
+                                <span x-show="!actualCostPrice"><i class="fa-solid fa-circle-info mr-1 opacity-70"></i>Masukkan harga modal untuk 1 pcs.</span>
+                                <span x-show="actualCostPrice > 0">Tersimpan di sistem: <span class="font-bold" x-text="'Rp ' + Number(actualCostPrice).toLocaleString('id-ID') + ' / pack'"></span></span>
+                            </span>
+                            <span x-show="priceMode === 'pack'">
+                                <span x-show="!actualCostPrice"><i class="fa-solid fa-circle-info mr-1 opacity-70"></i>Masukkan total harga modal untuk 1 pack utuh.</span>
+                                <span x-show="actualCostPrice > 0">
+                                    Tersimpan di sistem: <span class="font-bold" x-text="'Rp ' + Number(actualCostPrice).toLocaleString('id-ID') + ' / pack'"></span>
+                                    <span x-show="(packSize || 1) > 1" class="font-normal text-slate-500 dark:text-slate-400 ml-1">
+                                        (Jatuhnya <span class="font-bold text-blue-600 dark:text-blue-400" x-text="'Rp ' + Number(Math.round(actualCostPrice / (packSize || 1))).toLocaleString('id-ID') + ' / pcs'"></span>)
+                                    </span>
+                                </span>
+                            </span>
+                        </p>
+
                         @error('cost_price')
                             <p class="text-rose-500 text-xs font-medium mt-1.5">{{ $message }}</p>
                         @enderror
@@ -121,22 +217,37 @@
                         <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
                             Harga Jual (Rp) <span class="text-slate-500 font-normal">(Opsional)</span>
                         </label>
+                        <input type="hidden" name="selling_price" x-bind:value="actualSellingPrice">
                         <input type="number"
-                               name="selling_price"
-                               x-model="sellingPrice"
+                               x-model="inputSellingPrice"
                                @input="unitChanged = false"
-                               value="{{ old('selling_price', isset($ingredient) ? (int) $ingredient->selling_price : 0) }}"
-                               placeholder="0"
+                               :placeholder="unit === 'pcs' ? (priceMode === 'pcs' ? 'Harga jual per 1 pcs...' : 'Harga jual per 1 pack...') : '0'"
                                min="0" step="1"
                                class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
-                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" x-text="
+
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" x-show="unit !== 'pcs'" x-text="
                             unit === 'kg'  ? 'Harga per Kilogram (kg). Contoh: 20000 = Rp 20.000 / kg.' :
                             unit === 'l'   ? 'Harga per Liter (l). Contoh: 15000 = Rp 15.000 / liter.' :
                             unit === 'g'   ? 'Harga per Gram (g). Contoh: 20 = Rp 20 / gram.' :
                             unit === 'ml'  ? 'Harga per Mililiter (ml). Contoh: 15 = Rp 15 / ml.' :
-                            unit === 'pcs' ? 'Harga per Pack. Contoh: 6000 = Rp 6.000 / pack.' :
                             'Isi 0 jika bahan tidak dijual secara terpisah.'
                         "></p>
+                        <p class="mt-1.5 text-xs font-medium" :class="actualSellingPrice > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'" x-show="unit === 'pcs'" x-cloak>
+                            <span x-show="priceMode === 'pcs'">
+                                <span x-show="!actualSellingPrice"><i class="fa-solid fa-circle-info mr-1 opacity-70"></i>Masukkan harga jual untuk 1 pcs.</span>
+                                <span x-show="actualSellingPrice > 0">Tersimpan di sistem: <span class="font-bold" x-text="'Rp ' + Number(actualSellingPrice).toLocaleString('id-ID') + ' / pack'"></span></span>
+                            </span>
+                            <span x-show="priceMode === 'pack'">
+                                <span x-show="!actualSellingPrice"><i class="fa-solid fa-circle-info mr-1 opacity-70"></i>Masukkan total harga jual untuk 1 pack utuh.</span>
+                                <span x-show="actualSellingPrice > 0">
+                                    Tersimpan di sistem: <span class="font-bold" x-text="'Rp ' + Number(actualSellingPrice).toLocaleString('id-ID') + ' / pack'"></span>
+                                    <span x-show="(packSize || 1) > 1" class="font-normal text-slate-500 dark:text-slate-400 ml-1">
+                                        (Jatuhnya <span class="font-bold text-blue-600 dark:text-blue-400" x-text="'Rp ' + Number(Math.round(actualSellingPrice / (packSize || 1))).toLocaleString('id-ID') + ' / pcs'"></span>)
+                                    </span>
+                                </span>
+                            </span>
+                        </p>
+
                         @error('selling_price')
                             <p class="text-rose-500 text-xs font-medium mt-1.5">{{ $message }}</p>
                         @enderror
@@ -151,7 +262,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-                    
+
                     <div>
                         <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
                             Jenis Satuan <span class="text-rose-500">*</span>
@@ -221,7 +332,7 @@
                                placeholder="0.00"
                                required
                                class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
-                        
+
                         <template x-if="unit === 'pcs' && stock !== ''">
                             <p class="mt-1.5 text-[11px] font-semibold text-slate-500" x-transition>
                                 Tersimpan di sistem: <span class="text-slate-700 dark:text-slate-300" x-text="(Number(stock) * Number(packSize)).toLocaleString('id-ID') + ' pcs'"></span>
@@ -243,7 +354,7 @@
                                placeholder="0.00"
                                required
                                class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm">
-                        
+
                         <template x-if="unit === 'pcs' && minStock !== ''">
                             <p class="mt-1.5 text-[11px] font-semibold text-slate-500" x-transition>
                                 Peringatan jika stok dibawah: <span class="text-slate-700 dark:text-slate-300" x-text="(Number(minStock) * Number(packSize)).toLocaleString('id-ID') + ' pcs'"></span>
@@ -260,7 +371,7 @@
 
         {{-- ================= ACTION BUTTONS ================= --}}
         <div class="flex flex-col-reverse gap-3 px-6 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-end">
-            
+
             <a href="{{ route('admin.ingredients.index') }}"
                class="inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700">
                 Batal

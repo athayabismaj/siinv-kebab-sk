@@ -163,7 +163,7 @@ class IngredientController extends Controller
             'pack_size' => 'required|integer|min:1',
             'stock' => 'required|numeric|min:0',
             'minimum_stock' => 'required|numeric|min:0',
-            'selling_price' => 'required|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
         ];
     }
@@ -181,7 +181,7 @@ class IngredientController extends Controller
             'pack_size' => $packSize,
             'stock' => $this->normalizeStockInput($displayUnit, (float) $validated['stock'], $packSize),
             'minimum_stock' => $this->normalizeStockInput($displayUnit, (float) $validated['minimum_stock'], $packSize),
-            'selling_price' => (float) $validated['selling_price'],
+            'selling_price' => isset($validated['selling_price']) ? (float) $validated['selling_price'] : 0,
             'cost_price' => isset($validated['cost_price']) ? (float) $validated['cost_price'] : 0,
         ];
     }
