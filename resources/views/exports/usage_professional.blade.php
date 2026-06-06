@@ -1,33 +1,17 @@
+@php
+    $reportTitle = 'LAPORAN PEMAKAIAN BAHAN';
+    $metaRows = [
+        ['Total Bahan Terpakai', number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') . ' Jenis Bahan', 'Jumlah Pemakaian', number_format($summary['logs_count'] ?? 0, 0, ',', '.') . ' Transaksi'],
+    ];
+    $excelMetaRows = [
+        ['Total Bahan Terpakai', number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') . ' Jenis Bahan'],
+        ['Jumlah Pemakaian', number_format($summary['logs_count'] ?? 0, 0, ',', '.') . ' Transaksi'],
+    ];
+@endphp
+
 @if(isset($isExcel) && $isExcel)
     <table>
-        <tr>
-            <td colspan="5" style="text-align: center; font-weight: bold; font-size: 16px;">LAPORAN PEMAKAIAN BAHAN</td>
-        </tr>
-        <tr>
-            <td colspan="5" style="text-align: center;">Kebab SK</td>
-        </tr>
-        <tr>
-            <td colspan="5"></td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Periode Data</td>
-            <td colspan="4">: {{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Mode Periode</td>
-            <td colspan="4">: {{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Total Bahan Terpakai</td>
-            <td colspan="4">: {{ number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') }} Jenis Bahan</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Jumlah Pemakaian</td>
-            <td colspan="4">: {{ number_format($summary['logs_count'] ?? 0, 0, ',', '.') }} Transaksi</td>
-        </tr>
-        <tr>
-            <td colspan="6"></td>
-        </tr>
+        @include('exports.partials.report_header_excel', ['columns' => 5])
         <tr>
             <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">No</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Nama Bahan</th>
@@ -74,36 +58,7 @@
 <body>
 
     {{-- HEADER --}}
-    <div style="text-align: center; margin-bottom: 12px;">
-        <div style="font-size: 20px; font-weight: bold; color: #111; text-transform: uppercase; letter-spacing: 2px;">LAPORAN PEMAKAIAN BAHAN</div>
-        <div style="font-size: 11px; color: #666; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;">Kebab SK</div>
-    </div>
-    <div style="border-top: 2px solid #111; margin-bottom: 2px;"></div>
-    <div style="border-top: 1px solid #111; margin-bottom: 14px;"></div>
-
-    {{-- META INFO --}}
-    <table style="width: 100%; margin-bottom: 16px;">
-        <tr>
-            <td style="width: 140px; color: #555; padding: 2.5px 0;">Periode Data</td>
-            <td style="width: 8px;  color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Mode Periode</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Total Bahan Terpakai</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') }} Jenis Bahan</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Jumlah Pemakaian</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ number_format($summary['logs_count'] ?? 0, 0, ',', '.') }} Transaksi</td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- DATA TABLE --}}
     <table style="width: 100%;">
@@ -161,4 +116,3 @@
 </body>
 </html>
 @endif
-

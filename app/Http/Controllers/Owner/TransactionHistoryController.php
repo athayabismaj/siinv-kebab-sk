@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
 use App\Services\Shared\PeriodFilterService;
 use App\Support\AdminCache;
+use App\Support\ReportBrand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -114,6 +115,8 @@ class TransactionHistoryController extends Controller
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
+            'logoDataUri' => ReportBrand::logoDataUri(),
+            'logoPath' => ReportBrand::logoPath(),
             'isExcel' => $format === 'excel',
         ];
 
@@ -174,4 +177,3 @@ class TransactionHistoryController extends Controller
     }
 
 }
-

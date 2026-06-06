@@ -1,21 +1,22 @@
+@php
+    $reportTitle = 'LAPORAN RIWAYAT PERUBAHAN STOK BAHAN BAKU';
+    $metaRows = [
+        ['Filter Log', $typeLabel, 'Total Log', number_format($summary['total'] ?? 0, 0, ',', '.')],
+    ];
+    $excelMetaRows = [
+        ['Filter Log', $typeLabel],
+        ['Total Log', number_format($summary['total'] ?? 0, 0, ',', '.')],
+    ];
+@endphp
+
 @if(isset($isExcel) && $isExcel)
     <table>
-        <tr>
-            <td colspan="7" style="text-align: center; font-weight: bold; font-size: 16px;">RIWAYAT PERUBAHAN STOK</td>
-        </tr>
-        <tr>
-            <td colspan="7" style="text-align: center;">Kebab SK</td>
-        </tr>
-        <tr><td colspan="7"></td></tr>
-        <tr><td style="font-weight: bold;">Periode Data</td><td colspan="6">: {{ $periode }}</td></tr>
-        <tr><td style="font-weight: bold;">Mode Periode</td><td colspan="6">: {{ $periodLabel }}</td></tr>
-        <tr><td style="font-weight: bold;">Filter Tipe</td><td colspan="6">: {{ $typeLabel }}</td></tr>
-        <tr><td colspan="7"></td></tr>
+        @include('exports.partials.report_header_excel', ['columns' => 7])
         <tr>
             <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">No</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Waktu</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Bahan Baku</th>
-            <th style="font-weight: bold; border: 1px solid #000000;">Tipe</th>
+            <th style="font-weight: bold; border: 1px solid #000000;">Jenis Mutasi</th>
             <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Jumlah</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Sumber</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Catatan</th>
@@ -54,19 +55,7 @@
     </style>
 </head>
 <body>
-    <div style="text-align: center; margin-bottom: 12px;">
-        <div style="font-size: 20px; font-weight: bold; color: #111; text-transform: uppercase; letter-spacing: 2px;">RIWAYAT PERUBAHAN STOK</div>
-        <div style="font-size: 11px; color: #666; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;">Kebab SK</div>
-    </div>
-    <div style="border-top: 2px solid #111; margin-bottom: 2px;"></div>
-    <div style="border-top: 1px solid #111; margin-bottom: 14px;"></div>
-
-    <table style="width: 100%; margin-bottom: 16px;">
-        <tr><td style="width:140px; color:#555; padding:2.5px 0;">Periode Data</td><td style="width:8px; color:#555; padding:2.5px 0;">:</td><td style="color:#222; padding:2.5px 0;">{{ $periode }}</td></tr>
-        <tr><td style="color:#555; padding:2.5px 0;">Mode Periode</td><td style="color:#555; padding:2.5px 0;">:</td><td style="color:#222; padding:2.5px 0;">{{ $periodLabel }}</td></tr>
-        <tr><td style="color:#555; padding:2.5px 0;">Filter Tipe</td><td style="color:#555; padding:2.5px 0;">:</td><td style="color:#222; padding:2.5px 0;">{{ $typeLabel }}</td></tr>
-        <tr><td style="color:#555; padding:2.5px 0;">Total Log</td><td style="color:#555; padding:2.5px 0;">:</td><td style="color:#222; padding:2.5px 0;">{{ number_format($summary['total'] ?? 0, 0, ',', '.') }}</td></tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     <table style="width: 100%;">
         <thead>
@@ -74,7 +63,7 @@
                 <th style="width:5%; padding:8px 10px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">No</th>
                 <th style="width:16%; padding:8px 10px; text-align:left; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Waktu</th>
                 <th style="width:18%; padding:8px 10px; text-align:left; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Bahan Baku</th>
-                <th style="width:16%; padding:8px 10px; text-align:left; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Tipe</th>
+                <th style="width:16%; padding:8px 10px; text-align:left; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Jenis Mutasi</th>
                 <th style="width:16%; padding:8px 10px; text-align:right; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Jumlah</th>
                 <th style="width:14%; padding:8px 10px; text-align:left; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Sumber</th>
                 <th style="width:15%; padding:8px 10px; text-align:left; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333;">Catatan</th>
@@ -110,10 +99,10 @@
     <table style="width:100%; margin-top:16px; border-top:1px solid #ddd;">
         <tr>
             <td style="padding-top:8px; font-size:9.5px; color:#999;">
-                Dicetak oleh: <strong style="color:#555;">{{ auth()->user() ? auth()->user()->name : 'Sistem' }}</strong>
+                Kebab SK - Laporan Riwayat Perubahan Stok Bahan Baku
             </td>
             <td style="padding-top:8px; font-size:9.5px; color:#999; text-align:right;">
-                {{ now()->translatedFormat('d F Y, H:i:s') }}
+                {{ now()->format('d/m/Y H:i') }}
             </td>
         </tr>
     </table>

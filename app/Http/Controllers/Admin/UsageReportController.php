@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
 use App\Models\StockLog;
 use App\Support\AdminCache;
+use App\Support\ReportBrand;
 use App\Support\ReportPeriod;
 use App\Support\UsageQuantityFormatter;
 use Carbon\Carbon;
@@ -145,6 +146,7 @@ class UsageReportController extends Controller
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
+            'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
 
@@ -156,7 +158,7 @@ class UsageReportController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\UsageReportExport($rows, $periodeLabel, $summary, $periodLabelText),
+                new \App\Exports\UsageReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath()),
                 $fileName . '.xlsx'
             )
         );
@@ -228,5 +230,4 @@ class UsageReportController extends Controller
         });
     }
 }
-
 

@@ -1,37 +1,19 @@
+@php
+    $reportTitle = 'LAPORAN PENJUALAN ' . strtoupper($type === 'daily' ? 'HARIAN' : ($type === 'weekly' ? 'MINGGUAN' : 'BULANAN'));
+    $metaRows = [
+        ['Total Omzet', 'Rp ' . number_format($totalRevenue ?? 0, 0, ',', '.'), 'Jumlah Transaksi', number_format($totalTransactions ?? 0, 0, ',', '.') . ' Transaksi'],
+        ['Rata-rata Transaksi', 'Rp ' . number_format($avgTransaction ?? 0, 0, ',', '.'), '', ''],
+    ];
+    $excelMetaRows = [
+        ['Total Omzet', 'Rp ' . number_format($totalRevenue ?? 0, 0, ',', '.')],
+        ['Jumlah Transaksi', number_format($totalTransactions ?? 0, 0, ',', '.') . ' Transaksi'],
+        ['Rata-rata Transaksi', 'Rp ' . number_format($avgTransaction ?? 0, 0, ',', '.')],
+    ];
+@endphp
+
 @if(isset($isExcel) && $isExcel)
     <table>
-        <tr>
-            <td colspan="3" style="text-align: center; font-weight: bold; font-size: 20px; padding: 8px 0;">LAPORAN PENJUALAN ({{ strtoupper($type) }})</td>
-        </tr>
-        <tr>
-            <td colspan="3" style="text-align: center; font-size: 13px; padding-bottom: 8px;">Kebab SK</td>
-        </tr>
-        <tr>
-            <td colspan="3" style="height: 8px;"></td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; font-size: 12px;">Periode Data</td>
-            <td colspan="2" style="font-size: 12px;">: {{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; font-size: 12px;">Mode Periode</td>
-            <td colspan="2" style="font-size: 12px;">: {{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; font-size: 12px;">Total Omzet</td>
-            <td colspan="2" style="font-size: 12px;">: Rp {{ number_format($totalRevenue ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; font-size: 12px;">Jumlah Transaksi</td>
-            <td colspan="2" style="font-size: 12px;">: {{ number_format($totalTransactions ?? 0, 0, ',', '.') }} Transaksi</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; font-size: 12px;">Rata-rata Transaksi</td>
-            <td colspan="2" style="font-size: 12px;">: Rp {{ number_format($avgTransaction ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td colspan="3" style="height: 10px;"></td>
-        </tr>
+        @include('exports.partials.report_header_excel', ['columns' => 3])
         
         @if($type === 'daily')
             <tr>
@@ -101,41 +83,7 @@
 <body>
 
     {{-- HEADER --}}
-    <div style="text-align: center; margin-bottom: 16px;">
-        <div style="font-size: 24px; font-weight: bold; color: #111; text-transform: uppercase; letter-spacing: 1.8px;">LAPORAN PENJUALAN {{ strtoupper($type === 'daily' ? 'Harian' : ($type === 'weekly' ? 'Mingguan' : 'Bulanan')) }}</div>
-        <div style="font-size: 13px; color: #666; letter-spacing: 0.7px; margin-top: 6px; text-transform: uppercase;">Kebab SK</div>
-    </div>
-    <div style="border-top: 2px solid #111; margin-bottom: 3px;"></div>
-    <div style="border-top: 1px solid #111; margin-bottom: 18px;"></div>
-
-    {{-- META INFO --}}
-    <table style="width: 100%; margin-bottom: 20px;">
-        <tr>
-            <td style="width: 180px; color: #555; padding: 3px 0; font-size: 12px;">Periode Data</td>
-            <td style="width: 10px; color: #555; padding: 3px 0; font-size: 12px;">:</td>
-            <td style="color: #222; padding: 3px 0; font-size: 12.5px; font-weight: 600;">{{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">Mode Periode</td>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">:</td>
-            <td style="color: #222; padding: 3px 0; font-size: 12.5px; font-weight: 600;">{{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">Total Omzet</td>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">:</td>
-            <td style="color: #222; padding: 3px 0; font-size: 12.5px; font-weight: 600;">Rp {{ number_format($totalRevenue ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">Jumlah Transaksi</td>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">:</td>
-            <td style="color: #222; padding: 3px 0; font-size: 12.5px; font-weight: 600;">{{ number_format($totalTransactions ?? 0, 0, ',', '.') }} Transaksi</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">Rata-rata Transaksi</td>
-            <td style="color: #555; padding: 3px 0; font-size: 12px;">:</td>
-            <td style="color: #222; padding: 3px 0; font-size: 12.5px; font-weight: 600;">Rp {{ number_format($avgTransaction ?? 0, 0, ',', '.') }}</td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- DATA TABLE --}}
     <table style="width: 100%;">

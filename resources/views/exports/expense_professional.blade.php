@@ -1,33 +1,17 @@
+@php
+    $reportTitle = 'LAPORAN PENGELUARAN';
+    $metaRows = [
+        ['Jumlah Entri', number_format($summary['expenseCount'] ?? 0, 0, ',', '.') . ' Entri', 'Total Pengeluaran', 'Rp ' . number_format($summary['expenseTotal'] ?? 0, 0, ',', '.')],
+    ];
+    $excelMetaRows = [
+        ['Jumlah Entri', number_format($summary['expenseCount'] ?? 0, 0, ',', '.') . ' Entri'],
+        ['Total Pengeluaran', 'Rp ' . number_format($summary['expenseTotal'] ?? 0, 0, ',', '.')],
+    ];
+@endphp
+
 @if(isset($isExcel) && $isExcel)
     <table>
-        <tr>
-            <td colspan="6" style="text-align: center; font-weight: bold; font-size: 16px;">LAPORAN PENGELUARAN</td>
-        </tr>
-        <tr>
-            <td colspan="6" style="text-align: center;">Kebab SK</td>
-        </tr>
-        <tr>
-            <td colspan="6"></td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Periode Data</td>
-            <td colspan="5">: {{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Mode Periode</td>
-            <td colspan="5">: {{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Jumlah Entri</td>
-            <td colspan="5">: {{ (int) ($summary['expenseCount'] ?? 0) }} Entri</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Total Pengeluaran</td>
-            <td colspan="5">: Rp {{ (int) round((float) ($summary['expenseTotal'] ?? 0)) }}</td>
-        </tr>
-        <tr>
-            <td colspan="6"></td>
-        </tr>
+        @include('exports.partials.report_header_excel', ['columns' => 6])
         <tr>
             <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">No</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Tanggal &amp; Waktu</th>
@@ -66,36 +50,7 @@
 <body>
 
     {{-- HEADER --}}
-    <div style="text-align: center; margin-bottom: 12px;">
-        <div style="font-size: 20px; font-weight: bold; color: #111; text-transform: uppercase; letter-spacing: 2px;">LAPORAN PENGELUARAN</div>
-        <div style="font-size: 11px; color: #666; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;">Kebab SK</div>
-    </div>
-    <div style="border-top: 2px solid #111; margin-bottom: 2px;"></div>
-    <div style="border-top: 1px solid #111; margin-bottom: 14px;"></div>
-
-    {{-- META INFO --}}
-    <table style="width: 100%; margin-bottom: 16px;">
-        <tr>
-            <td style="width: 140px; color: #555; padding: 2.5px 0;">Periode Data</td>
-            <td style="width: 8px;  color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Mode Periode</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Jumlah Entri</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ number_format($summary['expenseCount'] ?? 0, 0, ',', '.') }} Entri</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Total Pengeluaran</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">Rp {{ number_format($summary['expenseTotal'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- DATA TABLE --}}
     <table style="width: 100%;">

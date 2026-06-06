@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
 use App\Models\DailyStockSession;
 use App\Services\Admin\DailyStockReportQueryService;
+use App\Support\ReportBrand;
 use App\Support\ReportPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -113,6 +114,7 @@ class DailyStockReportController extends Controller
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
+            'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
 
@@ -124,7 +126,7 @@ class DailyStockReportController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\DailyStockReportExport($rows, $periodeLabel, $summary, $periodLabelText),
+                new \App\Exports\DailyStockReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath()),
                 $fileName . '.xlsx'
             )
         );

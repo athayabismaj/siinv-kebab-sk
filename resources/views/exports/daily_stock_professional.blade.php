@@ -1,37 +1,19 @@
+@php
+    $reportTitle = 'LAPORAN STOK HARIAN';
+    $metaRows = [
+        ['Jumlah Sesi', number_format($summary['sessions_count'] ?? 0, 0, ',', '.') . ' Sesi', 'Est. Nilai Modal', 'Rp ' . number_format($summary['total_value'] ?? 0, 0, ',', '.')],
+        ['Est. Nilai Terjual', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.'), '', ''],
+    ];
+    $excelMetaRows = [
+        ['Jumlah Sesi', number_format($summary['sessions_count'] ?? 0, 0, ',', '.') . ' Sesi'],
+        ['Est. Nilai Modal', 'Rp ' . number_format($summary['total_value'] ?? 0, 0, ',', '.')],
+        ['Est. Nilai Terjual', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.')],
+    ];
+@endphp
+
 @if(isset($isExcel) && $isExcel)
     <table>
-        <tr>
-            <td colspan="9" style="text-align: center; font-weight: bold; font-size: 16px;">LAPORAN STOK HARIAN</td>
-        </tr>
-        <tr>
-            <td colspan="9" style="text-align: center;">Kebab SK</td>
-        </tr>
-        <tr>
-            <td colspan="9"></td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Periode Data</td>
-            <td colspan="8">: {{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Mode Periode</td>
-            <td colspan="8">: {{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Jumlah Sesi</td>
-            <td colspan="8">: {{ number_format($summary['sessions_count'] ?? 0, 0, ',', '.') }} Sesi</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Est. Nilai Modal</td>
-            <td colspan="8">: Rp {{ number_format($summary['total_value'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Est. Nilai Terjual</td>
-            <td colspan="8">: Rp {{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td colspan="9"></td>
-        </tr>
+        @include('exports.partials.report_header_excel', ['columns' => 9])
         <tr>
             <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">No</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Tanggal &amp; Kasir</th>
@@ -76,41 +58,7 @@
 <body>
 
     {{-- HEADER --}}
-    <div style="text-align: center; margin-bottom: 12px;">
-        <div style="font-size: 20px; font-weight: bold; color: #111; text-transform: uppercase; letter-spacing: 2px;">LAPORAN STOK HARIAN</div>
-        <div style="font-size: 11px; color: #666; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;">Kebab SK</div>
-    </div>
-    <div style="border-top: 2px solid #111; margin-bottom: 2px;"></div>
-    <div style="border-top: 1px solid #111; margin-bottom: 14px;"></div>
-
-    {{-- META INFO --}}
-    <table style="width: 100%; margin-bottom: 16px;">
-        <tr>
-            <td style="width: 160px; color: #555; padding: 2.5px 0;">Periode Data</td>
-            <td style="width: 8px; color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Mode Periode</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Jumlah Sesi</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ number_format($summary['sessions_count'] ?? 0, 0, ',', '.') }} Sesi</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Est. Nilai Modal</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0; font-weight: bold;">Rp {{ number_format($summary['total_value'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Est. Nilai Terjual</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0; font-weight: bold;">Rp {{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- DATA TABLE --}}
     <table style="width: 100%;">

@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Models\PeriodClosing;
 use App\Services\Owner\SalesReportQueryService;
 use App\Services\Shared\PeriodFilterService;
+use App\Support\ReportBrand;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -186,6 +187,8 @@ class SalesReportController extends Controller
             'type' => $type,
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
+            'logoDataUri' => ReportBrand::logoDataUri(),
+            'logoPath' => ReportBrand::logoPath(),
             'isExcel' => $format === 'excel',
         ]);
 

@@ -11,6 +11,7 @@ use App\Exports\StockLogsReportExport;
 use App\Support\AdminCache;
 use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
+use App\Support\ReportBrand;
 use App\Support\StockLogTypeMap;
 use App\Support\StockLogView;
 use Illuminate\Http\Request;
@@ -381,6 +382,8 @@ class StockController extends Controller
 
     private function exportLogsDirect(Request $request, string $format)
     {
+        $this->raiseMemoryLimitForStockLogExport();
+
         $period = StockLogView::normalizePeriod($request->input('period'));
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
@@ -425,6 +428,7 @@ class StockController extends Controller
             'periode' => $dateDisplay,
             'periodLabel' => $periodLabel,
             'typeLabel' => $typeLabel,
+            'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
 
@@ -434,7 +438,7 @@ class StockController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel),
+                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel, ReportBrand::logoPath()),
                 $fileName . '.xlsx'
             )
         );
@@ -467,6 +471,40 @@ class StockController extends Controller
         }
 
         return IngredientUnit::toBase((string) $ingredient->display_unit, $value);
+    }
+
+    private function raiseMemoryLimitForStockLogExport(): void
+    {
+        $currentLimit = ini_get('memory_limit');
+
+        if ($currentLimit === false || $currentLimit === '-1') {
+            return;
+        }
+
+        $targetBytes = 512 * 1024 * 1024;
+
+        if ($this->memoryLimitToBytes($currentLimit) < $targetBytes) {
+            ini_set('memory_limit', '512M');
+        }
+    }
+
+    private function memoryLimitToBytes(string $value): int
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return 0;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (float) $value;
+
+        return match ($unit) {
+            'g' => (int) ($number * 1024 * 1024 * 1024),
+            'm' => (int) ($number * 1024 * 1024),
+            'k' => (int) ($number * 1024),
+            default => (int) $number,
+        };
     }
 
     private function applyIngredientFilters($query, Request $request): void

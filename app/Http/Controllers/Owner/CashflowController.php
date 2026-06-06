@@ -8,6 +8,7 @@ use App\Models\CashflowEntry;
 use App\Models\Transaction;
 use App\Services\Shared\PeriodFilterService;
 use App\Support\AdminCache;
+use App\Support\ReportBrand;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -108,6 +109,7 @@ class CashflowController extends Controller
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
+            'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
 
@@ -119,7 +121,7 @@ class CashflowController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\ExpenseReportExport($entries, $periodeLabel, $summary, $periodLabelText),
+                new \App\Exports\ExpenseReportExport($entries, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath()),
                 $fileName . '.xlsx'
             )
         );
@@ -206,4 +208,3 @@ class CashflowController extends Controller
         });
     }
 }
-

@@ -1,37 +1,19 @@
+@php
+    $reportTitle = 'LAPORAN RIWAYAT TRANSAKSI';
+    $metaRows = [
+        ['Jumlah Transaksi', number_format($summary['total_transactions'] ?? 0, 0, ',', '.') . ' Transaksi', 'Total Omzet', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.')],
+        ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avg_transaction'] ?? 0, 0, ',', '.'), '', ''],
+    ];
+    $excelMetaRows = [
+        ['Jumlah Transaksi', number_format($summary['total_transactions'] ?? 0, 0, ',', '.') . ' Transaksi'],
+        ['Total Omzet', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.')],
+        ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avg_transaction'] ?? 0, 0, ',', '.')],
+    ];
+@endphp
+
 @if(isset($isExcel) && $isExcel)
     <table>
-        <tr>
-            <td colspan="7" style="text-align: center; font-weight: bold; font-size: 16px;">LAPORAN RIWAYAT TRANSAKSI</td>
-        </tr>
-        <tr>
-            <td colspan="7" style="text-align: center;">Kebab SK</td>
-        </tr>
-        <tr>
-            <td colspan="7"></td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Periode Data</td>
-            <td colspan="6">: {{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Mode Periode</td>
-            <td colspan="6">: {{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Jumlah Transaksi</td>
-            <td colspan="6">: {{ number_format($summary['total_transactions'] ?? 0, 0, ',', '.') }} Transaksi</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Total Omzet</td>
-            <td colspan="6">: Rp {{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold;">Rata-rata Transaksi</td>
-            <td colspan="6">: Rp {{ number_format($summary['avg_transaction'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td colspan="7"></td>
-        </tr>
+        @include('exports.partials.report_header_excel', ['columns' => 7])
         <tr>
             <th style="font-weight: bold; border: 1px solid #000000;">Tanggal &amp; Waktu</th>
             <th style="font-weight: bold; border: 1px solid #000000;">Kode Transaksi</th>
@@ -73,41 +55,7 @@
 <body>
 
     {{-- HEADER --}}
-    <div style="text-align: center; margin-bottom: 12px;">
-        <div style="font-size: 20px; font-weight: bold; color: #111; text-transform: uppercase; letter-spacing: 2px;">LAPORAN RIWAYAT TRANSAKSI</div>
-        <div style="font-size: 11px; color: #666; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;">Kebab SK</div>
-    </div>
-    <div style="border-top: 2px solid #111; margin-bottom: 2px;"></div>
-    <div style="border-top: 1px solid #111; margin-bottom: 14px;"></div>
-
-    {{-- META INFO --}}
-    <table style="width: 100%; margin-bottom: 16px;">
-        <tr>
-            <td style="width: 140px; color: #555; padding: 2.5px 0;">Periode Data</td>
-            <td style="width: 8px;  color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periode }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Mode Periode</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ $periodLabel ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Jumlah Transaksi</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">{{ number_format($summary['total_transactions'] ?? 0, 0, ',', '.') }} Transaksi</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Total Omzet</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">Rp {{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td style="color: #555; padding: 2.5px 0;">Rata-rata Transaksi</td>
-            <td style="color: #555; padding: 2.5px 0;">:</td>
-            <td style="color: #222; padding: 2.5px 0;">Rp {{ number_format($summary['avg_transaction'] ?? 0, 0, ',', '.') }}</td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- DATA TABLE --}}
     <table style="width: 100%;">
