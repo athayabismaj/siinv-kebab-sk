@@ -121,22 +121,24 @@
         {{-- Mobile View --}}
         <div class="md:hidden p-4 space-y-3">
             @forelse($transaction->details as $index => $item)
-                <div class="rounded-xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500">{{ $index + 1 }}</span>
-                                <p class="font-bold text-slate-800 dark:text-white text-sm break-words">{{ $item->menu->name ?? '-' }}</p>
-                            </div>
-                            <div class="flex items-center gap-2 mt-2">
-                                <span class="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">{{ $item->quantity }}x</span>
-                                <span class="text-slate-400 text-xs">@</span>
-                                <span class="text-slate-600 dark:text-slate-300 text-xs font-semibold">Rp {{ number_format($item->price, 0, ',', '.') }}</span>
-                            </div>
+                <div class="rounded-xl border border-slate-100 dark:border-slate-800 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500">{{ $index + 1 }}</span>
+                        <p class="font-bold text-slate-800 dark:text-white text-sm break-words">{{ $item->menu->name ?? '-' }}</p>
+                    </div>
+
+                    <div class="pl-8 flex flex-col gap-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Jumlah</span>
+                            <span class="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">{{ $item->quantity }}x</span>
                         </div>
-                        <div class="text-right">
-                            <p class="text-[10px] text-slate-400 mb-1">Subtotal</p>
-                            <p class="text-base font-black text-slate-900 dark:text-white">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Harga Satuan</span>
+                            <span class="text-slate-600 dark:text-slate-300 text-xs font-semibold">Rp {{ number_format($item->price, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 mt-1 border-t border-slate-100 dark:border-slate-700/50">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Subtotal</span>
+                            <span class="text-sm font-black text-slate-900 dark:text-white">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
                         </div>
                     </div>
                 </div>
@@ -173,10 +175,10 @@
                                 <span class="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-bold">{{ $item->quantity }}</span>
                             </td>
                             <td class="px-6 py-4 text-right text-slate-600 dark:text-slate-300 font-semibold">
-                                <span class="text-[10px] text-slate-400 mr-0.5">Rp</span>{{ number_format($item->price, 0, ',', '.') }}
+                                Rp {{ number_format($item->price, 0, ',', '.') }}
                             </td>
                             <td class="px-6 py-4 text-right font-black text-slate-900 dark:text-white">
-                                <span class="text-[10px] font-medium text-slate-400 mr-0.5">Rp</span>{{ number_format($item->subtotal, 0, ',', '.') }}
+                                Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                             </td>
                         </tr>
                     @empty
