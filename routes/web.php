@@ -9,6 +9,7 @@ use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\SalesReportController;
 use App\Http\Controllers\Owner\TransactionHistoryController;
 use App\Http\Controllers\Owner\StockMonitoringController;
+use App\Http\Controllers\Owner\StockLogController as OwnerStockLogController;
 use App\Http\Controllers\Owner\CashflowController as OwnerCashflowController;
 use App\Http\Controllers\Owner\DailyTargetController;
 use App\Http\Controllers\Admin\IngredientController;
@@ -101,6 +102,13 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
         });
         Route::prefix('stocks')->name('stocks.')->group(function () {
             Route::get('/', [StockMonitoringController::class, 'index'])->name('index');
+        });
+
+        Route::prefix('stock-logs')->name('stock-logs.')->group(function () {
+            Route::get('/', [OwnerStockLogController::class, 'index'])->name('index');
+            Route::get('/export', [OwnerStockLogController::class, 'export'])
+                ->middleware('throttle:web-heavy-role-aware')
+                ->name('export');
         });
 
         Route::prefix('targets')->name('targets.')->group(function () {
