@@ -12,7 +12,7 @@
             ],
         ],
         [
-            'label' => 'Inventori',
+            'label' => 'Inventory',
             'items' => [
                 [
                     'label' => 'Kategori Bahan',
@@ -38,11 +38,16 @@
                     'active' => request()->routeIs('admin.stocks.logs'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>',
                 ],
+            ],
+        ],
+        [
+            'label' => 'Stok Harian',
+            'items' => [
                 [
-                    'label' => 'Arsip Bahan',
-                    'route' => route('admin.ingredients.archive'),
-                    'active' => request()->routeIs('admin.ingredients.archive'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
+                    'label' => 'Sesi Stok Harian',
+                    'route' => route('admin.daily-stocks.index'),
+                    'active' => request()->routeIs('admin.daily-stocks.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
                 ],
             ],
         ],
@@ -67,23 +72,11 @@
                     'active' => request()->routeIs('admin.recipes.*'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>',
                 ],
-                [
-                    'label' => 'Arsip Menu',
-                    'route' => route('admin.menus.archive'),
-                    'active' => request()->routeIs('admin.menus.archive'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
-                ],
             ],
         ],
         [
-            'label' => 'Kasir',
+            'label' => 'Penjualan',
             'items' => [
-                [
-                    'label' => 'Stok Harian',
-                    'route' => route('admin.daily-stocks.index'),
-                    'active' => request()->routeIs('admin.daily-stocks.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
-                ],
                 [
                     'label' => 'Monitoring Transaksi',
                     'route' => route('admin.transactions.index'),
@@ -93,7 +86,7 @@
             ],
         ],
         [
-            'label' => 'Pelaporan',
+            'label' => 'Laporan',
             'items' => [
                 [
                     'label' => 'Laporan Pemakaian',
@@ -115,10 +108,27 @@
                 ],
             ],
         ],
+        [
+            'label' => 'Arsip',
+            'items' => [
+                [
+                    'label' => 'Arsip Bahan',
+                    'route' => route('admin.ingredients.archive'),
+                    'active' => request()->routeIs('admin.ingredients.archive'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
+                ],
+                [
+                    'label' => 'Arsip Menu',
+                    'route' => route('admin.menus.archive'),
+                    'active' => request()->routeIs('admin.menus.archive'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
+                ],
+            ],
+        ],
     ];
 
-    $baseItemClass = 'group relative flex min-h-9 items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition-all';
-    $activeItemClass = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
+    $baseItemClass = 'group relative flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition-all';
+    $activeItemClass = 'bg-white !text-slate-950 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:!text-slate-100 dark:ring-slate-700/80';
     $inactiveItemClass = 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white';
 @endphp
 
@@ -128,14 +138,14 @@
     style="height: 100dvh;">
 
     {{-- BRAND HEADER --}}
-    <div class="h-16 flex items-center justify-between px-5 border-b border-slate-200 dark:border-slate-800">
+    <div class="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
         <div class="flex min-w-0 items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-blue-600 flex shrink-0 items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/25">
+            <div class="w-8 h-8 rounded-xl bg-slate-950 dark:bg-white flex shrink-0 items-center justify-center text-white dark:text-slate-950 font-bold text-sm shadow-sm">
                 SK
             </div>
             <div class="min-w-0">
-                <h2 class="truncate text-base font-semibold text-slate-800 dark:text-white leading-tight">Kebab SK</h2>
-                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Panel Admin</p>
+                <h2 class="truncate text-[15px] font-bold text-slate-900 dark:text-white leading-tight">Kebab SK</h2>
+                <p class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.22em]">Admin Panel</p>
             </div>
         </div>
         <button @click="sidebarOpen = false" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition" aria-label="Tutup sidebar">
@@ -143,12 +153,12 @@
         </button>
     </div>
 
-    <nav class="flex-1 overflow-y-auto px-3 py-3 text-sm">
-        <div class="space-y-3.5">
+    <nav class="flex-1 overflow-y-auto px-2.5 py-3 text-sm">
+        <div class="space-y-3">
             @foreach($sections as $section)
                 <section>
-                    <div class="mb-1.5 flex items-center gap-2.5 px-3">
-                        <p class="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">{{ $section['label'] }}</p>
+                    <div class="mb-1 flex items-center gap-2.5 px-2.5">
+                        <p class="shrink-0 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600">{{ $section['label'] }}</p>
                         <div class="h-px flex-1 bg-slate-200/70 dark:bg-slate-800"></div>
                     </div>
 
@@ -157,15 +167,11 @@
                             <a href="{{ $item['route'] }}"
                                @click="sidebarOpen = false"
                                class="{{ $baseItemClass }} {{ $item['active'] ? $activeItemClass : $inactiveItemClass }}">
-                                @if($item['active'])
-                                    <span class="absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-r-full bg-white/90"></span>
-                                @endif
-
-                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md {{ $item['active'] ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
+                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-slate-100 !text-slate-950 dark:bg-slate-700 dark:!text-slate-100' : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $item['icon'] !!}</svg>
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate">{{ $item['label'] }}</span>
+                                <span class="min-w-0 flex-1 truncate {{ $item['active'] ? '!text-slate-950 dark:!text-slate-100' : '' }}">{{ $item['label'] }}</span>
                             </a>
                         @endforeach
                     </div>
