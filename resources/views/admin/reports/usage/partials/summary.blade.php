@@ -1,11 +1,11 @@
-{{-- Tailwind safelist: md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
+{{-- Tailwind safelist: md:grid-cols-1 md:grid-cols-2 md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
 @php
     $unitColors = ['emerald', 'amber', 'violet', 'cyan', 'rose'];
     $totalCards = count($summary['by_unit']) + 2;
-    $cols = max($totalCards, 4);
+    $cols = min(max($totalCards, 1), 6);
 @endphp
 
-<div class="grid grid-cols-2 md:grid-cols-{{ $cols }} gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-{{ $cols }} gap-4">
     {{-- Item Terpakai --}}
     <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
         <div class="flex items-start justify-between mb-3">
