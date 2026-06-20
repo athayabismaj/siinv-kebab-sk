@@ -12,19 +12,19 @@
     <div class="mb-8">
         
         {{-- Breadcrumb --}}
-        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+        <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
             <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
             <span class="text-slate-200 dark:text-slate-700">/</span>
             <span class="text-slate-600 dark:text-slate-300">Pengguna</span>
         </nav>
 
         {{-- Judul --}}
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">
+        <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
             Manajemen Pengguna
         </h1>
 
         {{-- Deskripsi Halaman --}}
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
+        <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
             Kelola hak akses pengguna, tambahkan kasir baru, atau nonaktifkan akun yang sudah tidak bertugas.<br class="hidden sm:block mt-1">
             Pastikan setiap pengguna memiliki akses (role) yang sesuai dengan tanggung jawabnya.
         </p>

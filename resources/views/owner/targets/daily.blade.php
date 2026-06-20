@@ -5,13 +5,13 @@
     <!-- Header & Date Filter -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2 text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            <div class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
                 <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
                 <span class="text-slate-300 dark:text-slate-600">/</span>
                 <span class="text-blue-600 dark:text-blue-400">Target Harian</span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Target Harian</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Pantau performa dan tetapkan target pencapaian harian.</p>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Target Harian</h1>
+            <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">Pantau performa dan tetapkan target pencapaian harian.</p>
         </div>
         
         <div class="flex items-center gap-1.5 sm:gap-2" x-data x-ref="filterFormWrapper">

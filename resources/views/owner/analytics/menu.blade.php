@@ -37,17 +37,17 @@
     {{-- HEADER --}}
     <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between mb-2">
         <div class="flex-1">
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
                 <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
                 <span class="text-slate-300 dark:text-slate-600">/</span>
                 <span class="text-blue-600 dark:text-blue-400">Analisis Menu</span>
             </nav>
 
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
                 Analisis Menu
             </h1>
 
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+            <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">
                 Pantau performa penjualan menu berdasarkan periode harian, mingguan, atau bulanan.
             </p>
         </div>

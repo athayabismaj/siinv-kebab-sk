@@ -12,14 +12,14 @@
 
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
                 <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 transition-colors">Beranda</a>
                 <span class="text-slate-200 dark:text-slate-800">/</span>
                 <a href="{{ route($routePrefix.'.index') }}" class="hover:text-blue-600 transition-colors">Riwayat</a>
                 <span class="text-slate-200 dark:text-slate-800">/</span>
                 <span class="text-slate-600 dark:text-slate-400">Detail</span>
             </nav>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Detail Transaksi</h1>
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Detail Transaksi</h1>
             <p class="text-slate-400 dark:text-slate-500 text-sm mt-3 flex items-center gap-2 flex-wrap">
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                 <span class="font-mono font-bold text-slate-700 dark:text-slate-300 break-all">{{ $transaction->transaction_code }}</span>

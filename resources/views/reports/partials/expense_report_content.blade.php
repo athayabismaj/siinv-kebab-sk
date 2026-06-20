@@ -13,7 +13,7 @@
     
     {{-- ================= HEADER & BREADCRUMB ================= --}}
     <div class="mb-4">
-        <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+        <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
             <span class="text-slate-500 dark:text-slate-400">Keuangan</span>
             <span class="text-slate-300 dark:text-slate-600">/</span>
             <span class="text-blue-600 dark:text-blue-400">Laporan Pengeluaran</span>
@@ -21,10 +21,10 @@
 
         <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8">
             <div class="flex-1">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+                <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
                     Laporan Pengeluaran
                 </h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">
                     Pantau pengeluaran operasional harian, mingguan, dan bulanan. Omzet dihitung dari transaksi penjualan menu. HPP bahan dapat dilihat di <strong>Laporan Stok Harian</strong>.
                 </p>
             </div>
