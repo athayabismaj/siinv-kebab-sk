@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashflowEntry;
+use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\Menu;
 use App\Models\StockLog;
@@ -10,6 +12,7 @@ use App\Models\Transaction;
 use App\Support\AdminCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -21,18 +24,24 @@ class DashboardController extends Controller
         $totalIngredients = $this->getTotalIngredients();
         $transactionsTodayCount = $this->getTransactionsTodayCount($todayStart, $todayEnd, $todayKey);
         $lowStockItems = $this->getLowStockItems();
+        $lowStockSummary = $this->getLowStockSummary();
         $recentStockActivities = $this->getRecentStockActivities();
         $topMenusToday = $this->getTopMenusToday($todayStart, $todayEnd, $todayKey);
         $salesLast7Days = $this->getSalesLast7Days();
+        $expenseToday = $this->getExpenseToday($todayKey);
+        $dailyStockStatus = $this->getDailyStockStatus($todayKey);
 
         return view('admin.panel_admin', compact(
             'totalActiveMenus',
             'totalIngredients',
             'transactionsTodayCount',
             'lowStockItems',
+            'lowStockSummary',
             'recentStockActivities',
             'topMenusToday',
-            'salesLast7Days'
+            'salesLast7Days',
+            'expenseToday',
+            'dailyStockStatus'
         ));
     }
 
@@ -87,6 +96,30 @@ class DashboardController extends Controller
                 ->limit(8)
                 ->get()
                 ->map(fn (Ingredient $ingredient) => $this->mapLowStockItem($ingredient))
+        );
+    }
+
+    private function getLowStockSummary(): array
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'low_stock_summary'),
+            now()->addSeconds(90),
+            function () {
+                $summary = Ingredient::query()
+                    ->whereColumn('stock', '<=', 'minimum_stock')
+                    ->selectRaw(
+                        'COUNT(*) as total_low,
+                        SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as critical_count,
+                        SUM(CASE WHEN stock > 0 THEN 1 ELSE 0 END) as warning_count'
+                    )
+                    ->first();
+
+                return [
+                    'total_low' => (int) ($summary->total_low ?? 0),
+                    'critical_count' => (int) ($summary->critical_count ?? 0),
+                    'warning_count' => (int) ($summary->warning_count ?? 0),
+                ];
+            }
         );
     }
 
@@ -160,6 +193,87 @@ class DashboardController extends Controller
                 });
 
                 return $salesLast7Days;
+            }
+        );
+    }
+
+    private function getExpenseToday(string $todayKey): array
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'expense_today:' . $todayKey),
+            now()->addSeconds(90),
+            function () use ($todayKey) {
+                if (!Schema::hasTable('cashflow_entries')) {
+                    return ['total' => 0.0, 'count' => 0];
+                }
+
+                $aggregate = CashflowEntry::query()
+                    ->whereDate('entry_date', $todayKey)
+                    ->where('type', 'expense')
+                    ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count')
+                    ->first();
+
+                return [
+                    'total' => (float) ($aggregate->expense_total ?? 0),
+                    'count' => (int) ($aggregate->expense_count ?? 0),
+                ];
+            }
+        );
+    }
+
+    private function getDailyStockStatus(string $todayKey): array
+    {
+        return Cache::remember(
+            AdminCache::key('dashboard', 'daily_stock_status:' . $todayKey),
+            now()->addSeconds(60),
+            function () use ($todayKey) {
+                if (!Schema::hasTable('daily_stock_sessions')) {
+                    return [
+                        'key' => 'not_opened',
+                        'label' => 'Belum Dibuka',
+                        'description' => 'Tabel sesi stok harian belum tersedia.',
+                        'total_sessions' => 0,
+                        'open_sessions' => 0,
+                        'closed_sessions' => 0,
+                    ];
+                }
+
+                $aggregate = DailyStockSession::query()
+                    ->whereDate('session_date', $todayKey)
+                    ->selectRaw(
+                        "COUNT(*) as total_sessions,
+                        SUM(CASE WHEN LOWER(TRIM(status)) = 'open' THEN 1 ELSE 0 END) as open_sessions,
+                        SUM(CASE WHEN LOWER(TRIM(status)) = 'closed' THEN 1 ELSE 0 END) as closed_sessions"
+                    )
+                    ->first();
+
+                $totalSessions = (int) ($aggregate->total_sessions ?? 0);
+                $openSessions = (int) ($aggregate->open_sessions ?? 0);
+                $closedSessions = (int) ($aggregate->closed_sessions ?? 0);
+
+                $status = match (true) {
+                    $totalSessions === 0 => [
+                        'key' => 'not_opened',
+                        'label' => 'Belum Dibuka',
+                        'description' => 'Belum ada sesi stok harian yang dibuka.',
+                    ],
+                    $openSessions > 0 => [
+                        'key' => 'open',
+                        'label' => 'Masih Berjalan',
+                        'description' => "{$openSessions} dari {$totalSessions} sesi masih aktif.",
+                    ],
+                    default => [
+                        'key' => 'closed',
+                        'label' => 'Sudah Ditutup',
+                        'description' => "{$closedSessions} sesi stok sudah selesai.",
+                    ],
+                };
+
+                return array_merge($status, [
+                    'total_sessions' => $totalSessions,
+                    'open_sessions' => $openSessions,
+                    'closed_sessions' => $closedSessions,
+                ]);
             }
         );
     }
