@@ -3,10 +3,14 @@
 namespace App\Services\Owner;
 
 use App\Models\Ingredient;
+use App\Models\CashflowEntry;
+use App\Models\DailyStockSession;
+use App\Models\DailyTarget;
 use App\Models\Transaction;
 use App\Support\AdminCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardQueryService
 {
@@ -25,6 +29,7 @@ class DashboardQueryService
     {
         $todayStart = now()->startOfDay();
         $todayEnd = now()->endOfDay();
+        $todayKey = $todayStart->toDateString();
         $last7Start = now()->subDays(6)->startOfDay();
 
         $todayAggregate = Transaction::query()
@@ -33,6 +38,59 @@ class DashboardQueryService
             ->first();
         $todayRevenue = (float) ($todayAggregate->total_revenue ?? 0);
         $todayTransactionsCount = (int) ($todayAggregate->total_transactions ?? 0);
+
+        $target = Schema::hasTable('daily_targets')
+            ? DailyTarget::query()
+                ->whereDate('target_date', '<=', $todayKey)
+                ->orderByDesc('target_date')
+                ->first(['target_date', 'target_revenue', 'target_transactions'])
+            : null;
+        $targetRevenue = (float) ($target->target_revenue ?? 0);
+        $targetTransactions = (int) ($target->target_transactions ?? 0);
+        $targetProgress = $targetRevenue > 0 ? min(100, (int) round(($todayRevenue / $targetRevenue) * 100)) : 0;
+        $targetGap = max(0, $targetRevenue - $todayRevenue);
+
+        $expenseAggregate = Schema::hasTable('cashflow_entries')
+            ? CashflowEntry::query()
+                ->whereDate('entry_date', $todayKey)
+                ->where('type', 'expense')
+                ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count')
+                ->first()
+            : null;
+        $todayExpenseTotal = (float) ($expenseAggregate->expense_total ?? 0);
+        $todayExpenseCount = (int) ($expenseAggregate->expense_count ?? 0);
+        $todayNetProfit = $todayRevenue - $todayExpenseTotal;
+
+        $sessionAggregate = Schema::hasTable('daily_stock_sessions')
+            ? DailyStockSession::query()
+                ->whereDate('session_date', $todayKey)
+                ->selectRaw(
+                    "COUNT(*) as total_sessions,
+                    SUM(CASE WHEN LOWER(TRIM(status)) = 'open' THEN 1 ELSE 0 END) as open_sessions,
+                    SUM(CASE WHEN LOWER(TRIM(status)) = 'closed' THEN 1 ELSE 0 END) as closed_sessions"
+                )
+                ->first()
+            : null;
+        $sessionTotal = (int) ($sessionAggregate->total_sessions ?? 0);
+        $openSessions = (int) ($sessionAggregate->open_sessions ?? 0);
+        $closedSessions = (int) ($sessionAggregate->closed_sessions ?? 0);
+        $dailyStockStatus = match (true) {
+            $sessionTotal === 0 => [
+                'key' => 'not_opened',
+                'label' => 'Belum Dibuka',
+                'description' => 'Sesi stok harian belum dibuka.',
+            ],
+            $openSessions > 0 => [
+                'key' => 'open',
+                'label' => 'Masih Berjalan',
+                'description' => "{$openSessions} dari {$sessionTotal} sesi masih aktif.",
+            ],
+            default => [
+                'key' => 'closed',
+                'label' => 'Sudah Ditutup',
+                'description' => "{$closedSessions} sesi stok sudah selesai.",
+            ],
+        };
 
         $topMenusToday = DB::table('transaction_details')
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
@@ -103,6 +161,15 @@ class DashboardQueryService
         return [
             'todayRevenue' => $todayRevenue,
             'todayTransactionsCount' => $todayTransactionsCount,
+            'target' => $target,
+            'targetRevenue' => $targetRevenue,
+            'targetTransactions' => $targetTransactions,
+            'targetProgress' => $targetProgress,
+            'targetGap' => $targetGap,
+            'todayExpenseTotal' => $todayExpenseTotal,
+            'todayExpenseCount' => $todayExpenseCount,
+            'todayNetProfit' => $todayNetProfit,
+            'dailyStockStatus' => $dailyStockStatus,
             'bestSeller' => $bestSeller,
             'topMenusToday' => $topMenusToday,
             'lowStockItems' => $lowStockItems,
