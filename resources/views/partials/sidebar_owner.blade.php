@@ -122,8 +122,11 @@
     {{-- BRAND HEADER --}}
     <div class="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
         <div class="flex min-w-0 items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-slate-950 dark:bg-white flex shrink-0 items-center justify-center text-white dark:text-slate-950 font-bold text-sm shadow-sm">
-                SK
+            <div class="h-8 w-8 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 shadow-sm shadow-slate-200/70 dark:bg-slate-800 dark:ring-slate-700 dark:shadow-none">
+                <img
+                    src="{{ asset('images/kebab-sk-logo-report.jpeg') }}"
+                    alt="Logo Kebab SK"
+                    class="h-full w-full object-cover">
             </div>
             <div class="min-w-0">
                 <h2 class="truncate text-[15px] font-bold text-slate-900 dark:text-white leading-tight">Kebab SK</h2>

@@ -139,9 +139,10 @@
                 {{-- Avatar --}}
                 <div class="w-9 h-9 rounded-full
                             bg-blue-600 text-white
-                            flex items-center justify-center
-                            text-sm font-semibold">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                            flex items-center justify-center">
+                    <span class="block translate-x-[0.5px] translate-y-[0.5px] text-sm font-semibold leading-none">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    </span>
                 </div>
             </button>
 

@@ -45,8 +45,11 @@
                 <div class="w-full max-w-[540px]">
 
                     <div class="mb-10 font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2.5">
-                        <div class="w-7 h-7 rounded bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        <div class="h-7 w-7 overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 shadow-sm shadow-slate-200/70 dark:bg-slate-800 dark:ring-slate-700 dark:shadow-none">
+                            <img
+                                src="{{ asset('images/kebab-sk-logo-report.jpeg') }}"
+                                alt="Logo Kebab SK"
+                                class="h-full w-full object-cover">
                         </div>
                         Kebab SK
                     </div>
