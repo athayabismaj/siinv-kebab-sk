@@ -326,56 +326,61 @@
                 </div>
 
                 {{-- Tombol Aksi Kanan — Responsif & Modern --}}
-                <div class="grid grid-cols-2 md:flex md:flex-row md:items-center gap-3 w-full md:w-auto mt-5 md:mt-0">
+                <div class="grid w-full grid-cols-[1fr_1fr_auto] gap-2.5 sm:flex sm:w-auto sm:flex-row sm:items-center sm:justify-end md:mt-0">
 
                     @if($isSessionOpen)
                         {{-- Tambah Bahan --}}
                         <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]) }}"
-                           class="col-span-1 md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 md:px-5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-sm active:scale-95">
+                           class="col-span-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98] sm:w-auto">
                             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5"></path>
                             </svg>
                             <span class="whitespace-nowrap">Tambah Bahan</span>
                         </a>
 
                         {{-- Tutup Sesi --}}
                         <a href="{{ route('admin.daily-stocks.close.form', ['session_id' => $session->id]) }}"
-                           class="col-span-1 md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400 bg-amber-50 px-4 md:px-5 text-sm font-bold text-amber-700 hover:bg-amber-100 transition-all dark:border-amber-600 dark:bg-slate-800 dark:text-amber-400 dark:hover:bg-slate-700 active:scale-95">
+                           class="col-span-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 text-[13px] font-bold text-amber-700 shadow-sm transition hover:bg-amber-100 active:scale-[0.98] dark:border-amber-700/70 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/15 sm:w-auto">
                             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M6 18 18 6M6 6l12 12"></path>
                             </svg>
                             <span class="whitespace-nowrap">Tutup Sesi</span>
                         </a>
                     @elseif(!$isSelectedPastDate)
                         {{-- Reopen Sesi --}}
-                        <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="col-span-2 md:w-auto">
+                        <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="col-span-2 sm:w-auto">
                             @csrf
                             <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <button type="submit" class="w-full md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 text-sm font-bold text-white hover:bg-amber-600 transition-all shadow-sm active:scale-95">
+                            <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-[13px] font-bold text-white shadow-sm transition hover:bg-amber-600 active:scale-[0.98] sm:w-auto">
                                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
                                 <span>Buka Kembali</span>
                             </button>
                         </form>
                     @else
-                        <div class="col-span-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 text-[12px] font-bold text-slate-500 shadow-sm dark:border-slate-700/70 dark:bg-slate-800/50 dark:text-slate-300 dark:shadow-none md:w-auto">
+                        <div class="col-span-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 text-[13px] font-bold text-slate-500 shadow-sm dark:border-slate-700/70 dark:bg-slate-800/50 dark:text-slate-300 dark:shadow-none sm:w-auto">
                             <svg class="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.5 10.5V7a4.5 4.5 0 10-9 0v3.5m-.75 0h10.5A1.75 1.75 0 0119 12.25v6A1.75 1.75 0 0117.25 20H6.75A1.75 1.75 0 015 18.25v-6a1.75 1.75 0 011.75-1.75z"></path>
                             </svg>
                             <span class="whitespace-nowrap">Sesi Dikunci</span>
                         </div>
                     @endif
 
                     {{-- Reconcile Data --}}
-                    <form method="POST" action="{{ route('admin.daily-stocks.reconcile') }}" class="col-span-2 md:w-auto md:ml-2">
+                    <form method="POST" action="{{ route('admin.daily-stocks.reconcile') }}" class="col-span-1 sm:w-auto">
                         @csrf
                         <input type="hidden" name="session_id" value="{{ $session->id }}">
-                        <button type="submit" class="w-full md:w-auto h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 md:px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white active:scale-95 shadow-sm">
-                            <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        <button type="submit"
+                                title="Reconcile Data"
+                                aria-label="Reconcile Data"
+                                class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-blue-800/70 dark:hover:bg-blue-950/30 dark:hover:text-blue-300">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M16.5 7.5h3v-3"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M19.2 7.2A7.5 7.5 0 006.3 5.4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M7.5 16.5h-3v3"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M4.8 16.8a7.5 7.5 0 0012.9 1.8"></path>
                             </svg>
-                            <span class="md:hidden lg:inline whitespace-nowrap">Reconcile Data</span>
                         </button>
                     </form>
 
