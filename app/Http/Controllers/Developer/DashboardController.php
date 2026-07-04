@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Role;
@@ -28,7 +29,12 @@ class DashboardController extends Controller
             Artisan::call('optimize:clear');
             return redirect()->back()->with('success', 'Cache sistem, views, dan route berhasil dibersihkan.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal membersihkan cache: ' . $e->getMessage());
+            Log::error('Developer clear cache gagal.', [
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Gagal membersihkan cache. Detail teknis sudah dicatat di log server.');
         }
     }
 
