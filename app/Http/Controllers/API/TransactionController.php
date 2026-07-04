@@ -131,7 +131,7 @@ class TransactionController extends Controller
             }
 
             if ($e instanceof RuntimeException) {
-                return $this->errorResponse($e->getMessage(), null, 409);
+                return $this->errorResponse('Transaksi gagal diproses. Periksa stok harian dan data transaksi lalu coba lagi.', null, 409);
             }
 
             if ($e instanceof ModelNotFoundException) {
@@ -168,5 +168,4 @@ class TransactionController extends Controller
         }
     }
 }
-
 

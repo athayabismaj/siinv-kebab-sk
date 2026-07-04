@@ -154,6 +154,8 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        ApiToken::query()->where('user_id', $user->id)->delete();
+
         return response()->json([
             'success' => true,
             'message' => 'Password berhasil diubah.',
@@ -182,12 +184,25 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->firstOrFail();
+            ->first();
+
+        $expireTime = now()->addMinutes(5);
+
+        if (! $user) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Jika email terdaftar, kode reset akan dikirim.',
+                'data' => [
+                    'email' => $validated['email'],
+                    'expires_at' => $expireTime->toIso8601String(),
+                ],
+            ]);
+        }
 
         $lastOtp = PasswordOtp::query()
             ->where('user_id', $user->id)
@@ -196,9 +211,13 @@ class AuthController extends Controller
 
         if ($lastOtp && $lastOtp->created_at->diffInSeconds(now()) < 60) {
             return response()->json([
-                'success' => false,
-                'message' => 'Tunggu 1 menit sebelum meminta OTP baru.',
-            ], 429);
+                'success' => true,
+                'message' => 'Jika email terdaftar, kode reset akan dikirim.',
+                'data' => [
+                    'email' => $validated['email'],
+                    'expires_at' => $lastOtp->expires_at?->toIso8601String() ?? $expireTime->toIso8601String(),
+                ],
+            ]);
         }
 
         PasswordOtp::query()
@@ -206,7 +225,6 @@ class AuthController extends Controller
             ->delete();
 
         $otp = random_int(100000, 999999);
-        $expireTime = now()->addMinutes(5);
 
         PasswordOtp::create([
             'user_id' => $user->id,
@@ -219,17 +237,23 @@ class AuthController extends Controller
         try {
             Mail::to($user->email)->send(new OtpMail($otp));
         } catch (\Throwable $mailError) {
+            report($mailError);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengirim email OTP. Silakan coba beberapa saat lagi.',
-            ], 503);
+                'success' => true,
+                'message' => 'Jika email terdaftar, kode reset akan dikirim.',
+                'data' => [
+                    'email' => $validated['email'],
+                    'expires_at' => $expireTime->toIso8601String(),
+                ],
+            ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'OTP telah dikirim ke email.',
+            'message' => 'Jika email terdaftar, kode reset akan dikirim.',
             'data' => [
-                'email' => $user->email,
+                'email' => $validated['email'],
                 'expires_at' => $expireTime->toIso8601String(),
             ],
         ]);
@@ -244,13 +268,20 @@ class AuthController extends Controller
         ]);
 
         $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'code' => 'required|digits:6',
         ]);
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->firstOrFail();
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
+            ], 422);
+        }
 
         $otpRecord = PasswordOtp::query()
             ->where('user_id', $user->id)
@@ -261,30 +292,35 @@ class AuthController extends Controller
         if (! $otpRecord) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP tidak ditemukan.',
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
 
         if ($otpRecord->expires_at->isPast()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP sudah kedaluwarsa.',
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
 
         if ($otpRecord->attempts >= 5) {
+            $otpRecord->update(['used' => true]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terlalu banyak percobaan OTP.',
-            ], 429);
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
+            ], 422);
         }
 
         if (! Hash::check($validated['code'], $otpRecord->otp_hash)) {
             $otpRecord->increment('attempts');
+            if ($otpRecord->attempts >= 5) {
+                $otpRecord->update(['used' => true]);
+            }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP tidak valid.',
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
 
@@ -309,14 +345,21 @@ class AuthController extends Controller
         ]);
 
         $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'code' => 'required|digits:6',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->firstOrFail();
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
+            ], 422);
+        }
 
         $otpRecord = PasswordOtp::query()
             ->where('user_id', $user->id)
@@ -327,23 +370,35 @@ class AuthController extends Controller
         if (! $otpRecord) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP tidak ditemukan.',
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
 
         if ($otpRecord->expires_at->isPast()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP sudah kedaluwarsa.',
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
+            ], 422);
+        }
+
+        if ($otpRecord->attempts >= 5) {
+            $otpRecord->update(['used' => true]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
 
         if (! Hash::check($validated['code'], $otpRecord->otp_hash)) {
             $otpRecord->increment('attempts');
+            if ($otpRecord->attempts >= 5) {
+                $otpRecord->update(['used' => true]);
+            }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP tidak valid.',
+                'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
 

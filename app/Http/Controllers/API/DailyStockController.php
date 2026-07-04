@@ -8,6 +8,7 @@ use App\Models\DailyStockSession;
 use App\Services\DailyStockService;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class DailyStockController extends Controller
 {
@@ -148,8 +149,22 @@ class DailyStockController extends Controller
                 'status' => $closedSession->status,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->errorResponse($e->getMessage(), null, 422);
-        } catch (\Throwable) {
+            Log::warning('Gagal menutup sesi stok harian via API.', [
+                'user_id' => $user->id,
+                'session_id' => $session->id,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse('Sesi stok harian gagal ditutup. Periksa data sisa stok lalu coba lagi.', null, 422);
+        } catch (\Throwable $e) {
+            Log::error('Error server saat menutup sesi stok harian via API.', [
+                'user_id' => $user->id,
+                'session_id' => $session->id,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return $this->errorResponse('Gagal menutup sesi stok harian. Silakan coba lagi.', null, 500);
         }
     }
@@ -194,5 +209,4 @@ class DailyStockController extends Controller
             ->first();
     }
 }
-
 

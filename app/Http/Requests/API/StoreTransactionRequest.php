@@ -29,7 +29,6 @@ class StoreTransactionRequest extends ApiFormRequest
             'items' => 'required|array|min:1',
             'items.*.variant_id' => 'required|integer|exists:menu_variants,id',
             'items.*.qty' => 'required|integer|min:1',
-            'items.*.price' => 'nullable|numeric|min:0',
             'note' => 'nullable|string|max:255',
         ];
     }

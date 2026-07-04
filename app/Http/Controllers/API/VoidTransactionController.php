@@ -8,6 +8,7 @@ use App\Contracts\Services\VoidTransactionServiceInterface;
 use App\DTOs\VoidTransactionRequestDto;
 use App\Enums\VoidInventoryActionEnum;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class VoidTransactionController extends Controller
 {
@@ -56,7 +57,7 @@ class VoidTransactionController extends Controller
                 ],
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (str_contains($e->getMessage(), 'Idempotency conflict')) {
                 return response()->json([
                     'success' => false,
@@ -67,14 +68,28 @@ class VoidTransactionController extends Controller
             if (str_contains($e->getMessage(), 'sudah dibatalkan sebelumnya')) {
                 return response()->json([
                     'success' => false,
-                    'message' => $e->getMessage(),
+                    'message' => 'Transaksi sudah dibatalkan sebelumnya.',
                 ], 409);
             }
 
+            if (str_contains($e->getMessage(), 'Unauthorized')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akses tidak diizinkan.',
+                ], 403);
+            }
+
+            Log::error('Gagal membatalkan transaksi via API.', [
+                'transaction_id' => (int) $transactionId,
+                'actor_id' => optional($request->user())->id,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
+            ], 500);
         }
     }
 }

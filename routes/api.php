@@ -35,9 +35,9 @@ Route::get('/revenue/trend', [TransactionController::class , 'revenueTrend'])
 Route::get('/transactions', [TransactionController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::post('/transactions', [TransactionController::class , 'store'])
-    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+    ->middleware(['api.token', 'api.role:kasir', 'throttle:api-checkout-role-aware']);
 Route::post('/transactions/{transactionId}/void', [\App\Http\Controllers\API\VoidTransactionController::class, 'voidTransaction'])
-    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+    ->middleware(['api.token', 'api.role:kasir', 'throttle:api-checkout-role-aware']);
 
 Route::get('/menus', [MenuController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
@@ -51,10 +51,10 @@ Route::get('/daily-stock-items', [DailyStockController::class, 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
 
 Route::post('/daily-stock-sessions/close', [DailyStockController::class, 'closeSession'])
-    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+    ->middleware(['api.token', 'api.role:kasir', 'throttle:api-checkout-role-aware']);
 
 Route::post('/cashflow/expenses', [CashflowController::class, 'storeExpense'])
-    ->middleware(['api.token', 'throttle:api-checkout-role-aware']);
+    ->middleware(['api.token', 'api.role:kasir', 'throttle:api-checkout-role-aware']);
 
 Route::get('/sessions/current-status', [\App\Http\Controllers\API\SessionStatusController::class, 'currentStatus'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);

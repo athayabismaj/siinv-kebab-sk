@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Foundation\Application;
+use App\Http\Middleware\ApiRoleMiddleware;
 use App\Http\Middleware\ApiTokenMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\PerformanceLogMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,8 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function ($middleware) {
+        $middleware->append(SecurityHeadersMiddleware::class);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'api.role' => ApiRoleMiddleware::class,
             'api.token' => ApiTokenMiddleware::class,
             'perf.log' => PerformanceLogMiddleware::class,
         ]);

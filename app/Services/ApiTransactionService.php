@@ -241,9 +241,7 @@ class ApiTransactionService
                 ];
             }
 
-            $price = array_key_exists('price', $item) && $item['price'] !== null
-                ? (float) $item['price']
-                : (float) $variant->price;
+            $price = (float) $variant->price;
 
             $subtotal = $price * $qty;
             $totalAmount += $subtotal;
@@ -398,5 +396,4 @@ class ApiTransactionService
         return "TRX-{$datePrefix}-{$timePart}-{$randomPart}";
     }
 }
-
 

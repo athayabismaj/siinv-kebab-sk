@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Contracts\Services\CloseSessionServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CloseSessionController extends Controller
 {
@@ -42,7 +43,7 @@ class CloseSessionController extends Controller
                 ],
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (str_contains($e->getMessage(), 'UnreconciledInventoryException')) {
                 return response()->json([
                     'message' => 'Tidak dapat menutup shift. Ada bahan baku yang belum dihitung sisa fisik akhirnya.',
@@ -55,8 +56,15 @@ class CloseSessionController extends Controller
                 ], 409);
             }
 
+            Log::error('Gagal menutup sesi kasir via API.', [
+                'session_id' => (int) $sessionId,
+                'actor_id' => optional($request->user())->id,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
-                'message' => $e->getMessage(),
+                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
             ], 500);
         }
     }

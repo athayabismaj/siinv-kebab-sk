@@ -31,7 +31,11 @@ class CashflowController extends Controller
             'entry_date' => 'nullable|date',
         ]);
 
-        $entryDate = $validated['entry_date'] ?? now()->toDateString();
+        $roleName = strtolower(trim((string) optional($user->role)->name));
+        $canUseCustomDate = in_array($roleName, ['admin', 'owner'], true);
+        $entryDate = $canUseCustomDate
+            ? ($validated['entry_date'] ?? now()->toDateString())
+            : now()->toDateString();
 
         $entry = CashflowEntry::query()->create([
             'entry_date' => $entryDate,
@@ -53,4 +57,3 @@ class CashflowController extends Controller
         ], 201);
     }
 }
-
