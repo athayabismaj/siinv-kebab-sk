@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\BackupHistory;
 use Illuminate\Support\Facades\File;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class BackupDatabaseCommand extends Command
 {
@@ -32,14 +33,10 @@ class BackupDatabaseCommand extends Command
         $this->info("Memulai proses backup database [{$type}]...");
 
         try {
-            $dbName = env('DB_DATABASE');
-            $dbUser = env('DB_USERNAME');
-            $dbPassword = env('DB_PASSWORD');
-            $dbHost = env('DB_HOST', '127.0.0.1');
-            $dbPort = env('DB_PORT', '5432');
+            $dbPassword = (string) env('DB_PASSWORD', '');
 
-            $filename = 'backup-' . $dbName . '-' . Carbon::now()->format('Y-m-d-H-i-s') . '.sql';
-            $backupPath = storage_path('app/backups/');
+            $filename = 'backup-' . $this->safeDatabaseNameForFilename() . '-' . Carbon::now()->format('Y-m-d-H-i-s') . '.backup';
+            $backupPath = storage_path('app/private/backups/');
 
             if (!File::exists($backupPath)) {
                 File::makeDirectory($backupPath, 0755, true);
@@ -47,25 +44,23 @@ class BackupDatabaseCommand extends Command
 
             $filePath = $backupPath . $filename;
 
-            putenv("PGPASSWORD=" . $dbPassword);
-
-            $pgDumpPath = env('PG_DUMP_PATH', 'pg_dump');
-
-            $command = "\"{$pgDumpPath}\" -h {$dbHost} -p {$dbPort} -U {$dbUser} -F c -b -v -f \"{$filePath}\" {$dbName}";
-
-            exec($command . ' 2>&1', $output, $returnVar);
-            $outputStr = implode("\n", $output);
-
-            putenv("PGPASSWORD");
+            [$outputStr, $returnVar] = $this->runPostgresCommand($this->buildPgDumpCommand($filePath), $dbPassword);
 
             if ($returnVar !== 0) {
                 BackupHistory::create([
                     'file_name' => $filename,
                     'status' => 'failed',
-                    'error_message' => $outputStr,
+                    'error_message' => 'Backup otomatis gagal. Detail teknis sudah dicatat di log server.',
                 ]);
 
-                $this->error("Backup gagal: {$outputStr}");
+                Log::error('Backup database otomatis gagal.', [
+                    'file_name' => $filename,
+                    'type' => $type,
+                    'exit_code' => $returnVar,
+                    'output' => $outputStr,
+                ]);
+
+                $this->error('Backup gagal. Detail teknis sudah dicatat di log server.');
                 return Command::FAILURE;
             }
 
@@ -87,12 +82,61 @@ class BackupDatabaseCommand extends Command
             BackupHistory::create([
                 'file_name' => 'Failed-' . Carbon::now()->format('Y-m-d-H-i-s'),
                 'status' => 'failed',
-                'error_message' => $e->getMessage(),
+                'error_message' => 'Backup otomatis gagal. Detail teknis sudah dicatat di log server.',
             ]);
 
-            $this->error("Exception: " . $e->getMessage());
+            Log::error('Exception saat backup database otomatis.', [
+                'type' => $type,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->error('Backup gagal. Detail teknis sudah dicatat di log server.');
             return Command::FAILURE;
         }
+    }
+
+    private function buildPgDumpCommand(string $filePath): string
+    {
+        return implode(' ', [
+            escapeshellarg((string) env('PG_DUMP_PATH', 'pg_dump')),
+            '-h',
+            escapeshellarg((string) env('DB_HOST', '127.0.0.1')),
+            '-p',
+            escapeshellarg((string) env('DB_PORT', '5432')),
+            '-U',
+            escapeshellarg((string) env('DB_USERNAME')),
+            '-F',
+            'c',
+            '-b',
+            '-v',
+            '-f',
+            escapeshellarg($filePath),
+            escapeshellarg((string) env('DB_DATABASE')),
+        ]);
+    }
+
+    /**
+     * @return array{0:string,1:int}
+     */
+    private function runPostgresCommand(string $command, string $dbPassword): array
+    {
+        putenv('PGPASSWORD=' . $dbPassword);
+
+        try {
+            $output = [];
+            $returnVar = 0;
+            exec($command . ' 2>&1', $output, $returnVar);
+
+            return [implode("\n", $output), $returnVar];
+        } finally {
+            putenv('PGPASSWORD');
+        }
+    }
+
+    private function safeDatabaseNameForFilename(): string
+    {
+        return preg_replace('/[^A-Za-z0-9_.-]/', '_', (string) env('DB_DATABASE', 'database')) ?: 'database';
     }
 
     /**

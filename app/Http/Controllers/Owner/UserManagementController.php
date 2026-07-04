@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApiToken;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -62,7 +63,15 @@ class UserManagementController extends Controller
 
         $this->ensureRoleAssignable($roleId, 'Tidak diizinkan mengubah menjadi owner.');
 
+        $passwordChanged = array_key_exists('password', $validated)
+            && $validated['password'] !== null
+            && $validated['password'] !== '';
+
         $user->update($this->buildPayload($validated, false));
+
+        if ($passwordChanged) {
+            ApiToken::where('user_id', $user->id)->delete();
+        }
 
         return redirect()->route('owner.users.index')
             ->with('success', 'User berhasil diperbarui.');
@@ -86,6 +95,8 @@ class UserManagementController extends Controller
         $user->update([
             'password' => Hash::make((string) $request->input('password')),
         ]);
+
+        ApiToken::where('user_id', $user->id)->delete();
 
         return redirect()->route('owner.users.index')
             ->with('success', 'Password berhasil direset.');

@@ -17,7 +17,17 @@ class Transaction extends Model
         'change_amount',
         'status',
         'daily_stock_session_id',
+        'voided_by',
+        'voided_at',
+        'void_reason',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'voided_at' => 'datetime',
+        ];
+    }
 
     public function user(): BelongsTo
     {
@@ -32,5 +42,10 @@ class Transaction extends Model
     public function details(): HasMany
     {
         return $this->hasMany(TransactionDetail::class);
+    }
+
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
     }
 }

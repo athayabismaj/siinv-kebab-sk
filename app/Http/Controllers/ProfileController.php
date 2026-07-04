@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApiToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -57,6 +58,8 @@ class ProfileController extends Controller
         $user->update([
             'password' => Hash::make($request->password)
         ]);
+
+        ApiToken::where('user_id', $user->id)->delete();
 
         return back()->with('success', 'Password berhasil diperbarui.');
     }

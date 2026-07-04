@@ -27,13 +27,15 @@ class VoidTransactionService implements VoidTransactionServiceInterface
             throw new \Exception("Idempotency conflict: Permintaan void untuk key {$requestDto->idempotencyKey} sedang diproses atau sudah selesai.");
         }
 
+        $transactionStarted = false;
+
         try {
             // 2. Fetch transaksi & Validasi
             // Eager load: details -> menuVariant -> ingredients (pivot: menu_variant_ingredients)
             $transaction = Transaction::with('details.menuVariant.ingredients')->findOrFail($requestDto->transactionId);
 
             // Fail-Fast: Jika status transaksi sudah 'VOID'
-            if ($transaction->status === 'VOID') {
+            if (strtoupper((string) $transaction->status) === 'VOID') {
                 throw new \Exception("Transaksi ini sudah dibatalkan sebelumnya.");
             }
 
@@ -43,10 +45,22 @@ class VoidTransactionService implements VoidTransactionServiceInterface
             }
 
             DB::beginTransaction();
+            $transactionStarted = true;
 
             // 4. Lock for Update: Baris Transaksi dan DailyStockSession
             $lockedTransaction = Transaction::where('id', $requestDto->transactionId)->lockForUpdate()->firstOrFail();
             $lockedSession = DailyStockSession::where('id', $requestDto->currentSessionId)->lockForUpdate()->firstOrFail();
+
+            if (strtoupper((string) $lockedTransaction->status) === 'VOID') {
+                throw new \Exception("Transaksi ini sudah dibatalkan sebelumnya.");
+            }
+
+            if (
+                (int) $lockedTransaction->daily_stock_session_id !== (int) $lockedSession->id
+                || (int) $lockedSession->cashier_id !== (int) $lockedTransaction->user_id
+            ) {
+                throw new \Exception("Unauthorized: Anda tidak memiliki otoritas untuk mem-void transaksi ini pada sesi kasir tersebut.");
+            }
 
             // 5. Looping Resep Bahan Baku via MenuVariant (Auto-Recipe Logic)
             // Jalur relasi: TransactionDetail -> MenuVariant -> ingredients (pivot: menu_variant_ingredients)
@@ -120,12 +134,15 @@ class VoidTransactionService implements VoidTransactionServiceInterface
                 'type' => 'expense',
                 'amount' => $lockedTransaction->total_amount,
                 'source' => 'Transaction Void',
-                'note' => "Refund untuk Void Transaksi: {$lockedTransaction->transaction_code} pada Sesi {$lockedSession->id}",
+                'note' => "Refund untuk Void Transaksi: {$lockedTransaction->transaction_code} pada Sesi {$lockedSession->id}; alasan: {$requestDto->inventoryAction->value}",
                 'created_by' => $requestDto->actor->id,
             ]);
 
             // 7. Ubah status transaksi menjadi VOID
             $lockedTransaction->status = 'VOID';
+            $lockedTransaction->voided_by = $requestDto->actor->id;
+            $lockedTransaction->voided_at = now();
+            $lockedTransaction->void_reason = $requestDto->inventoryAction->value;
             $lockedTransaction->save();
 
             // 8. Kalkulasi Saldo Kasir Absolut (Single Source of Truth)
@@ -134,19 +151,17 @@ class VoidTransactionService implements VoidTransactionServiceInterface
                 ->where('daily_stock_session_id', $lockedSession->id)
                 ->sum('total_amount');
 
-            $totalRefunds = \App\Models\CashflowEntry::where('type', 'expense')
-                ->where('source', 'Transaction Void')
-                ->where('entry_date', now()->toDateString())
-                ->sum('amount');
-
-            $newDrawerBalance = (float) ($grossSales - $totalRefunds);
+            $newDrawerBalance = (float) $grossSales;
 
             DB::commit();
 
             return $newDrawerBalance;
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Throwable $e) {
+            if ($transactionStarted && DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             Cache::forget($idempotencyKey);
             throw $e;
         }

@@ -139,12 +139,14 @@
                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 Restore Manual
             </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Upload file backup (.sql) untuk memulihkan database.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Upload file backup PostgreSQL (.backup atau .dump) untuk memulihkan database.</p>
             
             <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-3">
                 @csrf
-                <input type="file" name="backup_file" required accept=".sql,.dump,.backup"
+                <input type="file" name="backup_file" required accept=".dump,.backup"
                        class="w-full text-xs text-slate-600 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-600 dark:file:bg-blue-500/10 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-500/20 file:transition file:cursor-pointer bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                <input type="text" name="restore_confirmation" required placeholder="Ketik RESTORE untuk konfirmasi"
+                       class="w-full rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-slate-200">
                 
                 <button type="submit"
                         class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all shadow-sm"
@@ -226,6 +228,8 @@
                                         </a>
                                         <form action="{{ route('developer.backups.restore', $backup->id) }}" method="POST" class="inline">
                                             @csrf
+                                            <input type="text" name="restore_confirmation" required placeholder="RESTORE"
+                                                   class="w-24 rounded-lg border border-amber-200 bg-amber-50/60 px-2 py-1.5 text-[11px] font-semibold text-slate-700 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-slate-200">
                                             <button type="submit"
                                                     class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-[12px] font-bold text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
                                                     title="Restore database dari file ini"

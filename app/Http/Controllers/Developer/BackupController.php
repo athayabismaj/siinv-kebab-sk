@@ -3,14 +3,32 @@
 namespace App\Http\Controllers\Developer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\BackupHistory;
-use Illuminate\Support\Facades\File;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BackupController extends Controller
 {
+    private const MAX_RESTORE_UPLOAD_KB = 102400;
+    private const RESTORE_CONFIRMATION = 'RESTORE';
+    private const UPLOAD_RESTORE_EXTENSIONS = ['backup', 'dump'];
+    private const STORED_RESTORE_EXTENSIONS = ['backup', 'dump', 'sql'];
+    private const RESTORE_UPLOAD_MIMES = [
+        'application/octet-stream',
+        'application/x-tar',
+        'application/gzip',
+        'application/x-gzip',
+        'application/zip',
+        'application/vnd.postgresql',
+        'application/x-postgresql-backup',
+    ];
+
     public function index()
     {
         $backups = BackupHistory::with('user')
@@ -19,58 +37,44 @@ class BackupController extends Controller
 
         $totalBackups = $backups->count();
         $successCount = $backups->where('status', 'success')->count();
-        $failedCount  = $backups->where('status', 'failed')->count();
-        $totalSize    = $backups->where('status', 'success')->sum('file_size');
-        $lastBackup   = $backups->first();
+        $failedCount = $backups->where('status', 'failed')->count();
+        $totalSize = $backups->where('status', 'success')->sum('file_size');
+        $lastBackup = $backups->first();
 
         return view('developer.backups.index', compact(
-            'backups', 'totalBackups', 'successCount', 'failedCount', 'totalSize', 'lastBackup'
+            'backups',
+            'totalBackups',
+            'successCount',
+            'failedCount',
+            'totalSize',
+            'lastBackup'
         ));
     }
 
     public function create()
     {
-        try {
-            $dbName = env('DB_DATABASE');
-            $dbUser = env('DB_USERNAME');
-            $dbPassword = env('DB_PASSWORD');
-            $dbHost = env('DB_HOST', '127.0.0.1');
-            $dbPort = env('DB_PORT', '5432');
-            
-            $filename = 'backup-' . $dbName . '-' . Carbon::now()->format('Y-m-d-H-i-s') . '.sql';
-            $backupPath = storage_path('app/backups/');
-            
-            if (!File::exists($backupPath)) {
-                File::makeDirectory($backupPath, 0755, true);
-            }
-            
-            $filePath = $backupPath . $filename;
-            
-            putenv("PGPASSWORD=" . $dbPassword);
-            
-            $pgDumpPath = env('PG_DUMP_PATH', 'pg_dump');
-            
-            // Perintah pg_dump
-            $command = "\"{$pgDumpPath}\" -h {$dbHost} -p {$dbPort} -U {$dbUser} -F c -b -v -f \"{$filePath}\" {$dbName}";
-            
-            exec($command . ' 2>&1', $output, $returnVar);
-            $outputStr = implode("\n", $output);
-            
-            putenv("PGPASSWORD");
+        $filename = 'backup-' . $this->safeDatabaseNameForFilename() . '-' . Carbon::now()->format('Y-m-d-H-i-s') . '.backup';
+        $filePath = $this->backupDirectory() . DIRECTORY_SEPARATOR . $filename;
 
-            if ($returnVar !== 0) {
-                // Catat di database jika gagal
-                BackupHistory::create([
+        try {
+            $this->ensureDirectory($this->backupDirectory());
+
+            [$output, $returnVar] = $this->runPostgresCommand(
+                $this->buildPgDumpCommand($filePath),
+                (string) env('DB_PASSWORD', '')
+            );
+
+            if ($returnVar !== 0 || ! File::exists($filePath)) {
+                $this->recordFailedBackup($filename, 'Backup gagal. Detail teknis sudah dicatat di log server.');
+                Log::error('Backup database developer gagal.', [
                     'file_name' => $filename,
-                    'status' => 'failed',
-                    'error_message' => $outputStr,
-                    'user_id' => Auth::id(),
+                    'exit_code' => $returnVar,
+                    'output' => $output,
                 ]);
 
-                return redirect()->back()->with('error', "Backup gagal. Pesan Error: \n" . $outputStr);
+                return redirect()->back()->with('error', 'Backup gagal diproses. Detail teknis sudah dicatat di log server.');
             }
 
-            // Catat di database jika sukses
             BackupHistory::create([
                 'file_name' => $filename,
                 'file_path' => $filePath,
@@ -80,42 +84,58 @@ class BackupController extends Controller
             ]);
 
             return redirect()->back()->with('success', 'Backup database berhasil dibuat.');
-            
-        } catch (\Exception $e) {
-            BackupHistory::create([
-                'file_name' => 'Failed-' . Carbon::now()->format('Y-m-d-H-i-s'),
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
-                'user_id' => Auth::id(),
+        } catch (\Throwable $e) {
+            $this->recordFailedBackup($filename, 'Backup gagal. Detail teknis sudah dicatat di log server.');
+            Log::error('Exception saat membuat backup database developer.', [
+                'file_name' => $filename,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
             ]);
 
-            return redirect()->back()->with('error', 'Gagal membuat backup: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Backup gagal diproses. Detail teknis sudah dicatat di log server.');
         }
     }
 
-    public function download($id)
+    public function download($id): BinaryFileResponse|\Illuminate\Http\RedirectResponse
     {
         $backup = BackupHistory::findOrFail($id);
+        $filePath = (string) $backup->file_path;
 
-        if ($backup->status !== 'success' || !File::exists($backup->file_path)) {
-            return redirect()->back()->with('error', 'File backup tidak ditemukan atau status backup gagal.');
+        if (
+            $backup->status !== 'success'
+            || $filePath === ''
+            || ! File::exists($filePath)
+            || ! $this->isAllowedBackupPath($filePath)
+        ) {
+            return redirect()->back()->with('error', 'File backup tidak ditemukan atau tidak valid untuk diunduh.');
         }
 
-        return response()->download($backup->file_path);
+        return response()->download($filePath, basename($backup->file_name));
     }
 
     /**
      * Restore database dari file backup yang sudah ada di riwayat.
      */
-    public function restore($id)
+    public function restore(Request $request, $id)
     {
-        $backup = BackupHistory::findOrFail($id);
+        if (! $this->hasRestoreConfirmation($request)) {
+            return redirect()->back()->with('error', 'Restore dibatalkan. Ketik RESTORE untuk mengonfirmasi proses restore database.');
+        }
 
-        if ($backup->status !== 'success' || !$backup->file_path || !File::exists($backup->file_path)) {
+        $backup = BackupHistory::findOrFail($id);
+        $filePath = (string) $backup->file_path;
+
+        if (
+            $backup->status !== 'success'
+            || $filePath === ''
+            || ! File::exists($filePath)
+            || ! $this->isAllowedBackupPath($filePath)
+            || ! $this->hasAllowedExtension($filePath, self::STORED_RESTORE_EXTENSIONS)
+        ) {
             return redirect()->back()->with('error', 'File backup tidak ditemukan atau tidak valid untuk di-restore.');
         }
 
-        return $this->executeRestore($backup->file_path, $backup->file_name);
+        return $this->executeRestore($filePath, basename($backup->file_name));
     }
 
     /**
@@ -124,21 +144,41 @@ class BackupController extends Controller
     public function restoreUpload(Request $request)
     {
         $request->validate([
-            'backup_file' => 'required|file|max:102400', // Max 100MB
+            'backup_file' => ['required', 'file', 'max:' . self::MAX_RESTORE_UPLOAD_KB],
+            'restore_confirmation' => ['required', 'string'],
         ]);
 
-        $file = $request->file('backup_file');
-        $filename = $file->getClientOriginalName();
-        
-        $backupPath = storage_path('app/backups/');
-        if (!File::exists($backupPath)) {
-            File::makeDirectory($backupPath, 0755, true);
+        if (! $this->hasRestoreConfirmation($request)) {
+            return redirect()->back()->with('error', 'Restore dibatalkan. Ketik RESTORE untuk mengonfirmasi proses restore database.');
         }
 
-        $filePath = $backupPath . 'upload-' . Carbon::now()->format('Y-m-d-H-i-s') . '-' . $filename;
-        $file->move($backupPath, basename($filePath));
+        $file = $request->file('backup_file');
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        $mimeType = (string) $file->getMimeType();
 
-        return $this->executeRestore($filePath, $filename);
+        if (! in_array($extension, self::UPLOAD_RESTORE_EXTENSIONS, true)) {
+            return redirect()->back()->with('error', 'File restore ditolak. Gunakan file backup PostgreSQL dengan ekstensi .backup atau .dump.');
+        }
+
+        if ($mimeType !== '' && ! in_array($mimeType, self::RESTORE_UPLOAD_MIMES, true)) {
+            return redirect()->back()->with('error', 'File restore ditolak karena tipe file tidak sesuai.');
+        }
+
+        $storedName = 'restore-' . Str::uuid()->toString() . '.' . $extension;
+        $storedPath = $file->storeAs('backups/restores', $storedName, 'local');
+
+        if (! $storedPath) {
+            Log::error('Upload restore database gagal disimpan.', [
+                'original_extension' => $extension,
+                'mime_type' => $mimeType,
+            ]);
+
+            return redirect()->back()->with('error', 'File restore gagal disimpan. Silakan coba lagi.');
+        }
+
+        $filePath = Storage::disk('local')->path($storedPath);
+
+        return $this->executeRestore($filePath, $storedName);
     }
 
     /**
@@ -146,41 +186,208 @@ class BackupController extends Controller
      */
     private function executeRestore(string $filePath, string $fileName)
     {
+        if (
+            ! File::exists($filePath)
+            || ! $this->isAllowedBackupPath($filePath)
+            || ! $this->hasAllowedExtension($filePath, self::STORED_RESTORE_EXTENSIONS)
+        ) {
+            return redirect()->back()->with('error', 'File backup tidak valid untuk di-restore.');
+        }
+
+        if (! $this->isReadablePostgresArchive($filePath)) {
+            return redirect()->back()->with('error', 'File backup tidak valid atau tidak dapat dibaca.');
+        }
+
         try {
-            $dbName = env('DB_DATABASE');
-            $dbUser = env('DB_USERNAME');
-            $dbPassword = env('DB_PASSWORD');
-            $dbHost = env('DB_HOST', '127.0.0.1');
-            $dbPort = env('DB_PORT', '5432');
-
-            $pgRestorePath = env('PG_RESTORE_PATH', 'pg_restore');
-
-            putenv("PGPASSWORD=" . $dbPassword);
-
-            // pg_restore: --clean untuk drop objects dulu, --if-exists agar tidak error jika belum ada
-            $command = "\"{$pgRestorePath}\" -h {$dbHost} -p {$dbPort} -U {$dbUser} -d {$dbName} --clean --if-exists -v \"{$filePath}\"";
-
-            exec($command . ' 2>&1', $output, $returnVar);
-            $outputStr = implode("\n", $output);
-
-            putenv("PGPASSWORD");
+            [$output, $returnVar] = $this->runPostgresCommand(
+                $this->buildPgRestoreCommand($filePath),
+                (string) env('DB_PASSWORD', '')
+            );
 
             if ($returnVar !== 0) {
-                // pg_restore sering return code non-zero untuk warning, cek apakah ada fatal error
-                $hasFatalError = str_contains(strtolower($outputStr), 'fatal') || str_contains(strtolower($outputStr), 'could not connect');
+                Log::error('Restore database developer gagal.', [
+                    'file_name' => $fileName,
+                    'exit_code' => $returnVar,
+                    'output' => $output,
+                ]);
 
-                if ($hasFatalError) {
-                    return redirect()->back()->with('error', "Restore gagal. Pesan Error:\n" . $outputStr);
+                if ($this->hasOnlyNonFatalRestoreWarnings($output)) {
+                    return redirect()->back()->with('success', 'Database berhasil di-restore dengan peringatan. Detail teknis sudah dicatat di log server.');
                 }
-                
-                // Jika hanya warning, anggap berhasil dengan peringatan
-                return redirect()->back()->with('success', "Database berhasil di-restore dari \"{$fileName}\" (dengan beberapa peringatan non-fatal).");
+
+                return redirect()->back()->with('error', 'Restore gagal diproses. Detail teknis sudah dicatat di log server.');
             }
 
-            return redirect()->back()->with('success', "Database berhasil di-restore dari \"{$fileName}\".");
+            return redirect()->back()->with('success', 'Database berhasil di-restore dari "' . $this->safeDisplayName($fileName) . '".');
+        } catch (\Throwable $e) {
+            Log::error('Exception saat restore database developer.', [
+                'file_name' => $fileName,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
 
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal restore database: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Restore gagal diproses. Detail teknis sudah dicatat di log server.');
         }
+    }
+
+    private function buildPgDumpCommand(string $filePath): string
+    {
+        return implode(' ', [
+            escapeshellarg((string) env('PG_DUMP_PATH', 'pg_dump')),
+            '-h',
+            escapeshellarg((string) env('DB_HOST', '127.0.0.1')),
+            '-p',
+            escapeshellarg((string) env('DB_PORT', '5432')),
+            '-U',
+            escapeshellarg((string) env('DB_USERNAME')),
+            '-F',
+            'c',
+            '-b',
+            '-v',
+            '-f',
+            escapeshellarg($filePath),
+            escapeshellarg((string) env('DB_DATABASE')),
+        ]);
+    }
+
+    private function buildPgRestoreCommand(string $filePath): string
+    {
+        return implode(' ', [
+            escapeshellarg((string) env('PG_RESTORE_PATH', 'pg_restore')),
+            '-h',
+            escapeshellarg((string) env('DB_HOST', '127.0.0.1')),
+            '-p',
+            escapeshellarg((string) env('DB_PORT', '5432')),
+            '-U',
+            escapeshellarg((string) env('DB_USERNAME')),
+            '-d',
+            escapeshellarg((string) env('DB_DATABASE')),
+            '--clean',
+            '--if-exists',
+            '-v',
+            escapeshellarg($filePath),
+        ]);
+    }
+
+    private function buildPgRestoreListCommand(string $filePath): string
+    {
+        return implode(' ', [
+            escapeshellarg((string) env('PG_RESTORE_PATH', 'pg_restore')),
+            '--list',
+            escapeshellarg($filePath),
+        ]);
+    }
+
+    /**
+     * @return array{0:string,1:int}
+     */
+    private function runPostgresCommand(string $command, string $dbPassword): array
+    {
+        putenv('PGPASSWORD=' . $dbPassword);
+
+        try {
+            $output = [];
+            $returnVar = 0;
+            exec($command . ' 2>&1', $output, $returnVar);
+
+            return [implode("\n", $output), $returnVar];
+        } finally {
+            putenv('PGPASSWORD');
+        }
+    }
+
+    private function isReadablePostgresArchive(string $filePath): bool
+    {
+        [$output, $returnVar] = $this->runPostgresCommand(
+            $this->buildPgRestoreListCommand($filePath),
+            (string) env('DB_PASSWORD', '')
+        );
+
+        if ($returnVar === 0) {
+            return true;
+        }
+
+        Log::warning('File restore database gagal validasi pg_restore --list.', [
+            'file_name' => basename($filePath),
+            'exit_code' => $returnVar,
+            'output' => $output,
+        ]);
+
+        return false;
+    }
+
+    private function hasOnlyNonFatalRestoreWarnings(string $output): bool
+    {
+        $normalized = strtolower($output);
+
+        return $normalized !== ''
+            && ! str_contains($normalized, 'fatal')
+            && ! str_contains($normalized, 'could not connect')
+            && ! str_contains($normalized, 'password authentication failed')
+            && ! str_contains($normalized, 'permission denied');
+    }
+
+    private function hasRestoreConfirmation(Request $request): bool
+    {
+        return strtoupper(trim((string) $request->input('restore_confirmation'))) === self::RESTORE_CONFIRMATION;
+    }
+
+    private function hasAllowedExtension(string $path, array $allowedExtensions): bool
+    {
+        return in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $allowedExtensions, true);
+    }
+
+    private function isAllowedBackupPath(string $filePath): bool
+    {
+        $resolvedPath = realpath($filePath);
+        if (! $resolvedPath) {
+            return false;
+        }
+
+        foreach ([$this->backupDirectory(), $this->legacyBackupDirectory(), Storage::disk('local')->path('backups')] as $directory) {
+            $basePath = realpath($directory);
+            if ($basePath && str_starts_with($resolvedPath, rtrim($basePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function ensureDirectory(string $path): void
+    {
+        if (! File::exists($path)) {
+            File::makeDirectory($path, 0750, true);
+        }
+    }
+
+    private function backupDirectory(): string
+    {
+        return storage_path('app/private/backups');
+    }
+
+    private function legacyBackupDirectory(): string
+    {
+        return storage_path('app/backups');
+    }
+
+    private function safeDatabaseNameForFilename(): string
+    {
+        return preg_replace('/[^A-Za-z0-9_.-]/', '_', (string) env('DB_DATABASE', 'database')) ?: 'database';
+    }
+
+    private function safeDisplayName(string $fileName): string
+    {
+        return Str::limit(basename($fileName), 120, '');
+    }
+
+    private function recordFailedBackup(string $fileName, string $message): void
+    {
+        BackupHistory::create([
+            'file_name' => $fileName,
+            'status' => 'failed',
+            'error_message' => $message,
+            'user_id' => Auth::id(),
+        ]);
     }
 }
