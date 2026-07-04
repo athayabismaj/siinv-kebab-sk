@@ -6,7 +6,6 @@
 
     $hasActiveFilters = request()->filled('search')
         || request()->filled('user_id')
-        || request()->filled('payment_method_id')
         || request()->filled('date_from')
         || request()->filled('date_to');
 @endphp
@@ -26,7 +25,7 @@
         </h1>
 
         <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-5">
-            Pantau transaksi kasir berdasarkan periode dan filter kasir/metode pembayaran.
+            Pantau transaksi kasir berdasarkan periode dan filter kasir.
         </p>
 
         <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-blue-50/50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg shadow-sm">
@@ -55,7 +54,7 @@
                 </div>
 
                 <div class="flex-1 flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-1 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all w-full min-w-0">
-                    <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $prevFrom, 'date_to' => $prevTo, 'search' => request('search'), 'user_id' => request('user_id'), 'payment_method_id' => request('payment_method_id')]) }}" title="Sebelumnya" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400 transition-all shrink-0">
+                    <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $prevFrom, 'date_to' => $prevTo, 'search' => request('search'), 'user_id' => request('user_id')]) }}" title="Sebelumnya" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400 transition-all shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                     </a>
 
@@ -68,7 +67,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     @else
-                        <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $nextFrom, 'date_to' => $nextTo, 'search' => request('search'), 'user_id' => request('user_id'), 'payment_method_id' => request('payment_method_id')]) }}" title="Berikutnya" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400 transition-all shrink-0">
+                        <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $nextFrom, 'date_to' => $nextTo, 'search' => request('search'), 'user_id' => request('user_id')]) }}" title="Berikutnya" class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700 dark:hover:text-blue-400 transition-all shrink-0">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                         </a>
                     @endif
@@ -80,18 +79,11 @@
                     <input type="text" name="search" id="search-input" value="{{ request('search') }}" placeholder="Cari Kode Transaksi / Kasir..." autocomplete="off" class="w-full bg-transparent border-none py-1.5 focus:ring-0 text-[13px] font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none">
                 </div>
 
-                <div class="flex flex-row gap-3 flex-1">
+                <div class="flex flex-row gap-3 md:w-64">
                     <select name="user_id" onchange="this.form.submit()" class="flex-1 min-w-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm text-[13px] font-medium text-slate-700 dark:text-slate-200">
                         <option value="">Semua Kasir</option>
                         @foreach($cashiers as $cashier)
                             <option value="{{ $cashier->id }}" {{ (string) request('user_id') === (string) $cashier->id ? 'selected' : '' }}>{{ $cashier->name }}</option>
-                        @endforeach
-                    </select>
-
-                    <select name="payment_method_id" onchange="this.form.submit()" class="flex-1 min-w-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm text-[13px] font-medium text-slate-700 dark:text-slate-200">
-                        <option value="">Semua Pembayaran</option>
-                        @foreach($paymentMethods as $method)
-                            <option value="{{ $method->id }}" {{ (string) request('payment_method_id') === (string) $method->id ? 'selected' : '' }}>{{ $method->name }}</option>
                         @endforeach
                     </select>
 

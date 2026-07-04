@@ -401,7 +401,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                        @forelse($session->items as $item)
+                        @forelse($sessionItems as $item)
                             
                             {{-- ROW DESKTOP --}}
                             @php
@@ -492,7 +492,7 @@
 
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-16 text-center">
+                                <td colspan="5" class="px-6 py-16 text-center">
                                     <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-3 border border-slate-100 dark:border-slate-700">
                                         <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                                     </div>
@@ -503,6 +503,33 @@
                     </tbody>
                 </table>
             </div>
+
+            @if($sessionItems->hasPages())
+                <div class="border-t border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+                    <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                        <div class="text-center text-[13px] font-medium text-slate-500 dark:text-slate-400 sm:text-left">
+                            Halaman <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessionItems->currentPage() }}</span>
+                            dari <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessionItems->lastPage() }}</span>
+                            <span class="mx-1.5 text-slate-300 dark:text-slate-600">|</span>
+                            Total <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessionItems->total() }}</span> data
+                        </div>
+
+                        <div class="flex items-center gap-6 text-[13px] font-semibold">
+                            @if($sessionItems->onFirstPage())
+                                <span class="cursor-not-allowed text-slate-400 dark:text-slate-600">&lt; Prev</span>
+                            @else
+                                <a href="{{ $sessionItems->previousPageUrl() }}" class="text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">&lt; Prev</a>
+                            @endif
+
+                            @if($sessionItems->hasMorePages())
+                                <a href="{{ $sessionItems->nextPageUrl() }}" class="text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Next &gt;</a>
+                            @else
+                                <span class="cursor-not-allowed text-slate-400 dark:text-slate-600">Next &gt;</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
 
         </div>
     @endif

@@ -14,15 +14,6 @@
     <div class="flex flex-col md:flex-row md:items-center gap-2">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode / nama kasir..." class="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
 
-        <select name="payment_method_id" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
-            <option value="">Semua Pembayaran</option>
-            @foreach($paymentMethods as $method)
-                <option value="{{ $method->id }}" {{ (string) request('payment_method_id') === (string) $method->id ? 'selected' : '' }}>
-                    {{ $method->name }}
-                </option>
-            @endforeach
-        </select>
-
         <button type="submit" class="w-full md:w-auto px-5 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">Terapkan</button>
 
         @if($hasActiveFilters)

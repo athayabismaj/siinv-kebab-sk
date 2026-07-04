@@ -22,6 +22,10 @@ class TransactionController extends Controller
         $dateFrom = null;
         $dateTo = null;
 
+        if (! $isOwnerView) {
+            $request->query->remove('payment_method_id');
+        }
+
         if (!$isOwnerView) {
             $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
             [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
@@ -30,7 +34,12 @@ class TransactionController extends Controller
 
         $query = $this->baseTransactionQuery();
 
-        $this->applyCommonFilters($query, $request, includeUserFilter: !$isOwnerView);
+        $this->applyCommonFilters(
+            $query,
+            $request,
+            includeUserFilter: ! $isOwnerView,
+            includePaymentMethodFilter: $isOwnerView
+        );
         $this->applyDateFilters($query, $request, $isOwnerView, $selectedDate, $dateTo);
 
         $transactions = $query
@@ -91,7 +100,12 @@ class TransactionController extends Controller
             ->latest();
     }
 
-    private function applyCommonFilters($query, Request $request, bool $includeUserFilter = false): void
+    private function applyCommonFilters(
+        $query,
+        Request $request,
+        bool $includeUserFilter = false,
+        bool $includePaymentMethodFilter = true
+    ): void
     {
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -104,7 +118,7 @@ class TransactionController extends Controller
             });
         }
 
-        if ($request->filled('payment_method_id')) {
+        if ($includePaymentMethodFilter && $request->filled('payment_method_id')) {
             $query->where('payment_method_id', (int) $request->input('payment_method_id'));
         }
 
@@ -175,7 +189,6 @@ class TransactionController extends Controller
 
         $data['hasActiveFilters'] = $request->filled('search')
             || $request->filled('user_id')
-            || $request->filled('payment_method_id')
             || $request->filled('date_from')
             || $request->filled('date_to');
 
@@ -243,7 +256,6 @@ class TransactionController extends Controller
         $suffix = 'summary:' . md5(json_encode([
             'search' => (string) $request->input('search', ''),
             'user_id' => (int) $request->input('user_id', 0),
-            'payment_method_id' => (int) $request->input('payment_method_id', 0),
             'date_from' => $request->input('date_from'),
             'date_to' => $request->input('date_to'),
             'selected_date' => $selectedDate?->toDateString(),
@@ -256,7 +268,12 @@ class TransactionController extends Controller
             now()->addSeconds(90),
             function () use ($request, $selectedDate, $summaryEndDate) {
                 $summaryQuery = Transaction::query();
-                $this->applyCommonFilters($summaryQuery, $request, includeUserFilter: true);
+                $this->applyCommonFilters(
+                    $summaryQuery,
+                    $request,
+                    includeUserFilter: true,
+                    includePaymentMethodFilter: false
+                );
                 $this->applyDateFilters($summaryQuery, $request, false, $selectedDate, $summaryEndDate);
 
                 $aggregate = (clone $summaryQuery)

@@ -91,6 +91,9 @@ class DashboardQueryService
                 'description' => "{$closedSessions} sesi stok sudah selesai.",
             ],
         };
+        $dailyStockStatus['total_sessions'] = $sessionTotal;
+        $dailyStockStatus['open_sessions'] = $openSessions;
+        $dailyStockStatus['closed_sessions'] = $closedSessions;
 
         $topMenusToday = DB::table('transaction_details')
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
@@ -125,6 +128,7 @@ class DashboardQueryService
 
         $latestTransactions = Transaction::query()
             ->select('id', 'transaction_code', 'total_amount', 'created_at')
+            ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
             ->latest()
             ->limit(10)
             ->get();

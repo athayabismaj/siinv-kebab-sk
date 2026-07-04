@@ -21,6 +21,8 @@ class UsageReportController extends Controller
 {
     use DirectExportResponse;
 
+    private const ITEMS_PER_PAGE = 10;
+
     public function index(Request $request)
     {
         $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
@@ -35,7 +37,7 @@ class UsageReportController extends Controller
 
             $usageItems = (clone $baseQuery)
                 ->orderByDesc('total_quantity')
-                ->paginate(10)
+                ->paginate(self::ITEMS_PER_PAGE)
                 ->withQueryString();
 
             $usageItems->setCollection(
@@ -72,7 +74,7 @@ class UsageReportController extends Controller
             $usageItems = new LengthAwarePaginator(
                 new Collection(),
                 0,
-                10,
+                self::ITEMS_PER_PAGE,
                 LengthAwarePaginator::resolveCurrentPage(),
                 ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
             );
@@ -230,4 +232,3 @@ class UsageReportController extends Controller
         });
     }
 }
-

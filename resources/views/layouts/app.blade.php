@@ -19,7 +19,7 @@
     @stack('styles')
 </head>
 
-<body class="font-sans antialiased selection:bg-blue-500/30 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-x-hidden relative" style="height: 100dvh; display: flex; flex-direction: column;">
+<body class="font-sans antialiased selection:bg-blue-500/30 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-x-hidden relative transition-colors duration-300" style="height: 100dvh; display: flex; flex-direction: column;">
 
 {{-- DECORATIVE BACKGROUND BLOBS --}}
 <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">

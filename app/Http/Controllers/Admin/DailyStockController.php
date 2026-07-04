@@ -12,6 +12,8 @@ use App\Support\IngredientUnit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -52,6 +54,13 @@ class DailyStockController extends Controller
         $selectedCashierId = (int) ($request->input('cashier_id') ?: ($cashiers->first()->id ?? 0));
 
         $session = null;
+        $sessionItems = new LengthAwarePaginator(
+            new Collection(),
+            0,
+            10,
+            LengthAwarePaginator::resolveCurrentPage(),
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
         if ($selectedCashierId > 0) {
             $session = DailyStockSession::query()
                 ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price'])
@@ -117,6 +126,7 @@ class DailyStockController extends Controller
             }
 
             $session->setRelation('items', $filteredItems);
+            $sessionItems = $this->paginateItems($filteredItems, $request, 10);
         }
 
         $summary = $this->summary($session);
@@ -138,6 +148,7 @@ class DailyStockController extends Controller
             'selectedCashierId' => $selectedCashierId,
             'session' => $session,
             'summary' => $summary,
+            'sessionItems' => $sessionItems,
             'categories' => $categories,
             'search' => $search,
             'selectedCategoryId' => $selectedCategoryId,
@@ -302,8 +313,22 @@ class DailyStockController extends Controller
                 ])
                 ->with('success', 'Sesi stok harian berhasil dibuka.');
         } catch (RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
-        } catch (\Throwable) {
+            Log::warning('Daily stock open session failed', [
+                'cashier_id' => $validated['cashier_id'] ?? null,
+                'session_date' => $sessionDate ?? null,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Sesi stok harian gagal dibuka. Periksa kembali data yang dipilih.');
+        } catch (\Throwable $e) {
+            Log::error('Daily stock open session error', [
+                'cashier_id' => $validated['cashier_id'] ?? null,
+                'user_id' => auth()->id(),
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withInput()->with('error', 'Gagal membuka sesi stok harian.');
         }
     }
@@ -383,8 +408,21 @@ class DailyStockController extends Controller
                 ->withInput()
                 ->with('error', 'Isi jumlah transfer minimal pada satu bahan.');
         } catch (RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
-        } catch (\Throwable) {
+            Log::warning('Daily stock transfer failed', [
+                'session_id' => $validated['session_id'] ?? null,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Transfer stok gagal diproses. Periksa jumlah dan stok bahan.');
+        } catch (\Throwable $e) {
+            Log::error('Daily stock transfer error', [
+                'session_id' => $validated['session_id'] ?? null,
+                'user_id' => auth()->id(),
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withInput()->with('error', 'Gagal transfer stok ke sesi harian.');
         }
     }
@@ -430,8 +468,21 @@ class DailyStockController extends Controller
                 ])
                 ->with('success', 'Sesi stok harian berhasil ditutup.');
         } catch (RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
-        } catch (\Throwable) {
+            Log::warning('Daily stock close session failed', [
+                'session_id' => $validated['session_id'] ?? null,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Sesi stok harian gagal ditutup. Periksa kembali data sisa stok.');
+        } catch (\Throwable $e) {
+            Log::error('Daily stock close session error', [
+                'session_id' => $validated['session_id'] ?? null,
+                'user_id' => auth()->id(),
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withInput()->with('error', 'Gagal menutup sesi stok harian.');
         }
     }
@@ -467,8 +518,21 @@ class DailyStockController extends Controller
                 ])
                 ->with('success', 'Sesi stok harian berhasil di-reopen.');
         } catch (RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
-        } catch (\Throwable) {
+            Log::warning('Daily stock reopen session failed', [
+                'session_id' => $validated['session_id'] ?? null,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Sesi stok harian gagal dibuka kembali. Periksa status sesi.');
+        } catch (\Throwable $e) {
+            Log::error('Daily stock reopen session error', [
+                'session_id' => $validated['session_id'] ?? null,
+                'user_id' => auth()->id(),
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withInput()->with('error', 'Gagal reopen sesi stok harian.');
         }
     }
@@ -570,6 +634,23 @@ class DailyStockController extends Controller
                 };
             }),
         ];
+    }
+
+    private function paginateItems(Collection $items, Request $request, int $perPage = 10): LengthAwarePaginator
+    {
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $pageItems = $items->forPage($page, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $pageItems,
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
     }
 
     private function normalizeQuantityForIngredient(Ingredient $ingredient, float $value, string $transferUnit = 'pack'): float

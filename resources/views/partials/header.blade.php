@@ -1,11 +1,23 @@
 <header 
-    x-data="{ openProfile: false }"
+    x-data="{
+        darkMode: localStorage.getItem('darkMode') === null
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : localStorage.getItem('darkMode') === 'true',
+        init() {
+            document.documentElement.classList.toggle('dark', this.darkMode);
+        },
+        toggleTheme() {
+            this.darkMode = !this.darkMode;
+            document.documentElement.classList.toggle('dark', this.darkMode);
+            localStorage.setItem('darkMode', this.darkMode);
+        }
+    }"
     class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl
            border-b border-slate-200/80 dark:border-slate-800/80
            h-16 flex items-center justify-between
-           px-6 relative z-30">
+           px-4 sm:px-6 relative z-30">
 
-    <div class="flex items-center gap-4">
+    <div class="flex min-w-0 items-center gap-3">
 
         <button 
             @click="sidebarOpen = true"
@@ -29,20 +41,86 @@
         </h1>
     </div>
 
-    <div class="flex items-center gap-4">
+    <div class="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
 
-        {{-- Toggle Dark --}}
+        {{-- Toggle Theme --}}
+        <style>
+            .theme-switch {
+                position: relative;
+                width: 64px;
+                height: 32px;
+                flex: 0 0 64px;
+                border-radius: 9999px;
+                padding: 3px;
+                transition: background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
+            }
+
+            .theme-switch-light {
+                background: #292b2f;
+                border: 1px solid #3f4248;
+                box-shadow: inset 0 1px 2px rgb(0 0 0 / 22%);
+            }
+
+            .theme-switch-dark {
+                background: #f8fafc;
+                border: 1px solid #cbd5e1;
+                box-shadow: inset 0 1px 2px rgb(15 23 42 / 8%);
+            }
+
+            .theme-switch-knob {
+                display: grid;
+                width: 24px;
+                height: 24px;
+                place-items: center;
+                border-radius: 9999px;
+                transform: translateX(0);
+                transition: transform 280ms cubic-bezier(.22, 1, .36, 1), background-color 250ms ease, color 250ms ease;
+            }
+
+            .theme-switch-knob-light {
+                color: #111827;
+                background: #ffffff;
+                box-shadow: 0 1px 4px rgb(0 0 0 / 24%);
+            }
+
+            .theme-switch-knob-dark {
+                color: #ffffff;
+                background: #050505;
+                box-shadow: 0 1px 4px rgb(0 0 0 / 28%);
+                transform: translateX(32px);
+            }
+        </style>
+
         <button
-            onclick="
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem('darkMode',
-                document.documentElement.classList.contains('dark'));
-            "
-            class="text-xs px-3 py-1.5 rounded-lg
-                   bg-slate-100 dark:bg-slate-800
-                   text-slate-600 dark:text-slate-300
-                   hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-            Toggle Dark
+            type="button"
+            @click="toggleTheme()"
+            :aria-label="darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
+            :title="darkMode ? 'Mode gelap aktif' : 'Mode terang aktif'"
+            :class="darkMode ? 'theme-switch-dark' : 'theme-switch-light'"
+            class="theme-switch focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">
+            <span
+                :class="darkMode ? 'theme-switch-knob-dark' : 'theme-switch-knob-light'"
+                class="theme-switch-knob">
+                <svg
+                    x-show="!darkMode"
+                    x-transition.opacity.duration.150ms
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1.5M12 19.5V21M4.22 4.22l1.06 1.06M18.72 18.72l1.06 1.06M3 12h1.5M19.5 12H21M4.22 19.78l1.06-1.06M18.72 5.28l1.06-1.06M16.5 12a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"></path>
+                </svg>
+
+                <svg
+                    x-show="darkMode"
+                    x-transition.opacity.duration.150ms
+                    class="h-4 w-4"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    stroke="none">
+                    <path d="M20.2 15.3A8.6 8.6 0 018.7 3.8a8.7 8.7 0 1011.5 11.5z"></path>
+                </svg>
+            </span>
         </button>
 
         {{-- NOTIFICATION BELL --}}
@@ -54,7 +132,7 @@
         @if(in_array($roleName, ['admin', 'owner'], true))
         <div class="relative" x-data="{ openNotification: false }">
             <button @click="openNotification = !openNotification"
-                    class="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition">
+                    class="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                 
                 @php
@@ -132,9 +210,7 @@
         <div class="relative" x-data="{ openProfile: false }">
 
             <button @click="openProfile = !openProfile"
-                    class="flex items-center gap-2
-                           p-2 rounded-full
-                           hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    class="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-slate-100 dark:hover:bg-slate-800">
 
                 {{-- Avatar --}}
                 <div class="w-9 h-9 rounded-full
@@ -196,9 +272,3 @@
     </div>
 
 </header>
-
-<script>
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.documentElement.classList.add('dark');
-    }
-</script>
