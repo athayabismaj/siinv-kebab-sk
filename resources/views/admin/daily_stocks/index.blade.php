@@ -504,34 +504,12 @@
                 </table>
             </div>
 
-            @if($sessionItems->hasPages())
-                <div class="border-t border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
-                    <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                        <div class="text-center text-[13px] font-medium text-slate-500 dark:text-slate-400 sm:text-left">
-                            Halaman <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessionItems->currentPage() }}</span>
-                            dari <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessionItems->lastPage() }}</span>
-                            <span class="mx-1.5 text-slate-300 dark:text-slate-600">|</span>
-                            Total <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessionItems->total() }}</span> data
-                        </div>
-
-                        <div class="flex items-center gap-6 text-[13px] font-semibold">
-                            @if($sessionItems->onFirstPage())
-                                <span class="cursor-not-allowed text-slate-400 dark:text-slate-600">&lt; Prev</span>
-                            @else
-                                <a href="{{ $sessionItems->previousPageUrl() }}" class="text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">&lt; Prev</a>
-                            @endif
-
-                            @if($sessionItems->hasMorePages())
-                                <a href="{{ $sessionItems->nextPageUrl() }}" class="text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Next &gt;</a>
-                            @else
-                                <span class="cursor-not-allowed text-slate-400 dark:text-slate-600">Next &gt;</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endif
-
         </div>
+
+        @include('partials.pagination_simple', [
+            'paginator' => $sessionItems,
+            'label' => 'data',
+        ])
     @endif
 </div>
 

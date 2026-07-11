@@ -46,20 +46,6 @@
     {{-- ================= CARD MAIN ================= --}}
     <div class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
 
-        {{-- ================= ERROR ALERT ================= --}}
-        @if(session('error'))
-            <div class="border-b border-red-200 bg-red-50 px-6 py-4 dark:border-red-900/50 dark:bg-red-900/20">
-                <div class="flex items-center gap-3">
-                    <svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p class="text-sm font-medium text-red-800 dark:text-red-300">
-                        {{ session('error') }}
-                    </p>
-                </div>
-            </div>
-        @endif
-
         <style>
             /* Custom thin scrollbar for dark mode immersion */
             ::-webkit-scrollbar { width: 6px; height: 6px; }

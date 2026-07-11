@@ -388,20 +388,37 @@ class DailyStockController extends Controller
             }
 
             if (!empty($batchTransfers)) {
-                $this->dailyStockService->batchTransferToDaily(
+                $transferResult = $this->dailyStockService->batchTransferToDaily(
                     (int) $validated['session_id'],
                     $batchTransfers,
                     (int) auth()->id()
                 );
-                
-                return redirect()
+
+                $processedCount = (int) ($transferResult['processed'] ?? 0);
+                $skippedTransfers = $transferResult['skipped'] ?? [];
+                $redirect = redirect()
                     ->route('admin.daily-stocks.transfer.form', [
                         'session_id' => $session->id,
                         'search' => $request->query('search'),
                         'category_id' => $request->query('category_id'),
                         'page' => $request->query('page'),
-                    ])
-                    ->with('success', "Transfer batch stok harian berhasil disimpan.");
+                    ]);
+
+                if ($processedCount > 0) {
+                    $redirect = $redirect->with('success', "{$processedCount} bahan berhasil ditransfer ke sesi harian.");
+
+                    if (!empty($skippedTransfers)) {
+                        $redirect = $redirect->with('warning', $this->buildTransferWarningMessage($skippedTransfers));
+                    }
+
+                    return $redirect;
+                }
+
+                if (!empty($skippedTransfers)) {
+                    return back()
+                        ->withInput()
+                        ->with('error', $this->buildTransferWarningMessage($skippedTransfers));
+                }
             }
 
             return back()
@@ -681,6 +698,47 @@ class DailyStockController extends Controller
         }
 
         return round($baseValue, 2);
+    }
+
+    /**
+     * @param array<int, array{name: string, requested: float, available: float, unit: string}> $skippedTransfers
+     */
+    private function buildTransferWarningMessage(array $skippedTransfers): string
+    {
+        $messages = collect($skippedTransfers)
+            ->map(function (array $item): string {
+                $unit = strtoupper((string) ($item['unit'] ?? 'unit'));
+
+                return sprintf(
+                    '%s stok gudang kurang (tersedia %s %s, diminta %s %s)',
+                    (string) ($item['name'] ?? 'Bahan'),
+                    $this->formatCompactNumber((float) ($item['available'] ?? 0)),
+                    $unit,
+                    $this->formatCompactNumber((float) ($item['requested'] ?? 0)),
+                    $unit
+                );
+            })
+            ->values();
+
+        if ($messages->isEmpty()) {
+            return 'Sebagian bahan tidak ditransfer karena stok gudang kurang.';
+        }
+
+        $visibleMessages = $messages->take(3)->implode('; ');
+        $remainingCount = $messages->count() - 3;
+
+        if ($remainingCount > 0) {
+            $visibleMessages .= "; dan {$remainingCount} bahan lain";
+        }
+
+        return "Sebagian bahan tidak ditransfer: {$visibleMessages}.";
+    }
+
+    private function formatCompactNumber(float $value): string
+    {
+        $formatted = number_format($value, 2, ',', '.');
+
+        return rtrim(rtrim($formatted, '0'), ',');
     }
 
     private function isOpenStatus(?string $status): bool

@@ -94,6 +94,74 @@ class DailyStockFlowTest extends TestCase
         $this->assertDatabaseCount('stock_logs', 0);
     }
 
+    public function test_batch_transfer_saves_valid_items_and_warns_for_insufficient_stock(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 30);
+        $insufficientIngredient = Ingredient::create([
+            'category_id' => $ingredient->category_id,
+            'name' => 'Saus Terbatas',
+            'display_unit' => 'pcs',
+            'base_unit' => 'pcs',
+            'pack_size' => 1,
+            'stock' => 5,
+            'minimum_stock' => 2,
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.open'), [
+            'date' => now()->toDateString(),
+            'cashier_id' => $cashier->id,
+        ])->assertRedirect();
+
+        $session = DailyStockSession::query()->firstOrFail();
+
+        $response = $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
+            'session_id' => $session->id,
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 20,
+                    'transfer_unit' => 'pcs',
+                ],
+                $insufficientIngredient->id => [
+                    'quantity' => 10,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $response->assertSessionHas('warning');
+        $this->assertStringContainsString('Saus Terbatas', session('warning'));
+
+        $ingredient->refresh();
+        $insufficientIngredient->refresh();
+
+        $this->assertSame(10.0, (float) $ingredient->stock);
+        $this->assertSame(5.0, (float) $insufficientIngredient->stock);
+
+        $this->assertDatabaseHas('daily_stock_items', [
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => $ingredient->id,
+            'opening_qty' => 20.00,
+            'remaining_qty' => 20.00,
+        ]);
+        $this->assertDatabaseMissing('daily_stock_items', [
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => $insufficientIngredient->id,
+        ]);
+        $this->assertDatabaseHas('stock_logs', [
+            'ingredient_id' => $ingredient->id,
+            'type' => 'transfer_daily',
+            'quantity' => -20.00,
+            'reference_id' => $session->id,
+        ]);
+        $this->assertDatabaseMissing('stock_logs', [
+            'ingredient_id' => $insufficientIngredient->id,
+            'type' => 'transfer_daily',
+            'reference_id' => $session->id,
+        ]);
+    }
+
     public function test_transfer_requires_positive_batch_quantity(): void
     {
         [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset();
