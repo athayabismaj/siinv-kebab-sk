@@ -17,6 +17,95 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     @stack('styles')
+    <style>
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            margin: 0 0 .75rem;
+            padding-bottom: .25rem;
+            overflow-x: auto;
+            color: rgb(148 163 184);
+            font-size: 11px;
+            line-height: 1rem;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            scrollbar-width: none;
+        }
+
+        [data-app-main] nav[class*="uppercase"][class*="tracking"]::-webkit-scrollbar {
+            display: none;
+        }
+
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] a,
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] span {
+            white-space: nowrap;
+        }
+
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] a {
+            transition: color .2s ease;
+        }
+
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] a:hover,
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] span:last-child {
+            color: rgb(37 99 235);
+        }
+
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] {
+            color: rgb(100 116 139);
+        }
+
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] a:hover,
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] span:last-child {
+            color: rgb(96 165 250);
+        }
+
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ h1,
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] + div h1:first-of-type {
+            margin: 0;
+            color: rgb(15 23 42);
+            font-size: 1.625rem;
+            line-height: 2rem;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ h1,
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] + div h1:first-of-type {
+            color: rgb(255 255 255);
+        }
+
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ h1 + p,
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ p:first-of-type,
+        [data-app-main] nav[class*="uppercase"][class*="tracking"] + div h1:first-of-type + p {
+            max-width: 48rem;
+            margin-top: .5rem;
+            color: rgb(100 116 139);
+            font-size: .875rem;
+            line-height: 1.625rem;
+            font-weight: 500;
+        }
+
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ h1 + p,
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ p:first-of-type,
+        .dark [data-app-main] nav[class*="uppercase"][class*="tracking"] + div h1:first-of-type + p {
+            color: rgb(148 163 184);
+        }
+
+        @media (max-width: 640px) {
+            [data-app-main] nav[class*="uppercase"][class*="tracking"] {
+                font-size: 10px;
+                letter-spacing: .12em;
+            }
+
+            [data-app-main] nav[class*="uppercase"][class*="tracking"] ~ h1,
+            [data-app-main] nav[class*="uppercase"][class*="tracking"] + div h1:first-of-type {
+                font-size: 1.5rem;
+                line-height: 1.875rem;
+            }
+        }
+    </style>
 </head>
 
 <body class="font-sans antialiased selection:bg-blue-500/30 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-x-hidden relative transition-colors duration-300" style="height: 100dvh; display: flex; flex-direction: column;">
@@ -60,7 +149,10 @@
         </div>
 
         {{-- SCROLLABLE CONTENT --}}
-        <main class="flex-1 overflow-y-auto p-6 md:p-8" style="min-height: 0;">
+        <main data-app-main class="flex-1 overflow-y-auto p-6 md:p-8" style="min-height: 0;">
+            @unless(trim($__env->yieldContent('disableGlobalAlerts')) === 'true')
+                @include('partials.flash_alerts', ['class' => 'w-full space-y-2', 'position' => 'global'])
+            @endunless
             @yield('content')
         </main>
 
@@ -74,5 +166,32 @@
 </div>
 
 @stack('scripts')
+<script>
+    (() => {
+        const moveGlobalFlashAlerts = () => {
+            const main = document.querySelector('[data-app-main]');
+            if (!main) return;
+
+            const alert = Array.from(main.children).find((element) => element.dataset.flashAlerts === 'global');
+            if (!alert) return;
+
+            const pageRoot = Array.from(main.children).find((element) => element !== alert);
+            if (!pageRoot) return;
+
+            const rootClass = typeof pageRoot.className === 'string' ? pageRoot.className : '';
+            const isPageWrapper = rootClass.includes('space-y') || rootClass.includes('-page') || pageRoot.dataset.pageRoot === 'true';
+            const header = pageRoot.querySelector('[data-page-header]') || (isPageWrapper ? Array.from(pageRoot.children)[0] : pageRoot);
+            if (!header) return;
+
+            header.insertAdjacentElement('afterend', alert);
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', moveGlobalFlashAlerts, { once: true });
+        } else {
+            moveGlobalFlashAlerts();
+        }
+    })();
+</script>
 </body>
 </html>

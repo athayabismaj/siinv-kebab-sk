@@ -59,29 +59,7 @@
                         <h3 class="text-4xl xl:text-5xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-tight">welcome!</h3>
                     </div>
 
-                    @if(session('success'))
-                        <div class="mb-5 px-4 py-3 rounded-lg text-sm bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-2">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    @if(session('error') || $errors->any())
-                        <div class="mb-5 px-4 py-3 rounded-lg text-sm bg-rose-50 text-rose-700 border border-rose-100 flex items-start gap-2">
-                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <div>
-                                @if(session('error'))
-                                    {{ session('error') }}
-                                @else
-                                    <ul class="list-disc list-inside">
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
+                    @include('partials.flash_alerts', ['includeErrors' => true])
 
                     <form method="POST" action="{{ route('login.process') }}" class="space-y-5" x-data="{ submitting: false }" @submit="submitting = true">
                         @csrf

@@ -14,6 +14,7 @@
     <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
 <body class="h-full bg-slate-100 flex items-center justify-center px-4">
@@ -25,6 +26,7 @@
                 </h1>
             </div>
 
+            @include('partials.flash_alerts', ['includeErrors' => true])
             @yield('content')
         </div>
 

@@ -8,18 +8,6 @@
         Verifikasi OTP
     </h2>
 
-    @if(session('success'))
-        <div class="mb-4 text-green-600 text-sm text-center">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="mb-4 text-red-600 text-sm text-center">
-            {{ $errors->first() }}
-        </div>
-    @endif
-
     <form method="POST" action="{{ route('password.verifyOtp') }}" id="otpForm">
         @csrf
 

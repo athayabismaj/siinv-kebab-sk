@@ -25,7 +25,7 @@ class DashboardController extends Controller
         $transactionsTodayCount = $this->getTransactionsTodayCount($todayStart, $todayEnd, $todayKey);
         $lowStockItems = $this->getLowStockItems();
         $lowStockSummary = $this->getLowStockSummary();
-        $recentStockActivities = $this->getRecentStockActivities();
+        $recentStockActivities = $this->getRecentStockActivities($todayStart, $todayEnd, $todayKey);
         $topMenusToday = $this->getTopMenusToday($todayStart, $todayEnd, $todayKey);
         $salesLast7Days = $this->getSalesLast7Days();
         $expenseToday = $this->getExpenseToday($todayKey);
@@ -123,13 +123,14 @@ class DashboardController extends Controller
         );
     }
 
-    private function getRecentStockActivities()
+    private function getRecentStockActivities($todayStart, $todayEnd, string $todayKey)
     {
         return Cache::remember(
-            AdminCache::key('dashboard', 'recent_stock_activities'),
+            AdminCache::key('dashboard', 'stock_activities_today:' . $todayKey),
             now()->addSeconds(90),
             fn () => StockLog::query()
                 ->with('ingredient:id,name,base_unit')
+                ->whereBetween('created_at', [$todayStart, $todayEnd])
                 ->latest()
                 ->limit(10)
                 ->get()

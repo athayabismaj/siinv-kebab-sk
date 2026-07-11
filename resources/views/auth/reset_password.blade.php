@@ -6,20 +6,6 @@
         Reset Password
     </h2>
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-lg text-sm
-                    bg-green-50 text-green-700 border border-green-200">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-4 p-3 rounded-lg text-sm
-                    bg-red-50 text-red-600 border border-red-200">
-            {{ session('error') }}
-        </div>
-    @endif
-
     <form method="POST" action="{{ route('password.reset') }}" class="space-y-5">
         @csrf
 

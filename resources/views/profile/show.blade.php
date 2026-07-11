@@ -22,17 +22,6 @@
         </p>
     </div>
 
-    {{-- SUCCESS MESSAGE --}}
-    @if(session('success'))
-        <div class="mb-6 px-5 py-4 text-sm
-                    bg-emerald-50 dark:bg-emerald-900/30
-                    text-emerald-600 dark:text-emerald-300
-                    border border-emerald-200 dark:border-emerald-800
-                    rounded-xl">
-            {{ session('success') }}
-        </div>
-    @endif
-
     {{-- CARD FULL WIDTH --}}
     <div class="bg-white dark:bg-slate-900
                 border border-slate-200 dark:border-slate-800

@@ -44,28 +44,50 @@
         gap: 12px;
     }
 
-    .admin-dashboard-session-metrics {
+    .admin-dashboard-sales-list {
+        display: grid;
+        grid-template-rows: repeat(7, minmax(30px, 1fr));
+        gap: 10px;
+    }
+
+    .admin-dashboard-session-metrics,
+    .admin-dashboard-shortcuts {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .admin-dashboard-shortcuts {
-        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: minmax(56px, 1fr);
     }
 
-    .admin-dashboard-stock-row {
+    .admin-dashboard-stock-row,
+    .admin-dashboard-activity-row {
         display: grid;
-        grid-template-columns: minmax(130px, 1fr) minmax(130px, .8fr) auto;
         align-items: center;
         gap: 12px;
     }
 
+    .admin-dashboard-stock-row {
+        grid-template-columns: minmax(130px, 1fr) minmax(130px, .8fr) auto;
+        min-height: 45px;
+    }
+
     .admin-dashboard-activity-row {
-        display: grid;
         grid-template-columns: minmax(100px, .8fr) minmax(120px, 1.2fr) auto;
-        align-items: center;
         gap: 8px;
+    }
+
+    .admin-dashboard-stock-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+
+    .admin-dashboard-stock-icon > svg {
+        display: block;
+        flex: none;
     }
 
     [x-cloak] {
@@ -107,7 +129,7 @@
 
         .admin-dashboard-bottom {
             grid-template-columns: minmax(0, 1.16fr) minmax(350px, 0.84fr);
-            align-items: stretch;
+            align-items: start;
         }
 
         .admin-dashboard-main > *,
@@ -119,7 +141,6 @@
 @endpush
 
 <div class="admin-dashboard space-y-3">
-    {{-- Page heading --}}
     <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <nav class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
@@ -139,7 +160,6 @@
         </div>
     </header>
 
-    {{-- KPI cards --}}
     <section class="admin-dashboard-kpis gap-2.5">
         @foreach([
             ['label' => 'Menu Aktif', 'value' => number_format($totalActiveMenus), 'note' => 'siap dijual', 'icon' => 'menu'],
@@ -168,15 +188,13 @@
         @endforeach
     </section>
 
-    {{-- Main overview --}}
     <div class="admin-dashboard-main gap-3">
-        {{-- Sales performance --}}
-        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                 <h2 class="text-sm font-black text-slate-900 dark:text-white">Performa Penjualan</h2>
                 <p class="mt-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">Omzet tujuh hari terakhir</p>
             </div>
-            <div class="space-y-3 p-4">
+            <div class="admin-dashboard-sales-list flex-1 p-4">
                 @foreach($salesLast7Days as $day)
                     <div class="admin-dashboard-sales-row">
                         <p class="truncate text-[10px] {{ $day['is_today'] ? 'font-black text-slate-900 dark:text-white' : 'font-bold text-slate-500 dark:text-slate-400' }}">
@@ -191,9 +209,8 @@
             </div>
         </section>
 
-        {{-- Session status --}}
-        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div class="p-4">
+        <section class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex h-full min-h-[318px] flex-col p-4">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Status Sesi Stok</p>
@@ -219,14 +236,14 @@
                     @endforeach
                 </div>
 
-                <nav class="admin-dashboard-shortcuts mt-3 gap-2" aria-label="Aksi cepat admin">
+                <nav class="admin-dashboard-shortcuts mt-3 flex-1 gap-2" aria-label="Aksi cepat admin">
                     @foreach([
                         ['route' => route('admin.stocks.index'), 'label' => 'Restok', 'path' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
                         ['route' => route('admin.daily-stocks.index'), 'label' => 'Sesi Stok', 'path' => 'M8 7V3m8 4V3M5 11h14M6 21h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
                         ['route' => route('admin.reports.cashflow.create'), 'label' => 'Pengeluaran', 'path' => 'M17 9V7a5 5 0 00-10 0v2M5 9h14l-1 11H6L5 9zm7 4v3'],
                         ['route' => route('admin.transactions.index'), 'label' => 'Transaksi', 'path' => 'M9 17v-6m4 6V7m4 10v-4M5 21h14'],
                     ] as $shortcut)
-                        <a href="{{ $shortcut['route'] }}" class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[10px] font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-blue-800 dark:hover:bg-blue-950/20">
+                        <a href="{{ $shortcut['route'] }}" class="flex h-full min-h-[56px] items-center gap-2 rounded-lg border border-slate-200 px-3 text-[10px] font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-blue-800 dark:hover:bg-blue-950/20">
                             <svg class="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $shortcut['path'] }}"></path></svg>
                             {{ $shortcut['label'] }}
                         </a>
@@ -236,9 +253,7 @@
         </section>
     </div>
 
-    {{-- Detailed lists --}}
     <div class="admin-dashboard-bottom gap-3">
-        {{-- Low stock --}}
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
                 <div>
@@ -252,7 +267,7 @@
                     @php $isCritical = ($item['status_key'] ?? '') === 'critical'; @endphp
                     <div class="admin-dashboard-stock-row px-4 py-2">
                         <div class="flex min-w-0 items-center gap-2.5">
-                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                            <span class="admin-dashboard-stock-icon h-7 w-7 shrink-0 rounded-md bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                             </span>
                             <p class="truncate text-[11px] font-bold text-slate-800 dark:text-slate-200">{{ $item['name'] }}</p>
@@ -268,49 +283,41 @@
             </div>
         </section>
 
-        {{-- Right stack --}}
-        <div x-data="{ activeTab: 'menu' }">
-            <section x-show="activeTab === 'menu'" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div class="flex items-center border-b border-slate-100 px-3 dark:border-slate-800">
-                    <button type="button" @click="activeTab = 'menu'" class="border-b-2 border-blue-600 px-3 py-2.5 text-[10px] font-bold text-slate-900 dark:text-white">Menu Terlaris</button>
-                    <button type="button" @click="activeTab = 'activity'" class="border-b-2 border-transparent px-3 py-2.5 text-[10px] font-medium text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300">Aktivitas Stok</button>
+        <section x-data="{ activeTab: 'menu' }" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between border-b border-slate-100 px-3 dark:border-slate-800">
+                <div class="flex">
+                    <button type="button" @click="activeTab = 'menu'" :class="activeTab === 'menu' ? 'border-blue-600 text-slate-900 dark:text-white font-bold' : 'border-transparent text-slate-400 font-medium hover:text-slate-600 dark:hover:text-slate-300'" class="border-b-2 px-3 py-2.5 text-[10px] transition">Menu Terlaris</button>
+                    <button type="button" @click="activeTab = 'activity'" :class="activeTab === 'activity' ? 'border-blue-600 text-slate-900 dark:text-white font-bold' : 'border-transparent text-slate-400 font-medium hover:text-slate-600 dark:hover:text-slate-300'" class="border-b-2 px-3 py-2.5 text-[10px] transition">Aktivitas Hari Ini</button>
                 </div>
-                <div class="max-h-[286px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
-                    @forelse($topMenusToday as $index => $menu)
-                        <div class="flex items-center justify-between gap-3 px-3 py-2">
-                            <div class="flex min-w-0 items-center gap-2">
-                                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-200 text-[9px] font-black leading-none text-slate-600 dark:border-slate-700 dark:text-slate-300">{{ $index + 1 }}</span>
-                                <p class="truncate text-[10px] font-bold text-slate-800 dark:text-slate-200">{{ $menu->name }}</p>
-                            </div>
-                            <p class="shrink-0 text-[10px] font-black text-slate-700 dark:text-slate-300">{{ number_format($menu->sold_qty) }} pcs</p>
-                        </div>
-                    @empty
-                        <div class="px-3 py-6 text-center text-[10px] font-medium text-slate-500">Belum ada transaksi.</div>
-                    @endforelse
-                </div>
-            </section>
+                <a x-show="activeTab === 'activity'" x-cloak href="{{ route('admin.stocks.logs') }}" class="text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Semua</a>
+            </div>
 
-            <section x-show="activeTab === 'activity'" x-cloak class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div class="flex items-center justify-between border-b border-slate-100 px-3 dark:border-slate-800">
-                    <div class="flex">
-                        <button type="button" @click="activeTab = 'menu'" class="border-b-2 border-transparent px-3 py-2.5 text-[10px] font-medium text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300">Menu Terlaris</button>
-                        <button type="button" @click="activeTab = 'activity'" class="border-b-2 border-blue-600 px-3 py-2.5 text-[10px] font-bold text-slate-900 dark:text-white">Aktivitas Stok</button>
-                    </div>
-                    <a href="{{ route('admin.stocks.logs') }}" class="text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Semua</a>
-                </div>
-                <div class="max-h-[286px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
-                    @forelse($recentStockActivities as $item)
-                        <div class="admin-dashboard-activity-row px-3 py-2">
-                            <p class="truncate text-[10px] font-bold text-slate-800 dark:text-slate-200">{{ $item['ingredient_name'] }}</p>
-                            <p class="truncate text-[9px] font-medium text-slate-500 dark:text-slate-400">{{ $item['activity'] }} · {{ $item['time']->format('d M H:i') }}</p>
-                            <p class="shrink-0 text-[10px] font-black {{ str_starts_with($item['quantity_label'], '+') ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">{{ $item['quantity_label'] }}</p>
+            <div x-show="activeTab === 'menu'" class="max-h-[286px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
+                @forelse($topMenusToday as $index => $menu)
+                    <div class="flex items-center justify-between gap-3 px-3 py-2">
+                        <div class="flex min-w-0 items-center gap-2">
+                            <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-200 text-[9px] font-black leading-none text-slate-600 dark:border-slate-700 dark:text-slate-300">{{ $index + 1 }}</span>
+                            <p class="truncate text-[10px] font-bold text-slate-800 dark:text-slate-200">{{ $menu->name }}</p>
                         </div>
-                    @empty
-                        <div class="px-3 py-6 text-center text-[10px] font-medium text-slate-500">Belum ada aktivitas.</div>
-                    @endforelse
-                </div>
-            </section>
-        </div>
+                        <p class="shrink-0 text-[10px] font-black text-slate-700 dark:text-slate-300">{{ number_format($menu->sold_qty) }} pcs</p>
+                    </div>
+                @empty
+                    <div class="px-3 py-6 text-center text-[10px] font-medium text-slate-500">Belum ada transaksi.</div>
+                @endforelse
+            </div>
+
+            <div x-show="activeTab === 'activity'" x-cloak class="max-h-[286px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
+                @forelse($recentStockActivities as $item)
+                    <div class="admin-dashboard-activity-row px-3 py-2">
+                        <p class="truncate text-[10px] font-bold text-slate-800 dark:text-slate-200">{{ $item['ingredient_name'] }}</p>
+                        <p class="truncate text-[9px] font-medium text-slate-500 dark:text-slate-400">{{ $item['activity'] }} &middot; {{ $item['time']->format('d M H:i') }}</p>
+                        <p class="shrink-0 text-[10px] font-black {{ str_starts_with($item['quantity_label'], '+') ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">{{ $item['quantity_label'] }}</p>
+                    </div>
+                @empty
+                    <div class="px-3 py-6 text-center text-[10px] font-medium text-slate-500">Belum ada aktivitas.</div>
+                @endforelse
+            </div>
+        </section>
     </div>
 </div>
 @endsection
