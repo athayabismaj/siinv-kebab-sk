@@ -134,10 +134,34 @@ class DailySalesSummaryService
             'total_items_sold' => $itemsSold,
         ];
 
-        DailySalesSummary::query()->updateOrCreate(
-            ['sale_date' => $payload['sale_date']],
-            $payload
-        );
+        $timestamp = now();
+        $summaryValues = [
+            'total_transactions' => $payload['total_transactions'],
+            'total_revenue' => $payload['total_revenue'],
+            'total_items_sold' => $payload['total_items_sold'],
+            'updated_at' => $timestamp,
+        ];
+
+        $updated = DB::table('daily_sales_summaries')
+            ->whereDate('sale_date', $payload['sale_date'])
+            ->update($summaryValues);
+
+        if ($updated === 0) {
+            $inserted = DB::table('daily_sales_summaries')->insertOrIgnore([
+                'sale_date' => $payload['sale_date'],
+                'total_transactions' => $payload['total_transactions'],
+                'total_revenue' => $payload['total_revenue'],
+                'total_items_sold' => $payload['total_items_sold'],
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ]);
+
+            if ($inserted === 0) {
+                DB::table('daily_sales_summaries')
+                    ->whereDate('sale_date', $payload['sale_date'])
+                    ->update($summaryValues);
+            }
+        }
 
         return [
             'total_transactions' => $payload['total_transactions'],

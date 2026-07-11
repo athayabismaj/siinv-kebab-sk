@@ -34,6 +34,10 @@ Route::get('/revenue/trend', [TransactionController::class , 'revenueTrend'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::get('/transactions', [TransactionController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
+Route::get('/transactions/{transactionKey}', [TransactionController::class , 'show'])
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
+Route::get('/transactions/{transactionKey}/receipt', [TransactionController::class , 'receipt'])
+    ->middleware(['api.token', 'throttle:api-read-role-aware']);
 Route::post('/transactions', [TransactionController::class , 'store'])
     ->middleware(['api.token', 'api.role:kasir', 'throttle:api-checkout-role-aware']);
 Route::post('/transactions/{transactionId}/void', [\App\Http\Controllers\API\VoidTransactionController::class, 'voidTransaction'])

@@ -56,6 +56,30 @@ class TransactionController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $transactionKey)
+    {
+        $user = $request->user();
+        $userId = (int) optional($user)->id;
+        if ($userId <= 0) {
+            return $this->unauthorizedResponse();
+        }
+
+        $roleName = strtolower(trim((string) optional($user->role)->name));
+        $canReadAll = in_array($roleName, ['admin', 'owner', 'superadmin', 'developer'], true);
+
+        $transaction = $this->transactionService->getTransactionDetail($transactionKey, $userId, $canReadAll);
+        if (! $transaction) {
+            return $this->errorResponse('Transaksi tidak ditemukan.', null, 404);
+        }
+
+        return $this->successResponse('Berhasil mengambil detail transaksi', $transaction);
+    }
+
+    public function receipt(Request $request, string $transactionKey)
+    {
+        return $this->show($request, $transactionKey);
+    }
+
     public function revenueSummary(Request $request)
     {
         $userId = $this->resolveUserId($request);
@@ -168,4 +192,3 @@ class TransactionController extends Controller
         }
     }
 }
-

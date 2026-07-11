@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DailyTarget;
+use App\Models\Transaction;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
 use Carbon\Carbon;
@@ -38,6 +39,49 @@ class ApiTransactionService
             ->orderByDesc('t.created_at');
 
         return $query->paginate($perPage);
+    }
+
+    public function getTransactionDetail(string $transactionKey, int $userId, bool $canReadAll = false): ?array
+    {
+        $transaction = Transaction::query()
+            ->with([
+                'paymentMethod:id,name',
+                'details.menu:id,name',
+                'details.menuVariant:id,name',
+            ])
+            ->when(
+                ctype_digit($transactionKey),
+                fn ($query) => $query->where('id', (int) $transactionKey),
+                fn ($query) => $query->where('transaction_code', $transactionKey)
+            )
+            ->when(! $canReadAll, fn ($query) => $query->where('user_id', $userId))
+            ->first();
+
+        if (! $transaction) {
+            return null;
+        }
+
+        $timezone = config('app.timezone', 'Asia/Jakarta');
+
+        return [
+            'id' => (int) $transaction->id,
+            'transaction_code' => (string) $transaction->transaction_code,
+            'created_at' => Carbon::parse($transaction->created_at)->setTimezone($timezone)->format('Y-m-d H:i:s'),
+            'status' => strtoupper((string) ($transaction->status ?? 'SUCCESS')),
+            'payment_method_name' => $transaction->paymentMethod?->name,
+            'total_amount' => round((float) $transaction->total_amount, 2),
+            'paid_amount' => round((float) $transaction->paid_amount, 2),
+            'change_amount' => round((float) $transaction->change_amount, 2),
+            'items' => $transaction->details
+                ->map(fn ($detail) => [
+                    'menu_name' => $detail->menu?->name,
+                    'variant_name' => $detail->menuVariant?->name,
+                    'qty' => (int) $detail->quantity,
+                    'price' => round((float) $detail->price, 2),
+                    'subtotal' => round((float) $detail->subtotal, 2),
+                ])
+                ->values(),
+        ];
     }
 
     public function getRevenueSummary(int $userId, ?string $date): array
@@ -288,8 +332,8 @@ class ApiTransactionService
                 DB::statement("SET LOCAL statement_timeout = '12s'");
             }
 
-            $now = now();
-            $transactionCode = $this->generateTransactionCode();
+            $now = now(config('app.timezone', 'Asia/Jakarta'));
+            $transactionCode = $this->generateTransactionCode($now);
 
             // Cari sesi kasir yang aktif hari ini untuk menautkan transaksi ke sesi
             $activeSessionId = \App\Models\DailyStockSession::query()
@@ -382,18 +426,32 @@ class ApiTransactionService
         }
     }
 
-    private function generateTransactionCode(): string
+    private function generateTransactionCode(Carbon $now): string
     {
-        $now = now();
-        $datePrefix = $now->format('Ymd');
-        $timePart = $now->format('His'); // Format jam:menit:detik
-        
-        // Menambahkan 4 karakter acak untuk memastikan keunikan mutlak
-        // tanpa bergantung pada query ke database (menghindari race condition).
-        // Peluang tabrakan di detik yang persis sama adalah 1 berbanding 1.6 juta (36^4).
-        $randomPart = strtoupper(\Illuminate\Support\Str::random(4));
+        $sequenceDate = $now->toDateString();
+        $timestamp = $now->toDateTimeString();
 
-        return "TRX-{$datePrefix}-{$timePart}-{$randomPart}";
+        DB::table('transaction_sequences')->insertOrIgnore([
+            'sequence_date' => $sequenceDate,
+            'last_number' => 0,
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+
+        $sequence = DB::table('transaction_sequences')
+            ->where('sequence_date', $sequenceDate)
+            ->lockForUpdate()
+            ->first();
+
+        $nextNumber = ((int) ($sequence->last_number ?? 0)) + 1;
+
+        DB::table('transaction_sequences')
+            ->where('sequence_date', $sequenceDate)
+            ->update([
+                'last_number' => $nextNumber,
+                'updated_at' => $timestamp,
+            ]);
+
+        return sprintf('TRX-%s-%03d', $now->format('Ymd'), $nextNumber);
     }
 }
-
