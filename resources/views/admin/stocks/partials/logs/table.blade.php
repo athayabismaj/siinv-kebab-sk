@@ -105,6 +105,6 @@
             </tbody>
         </table>
     </div>
-
-    @include('admin.stocks.partials.logs.pagination', ['logs' => $logs])
 </div>
+
+@include('admin.stocks.partials.logs.pagination', ['logs' => $logs])

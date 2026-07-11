@@ -14,7 +14,7 @@
 
         {{-- Judul --}}
         <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-            Manajemen Tutup Buku
+            Tutup Buku
         </h1>
 
         {{-- Deskripsi Halaman --}}
@@ -39,20 +39,6 @@
         </div>
         
     </div>
-
-    @if(session('success'))
-        <div class="flex items-center gap-3 p-4 mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-sm font-medium shadow-sm">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="flex items-center gap-3 p-4 mb-6 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 text-sm font-medium shadow-sm">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         

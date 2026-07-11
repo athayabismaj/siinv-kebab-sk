@@ -10,112 +10,132 @@
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
     {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-6">
-        <nav class="flex items-center gap-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 overflow-x-auto hide-scrollbar pb-1">
-            <a href="{{ route('admin.panel') }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                Beranda
-            </a>
-            <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-            
-            <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">
-                Menu & Resep
-            </span>
-            <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-            
-            <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">
-                Kategori Menu
-            </span>
-        </nav>
-
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-8">
-            <div class="flex-1">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+            <nav class="flex items-center gap-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 overflow-x-auto hide-scrollbar pb-1">
+                <a href="{{ route('admin.panel') }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    Beranda
+                </a>
+                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
+                <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">
+                    Menu & Resep
+                </span>
+                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
+                <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">
                     Kategori Menu
-                </h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                    Kelola pengelompokan menu untuk sistem POS. Kategori memudahkan kasir menemukan menu yang tepat saat transaksi.
-                </p>
-            </div>
+                </span>
+            </nav>
+
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Kategori Menu
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                Kelola pengelompokan menu untuk sistem POS. Kategori memudahkan kasir menemukan menu yang tepat saat transaksi.
+            </p>
         </div>
+
+        <a href="{{ route('admin.menu-categories.create') }}"
+           class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5" />
+            </svg>
+            Tambah Kategori
+        </a>
     </div>
 
-    {{-- ================= ALERTS ================= --}}
-    @if(session('success'))
-        <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-300 shadow-sm">
-            <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            {{ session('success') }}
-        </div>
-    @endif
-
     @if($errors->any())
-        <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300 shadow-sm">
-            <svg class="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            {{ $errors->first() }}
+        <div class="flex items-start gap-3 rounded-2xl border border-rose-200 bg-white px-4 py-3 shadow-sm dark:border-rose-900/60 dark:bg-slate-900">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </span>
+            <div class="min-w-0">
+                <p class="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-300">Input Belum Valid</p>
+                <p class="mt-0.5 text-sm font-semibold leading-relaxed text-slate-700 dark:text-slate-200">{{ $errors->first() }}</p>
+            </div>
         </div>
     @endif
 
     {{-- ================= TABLE & CARD SECTION ================= --}}
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        
-        <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <h2 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Daftar Kategori Menu</h2>
-                @if(method_exists($categories, 'total'))
-                <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                    {{ $categories->total() }} kategori
-                </span>
-                @endif
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-sm font-black text-slate-900 dark:text-white">Daftar Kategori Menu</h2>
+                    @if(method_exists($categories, 'total'))
+                        <span class="inline-flex h-6 items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300">
+                            {{ $categories->total() }} data
+                        </span>
+                    @endif
+                </div>
+                <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Tandai kategori Add On agar tidak ikut terbaca sebagai menu utama pada analisis.
+                </p>
             </div>
-            <a href="{{ route('admin.menu-categories.create') }}" class="inline-flex items-center justify-center gap-1.5 px-4 h-8 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                Tambah Kategori
-            </a>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-                <thead class="hidden md:table-header-group text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+            <table class="w-full text-left text-sm">
+                <thead class="hidden border-b border-slate-100 bg-white text-[10px] font-black uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500 md:table-header-group">
                     <tr>
-                        <th class="px-6 py-4">Nama Kategori</th>
+                        <th class="px-6 py-4">Kategori</th>
                         <th class="px-6 py-4 text-center">Tipe</th>
                         <th class="px-6 py-4 text-center">Jumlah Menu</th>
                         <th class="px-6 py-4 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
                     @forelse($categories as $category)
-                        
-                        <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
+                        <tr class="hidden transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40 md:table-row">
                             <td class="px-6 py-4">
-                                <p class="font-semibold text-slate-800 dark:text-white">{{ $category->name }}</p>
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-900/60">
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10" />
+                                        </svg>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="truncate font-black text-slate-900 dark:text-white">{{ $category->name }}</p>
+                                        <p class="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">Kategori penjualan menu</p>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 @if($category->is_addon)
-                                    <span class="px-2.5 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-semibold rounded-md text-xs">
+                                    <span class="inline-flex h-7 items-center rounded-full border border-amber-200 bg-amber-50 px-3 text-xs font-black text-amber-700 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-300">
                                         Add On
                                     </span>
                                 @else
-                                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-semibold rounded-md text-xs">
+                                    <span class="inline-flex h-7 items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-300">
                                         Menu Utama
                                     </span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded-md text-xs">
-                                    {{ $category->menus_count }} Menu
+                                <span class="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                    {{ number_format($category->menus_count) }} menu
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-3 text-[13px] font-semibold">
-                                    <a href="{{ route('admin.menu-categories.edit', $category->id) }}" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                                        Edit
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('admin.menu-categories.edit', $category->id) }}"
+                                       title="Edit kategori"
+                                       aria-label="Edit kategori {{ $category->name }}"
+                                       class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/15">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L8.25 18.402 4.5 19.5l1.098-3.75L16.862 4.487z" />
+                                        </svg>
                                     </a>
-                                    <span class="text-slate-300 dark:text-slate-700">|</span>
                                     <form action="{{ route('admin.menu-categories.destroy', $category->id) }}" method="POST" class="inline-block">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" onclick="return confirm('Yakin ingin menghapus kategori menu ini?')" class="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors">
-                                            Hapus
+                                        <button type="submit"
+                                                title="Hapus kategori"
+                                                aria-label="Hapus kategori {{ $category->name }}"
+                                                onclick="return confirm('Yakin ingin menghapus kategori menu ini?')"
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-500/10 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
+                                            </svg>
                                         </button>
                                     </form>
                                 </div>
@@ -124,27 +144,46 @@
 
                         <tr class="md:hidden">
                             <td colspan="4" class="p-0">
-                                <div class="p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                                    <div class="flex justify-between items-start gap-3 mb-4">
-                                        <div>
-                                            <p class="font-bold text-slate-900 dark:text-white">{{ $category->name }}</p>
-                                            <span class="mt-2 inline-flex px-2.5 py-1 {{ $category->is_addon ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' }} font-semibold rounded-md text-[11px] whitespace-nowrap">
-                                                {{ $category->is_addon ? 'Add On' : 'Menu Utama' }}
-                                            </span>
+                                <div class="flex items-start justify-between gap-3 p-4 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                                    <div class="flex min-w-0 items-start gap-3">
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-900/60">
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10" />
+                                            </svg>
+                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="break-words font-black text-slate-900 dark:text-white">{{ $category->name }}</p>
+                                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                                <span class="inline-flex h-7 items-center rounded-full border px-3 text-[11px] font-black {{ $category->is_addon ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-300' }}">
+                                                    {{ $category->is_addon ? 'Add On' : 'Menu Utama' }}
+                                                </span>
+                                                <span class="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-[11px] font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                    {{ number_format($category->menus_count) }} menu
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span class="shrink-0 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded-md text-[11px] whitespace-nowrap">{{ $category->menus_count }} Menu</span>
                                     </div>
-                                    <div class="flex items-center justify-start gap-4 text-xs font-semibold mt-2 pt-4 border-t border-slate-100 dark:border-slate-800/50">
-                                        <a href="{{ route('admin.menu-categories.edit', $category->id) }}" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                            Edit
+
+                                    <div class="flex shrink-0 items-center gap-2">
+                                        <a href="{{ route('admin.menu-categories.edit', $category->id) }}"
+                                           title="Edit kategori"
+                                           aria-label="Edit kategori {{ $category->name }}"
+                                           class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 transition hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L8.25 18.402 4.5 19.5l1.098-3.75L16.862 4.487z" />
+                                            </svg>
                                         </a>
                                         <form action="{{ route('admin.menu-categories.destroy', $category->id) }}" method="POST" class="inline-block">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" onclick="return confirm('Yakin ingin menghapus kategori menu ini?')" class="flex items-center gap-1.5 text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors">
-                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                Hapus
+                                            <button type="submit"
+                                                    title="Hapus kategori"
+                                                    aria-label="Hapus kategori {{ $category->name }}"
+                                                    onclick="return confirm('Yakin ingin menghapus kategori menu ini?')"
+                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
+                                                </svg>
                                             </button>
                                         </form>
                                     </div>
@@ -154,10 +193,17 @@
                     @empty
                         <tr>
                             <td colspan="4" class="px-6 py-16 text-center">
-                                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-3 border border-slate-100 dark:border-slate-700">
-                                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
+                                    <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h10" />
+                                    </svg>
                                 </div>
-                                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Belum ada data kategori menu.</p>
+                                <p class="mt-4 text-sm font-black text-slate-900 dark:text-white">Belum ada kategori menu.</p>
+                                <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Tambahkan kategori pertama untuk mengelompokkan menu POS.</p>
+                                <a href="{{ route('admin.menu-categories.create') }}" class="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5" /></svg>
+                                    Tambah Kategori
+                                </a>
                             </td>
                         </tr>
                     @endforelse
@@ -165,32 +211,12 @@
             </table>
         </div>
 
-        {{-- ================= PAGINATION ================= --}}
-        @if(method_exists($categories, 'hasPages') && $categories->hasPages())
-        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-            <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <div class="text-[13px] text-slate-500 dark:text-slate-400 text-center sm:text-left font-medium">
-                    Halaman <span class="font-bold text-slate-700 dark:text-slate-300">{{ $categories->currentPage() }}</span> 
-                    dari <span class="font-bold text-slate-700 dark:text-slate-300">{{ $categories->lastPage() }}</span>
-                </div>
-                
-                <div class="flex items-center gap-6 text-[13px] font-semibold">
-                    @if ($categories->onFirstPage())
-                        <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">&lt; Prev</span>
-                    @else
-                        <a href="{{ $categories->previousPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">&lt; Prev</a>
-                    @endif
+    </section>
 
-                    @if ($categories->hasMorePages())
-                        <a href="{{ $categories->nextPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">Next &gt;</a>
-                    @else
-                        <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">Next &gt;</span>
-                    @endif
-                </div>
-            </div>
-        </div>
-        @endif
-    </div>
+    @include('partials.pagination_simple', [
+        'paginator' => $categories,
+        'label' => 'data',
+    ])
 
 </div>
 

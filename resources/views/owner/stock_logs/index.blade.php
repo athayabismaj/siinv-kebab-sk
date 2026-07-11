@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Log Perubahan Stok')
+@section('title', 'Riwayat Stok')
 
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
@@ -11,8 +11,8 @@
         'sectionLabel' => 'Operasional',
         'parentRoute' => route('owner.stocks.index'),
         'parentLabel' => 'Monitoring Stok',
-        'currentLabel' => 'Log Perubahan Stok',
-        'title' => 'Log Perubahan Stok',
+        'currentLabel' => 'Riwayat Stok',
+        'title' => 'Riwayat Stok',
         'description' => 'Jejak perubahan stok dari restok, pemakaian transaksi kasir, transfer stok harian, dan penyesuaian manual.',
     ])
 

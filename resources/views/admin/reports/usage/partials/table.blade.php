@@ -88,6 +88,6 @@
         </table>
     </div>
 
-    @include('admin.reports.usage.partials.pagination', ['usageItems' => $usageItems])
 </div>
 
+@include('admin.reports.usage.partials.pagination', ['usageItems' => $usageItems])

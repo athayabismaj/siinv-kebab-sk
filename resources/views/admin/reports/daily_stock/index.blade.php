@@ -26,7 +26,7 @@
                 <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
                 
                 <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">
-                    Laporan Pemakaian
+                    Laporan Stok Harian
                 </span>
             </nav>
 
@@ -115,108 +115,109 @@
     </form>
 
     {{-- ================= SUMMARY CARDS ================= --}}
-    {{-- Tailwind safelist: md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
     @php
-        $unitColors = ['emerald', 'amber', 'violet', 'cyan', 'rose'];
+        $unitTones = ['tone-emerald', 'tone-amber', 'tone-violet', 'tone-cyan', 'tone-rose'];
     @endphp
-    {{-- Baris 1: Sesi + Item + Per-Unit Cards --}}
-    <div class="grid grid-cols-2 md:grid-cols-{{ min(count($summary['by_unit']) + 2, 5) }} gap-4">
+    <div class="daily-stock-summary-grid">
         {{-- Jumlah Sesi --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
-            <div class="flex items-start justify-between mb-3">
-                <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Jumlah Sesi</p>
-                <div class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <div class="daily-stock-card tone-slate">
+            <div class="daily-stock-card-head">
+                <div>
+                    <p class="daily-stock-card-label">Jumlah Sesi</p>
+                    <p class="daily-stock-card-value">{{ number_format($summary['sessions_count'], 0, ',', '.') }}</p>
                 </div>
+                <span class="daily-stock-card-icon">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </span>
             </div>
-            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['sessions_count'], 0, ',', '.') }}</span>
-            <p class="text-[10px] text-slate-400 mt-1">sesi kasir</p>
-            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-slate-200 dark:bg-slate-700"></div>
+            <div class="daily-stock-card-foot">
+                <span>sesi kasir</span>
+                <span>periode aktif</span>
+            </div>
         </div>
 
         {{-- Total Item --}}
-        <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
-            <div class="flex items-start justify-between mb-3">
-                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Total Item</p>
-                <div class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <div class="daily-stock-card tone-blue">
+            <div class="daily-stock-card-head">
+                <div>
+                    <p class="daily-stock-card-label">Total Item</p>
+                    <p class="daily-stock-card-value">{{ number_format($summary['items_count'], 0, ',', '.') }}</p>
                 </div>
+                <span class="daily-stock-card-icon">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </span>
             </div>
-            <span class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ number_format($summary['items_count'], 0, ',', '.') }}</span>
-            <p class="text-[10px] text-slate-400 mt-1">bahan baku</p>
-            <div class="absolute bottom-0 left-0 h-0.5 w-full bg-blue-500/30"></div>
+            <div class="daily-stock-card-foot">
+                <span>bahan baku</span>
+                <span>tercatat</span>
+            </div>
         </div>
 
         {{-- Per-Unit Cards (Dinamis) --}}
         @foreach($summary['by_unit'] as $idx => $unitData)
-            @php $color = $unitColors[$idx % count($unitColors)]; @endphp
-            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
-                <div class="flex items-start justify-between mb-2">
-                    <p class="text-[10px] font-bold text-{{ $color }}-500 uppercase tracking-widest">
-                        Stok {{ $unitData['unit'] }}
-                    </p>
-                    <div class="p-1.5 rounded-lg bg-{{ $color }}-50 dark:bg-{{ $color }}-500/10 text-{{ $color }}-400 group-hover:bg-{{ $color }}-100 dark:group-hover:bg-{{ $color }}-500/20 transition">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-                    </div>
-                </div>
-
-                {{-- Mini metric rows --}}
-                <div class="space-y-1">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Dibawa</span>
-                        <span class="text-[13px] font-extrabold text-slate-800 dark:text-white tabular-nums">
-                            {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Sisa</span>
-                        <span class="text-[13px] font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
-                            {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
-                        </span>
-                    </div>
-                    <div class="h-px bg-slate-100 dark:bg-slate-800"></div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Terpakai</span>
-                        <span class="text-[14px] font-black text-orange-600 dark:text-orange-400 tabular-nums">
+            @php $tone = $unitTones[$idx % count($unitTones)]; @endphp
+            <div class="daily-stock-card daily-stock-unit-card {{ $tone }}">
+                <div class="daily-stock-card-head">
+                    <div>
+                        <p class="daily-stock-card-label">Stok {{ $unitData['unit'] }}</p>
+                        <p class="daily-stock-card-value daily-stock-card-value-small">
                             {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
-                        </span>
+                        </p>
                     </div>
+                    <span class="daily-stock-card-icon">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </span>
                 </div>
 
-                <div class="absolute bottom-0 left-0 h-0.5 w-full bg-{{ $color }}-500/30"></div>
+                <div class="daily-stock-unit-breakdown">
+                    <div class="daily-stock-unit-row">
+                        <span>Dibawa</span>
+                        <strong>
+                            {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
+                        </strong>
+                    </div>
+                    <div class="daily-stock-unit-row">
+                        <span>Sisa</span>
+                        <strong>
+                            {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
+                        </strong>
+                    </div>
+                    <div class="daily-stock-unit-row daily-stock-unit-row-used">
+                        <span>Terpakai</span>
+                        <strong>
+                            {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
+                        </strong>
+                    </div>
+                </div>
             </div>
         @endforeach
     </div>
 
     {{-- Baris 2: Card Finansial --}}
-    <div class="relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-        <div class="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-rose-500/5 pointer-events-none"></div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800">
-            {{-- Est. Nilai Modal --}}
-            <div class="p-5 sm:p-6 flex items-center gap-5">
-                <div class="shrink-0 w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-500/15 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-orange-500 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Estimasi Nilai Modal</p>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-2">Biaya bahan baku terpakai (cost price)</p>
-                    <p class="text-2xl font-black text-orange-600 dark:text-orange-400 tabular-nums leading-none">
-                        <span class="text-sm font-bold mr-1">Rp</span>{{ number_format($summary['total_value'], 0, ',', '.') }}
-                    </p>
-                </div>
+    <div class="daily-stock-finance-grid">
+        <div class="daily-stock-finance-card finance-cost">
+            <span class="daily-stock-finance-icon">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            </span>
+            <div class="min-w-0">
+                <p class="daily-stock-finance-label">Estimasi Nilai Modal</p>
+                <p class="daily-stock-finance-caption">Biaya bahan baku terpakai</p>
+                <p class="daily-stock-finance-value">
+                    <span>Rp</span>{{ number_format($summary['total_value'], 0, ',', '.') }}
+                </p>
             </div>
-            {{-- Est. Nilai Terjual --}}
-            <div class="p-5 sm:p-6 flex items-center gap-5">
-                <div class="shrink-0 w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-500/15 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-rose-500 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Estimasi Nilai Terjual</p>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-2">Potensi revenue dari bahan terpakai (selling price)</p>
-                    <p class="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none">
-                        <span class="text-sm font-bold mr-1">Rp</span>{{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}
-                    </p>
-                </div>
+        </div>
+
+        <div class="daily-stock-finance-card finance-revenue">
+            <span class="daily-stock-finance-icon">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <div class="min-w-0">
+                <p class="daily-stock-finance-label">Estimasi Nilai Terjual</p>
+                <p class="daily-stock-finance-caption">Potensi revenue bahan terpakai</p>
+                <p class="daily-stock-finance-value">
+                    <span>Rp</span>{{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}
+                </p>
             </div>
         </div>
     </div>
@@ -377,32 +378,12 @@
             </table>
         </div>
 
-        {{-- ================= PAGINATION ================= --}}
-        @if($sessions->hasPages())
-        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-            <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <div class="text-[13px] text-slate-500 dark:text-slate-400 text-center sm:text-left font-medium">
-                    Halaman <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessions->currentPage() }}</span> 
-                    dari <span class="font-bold text-slate-700 dark:text-slate-300">{{ $sessions->lastPage() }}</span>
-                </div>
-                
-                <div class="flex items-center gap-6 text-[13px] font-semibold">
-                    @if ($sessions->onFirstPage())
-                        <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">&lt; Prev</span>
-                    @else
-                        <a href="{{ $sessions->previousPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">&lt; Prev</a>
-                    @endif
-
-                    @if ($sessions->hasMorePages())
-                        <a href="{{ $sessions->nextPageUrl() }}" class="text-blue-600 hover:text-blue-700 transition dark:text-blue-400 dark:hover:text-blue-300">Next &gt;</a>
-                    @else
-                        <span class="text-slate-400 cursor-not-allowed dark:text-slate-600">Next &gt;</span>
-                    @endif
-                </div>
-            </div>
-        </div>
-        @endif
     </div>
+
+    @include('partials.pagination_simple', [
+        'paginator' => $sessions,
+        'label' => 'data',
+    ])
 
 </div>
 
@@ -410,6 +391,299 @@
 /* CSS Helper untuk menyembunyikan scrollbar di menu navigasi */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.daily-stock-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1rem;
+}
+
+.daily-stock-card {
+    --tone-rgb: 37 99 235;
+    position: relative;
+    overflow: hidden;
+    min-height: 146px;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 16px;
+    background: rgb(255 255 255);
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.daily-stock-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: rgb(var(--tone-rgb));
+    opacity: .8;
+}
+
+.daily-stock-card::after {
+    content: "";
+    position: absolute;
+    right: -36px;
+    top: -42px;
+    width: 104px;
+    height: 104px;
+    border-radius: 999px;
+    background: rgb(var(--tone-rgb) / .08);
+    pointer-events: none;
+}
+
+.daily-stock-card:hover {
+    border-color: rgb(var(--tone-rgb) / .35);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.dark .daily-stock-card {
+    border-color: rgb(30 41 59);
+    background: rgb(15 23 42);
+    box-shadow: none;
+}
+
+.dark .daily-stock-card:hover {
+    border-color: rgb(var(--tone-rgb) / .42);
+    box-shadow: none;
+}
+
+.daily-stock-card-head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.daily-stock-card-label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgb(var(--tone-rgb));
+}
+
+.daily-stock-card-value {
+    margin-top: 10px;
+    font-size: 31px;
+    line-height: 1;
+    font-weight: 950;
+    color: rgb(15 23 42);
+    font-variant-numeric: tabular-nums;
+}
+
+.dark .daily-stock-card-value {
+    color: rgb(248 250 252);
+}
+
+.daily-stock-card-value-small {
+    font-size: 26px;
+}
+
+.daily-stock-card-icon {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgb(var(--tone-rgb) / .10);
+    color: rgb(var(--tone-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-rgb) / .14);
+}
+
+.daily-stock-card-foot {
+    position: relative;
+    z-index: 1;
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px solid rgb(226 232 240);
+    padding-top: 12px;
+    font-size: 10px;
+    font-weight: 800;
+    color: rgb(100 116 139);
+}
+
+.dark .daily-stock-card-foot {
+    border-color: rgb(30 41 59);
+    color: rgb(148 163 184);
+}
+
+.daily-stock-unit-breakdown {
+    position: relative;
+    z-index: 1;
+    margin-top: 14px;
+    display: grid;
+    gap: 7px;
+}
+
+.daily-stock-unit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgb(148 163 184);
+}
+
+.daily-stock-unit-row strong {
+    font-size: 13px;
+    letter-spacing: 0;
+    color: rgb(51 65 85);
+    font-variant-numeric: tabular-nums;
+}
+
+.dark .daily-stock-unit-row strong {
+    color: rgb(226 232 240);
+}
+
+.daily-stock-unit-row-used {
+    margin-top: 2px;
+    border-top: 1px solid rgb(226 232 240);
+    padding-top: 8px;
+    color: rgb(var(--tone-rgb));
+}
+
+.dark .daily-stock-unit-row-used {
+    border-color: rgb(30 41 59);
+}
+
+.daily-stock-unit-row-used strong {
+    color: rgb(var(--tone-rgb));
+    font-size: 14px;
+    font-weight: 950;
+}
+
+.tone-slate { --tone-rgb: 71 85 105; }
+.tone-blue { --tone-rgb: 37 99 235; }
+.tone-emerald { --tone-rgb: 5 150 105; }
+.tone-amber { --tone-rgb: 217 119 6; }
+.tone-violet { --tone-rgb: 124 58 237; }
+.tone-cyan { --tone-rgb: 8 145 178; }
+.tone-rose { --tone-rgb: 225 29 72; }
+
+.dark .tone-slate { --tone-rgb: 148 163 184; }
+.dark .tone-blue { --tone-rgb: 96 165 250; }
+.dark .tone-emerald { --tone-rgb: 52 211 153; }
+.dark .tone-amber { --tone-rgb: 251 191 36; }
+.dark .tone-violet { --tone-rgb: 167 139 250; }
+.dark .tone-cyan { --tone-rgb: 34 211 238; }
+.dark .tone-rose { --tone-rgb: 251 113 133; }
+
+.daily-stock-finance-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.daily-stock-finance-card {
+    --finance-rgb: 234 88 12;
+    display: flex;
+    min-height: 116px;
+    align-items: center;
+    gap: 16px;
+    overflow: hidden;
+    border: 1px solid rgb(var(--finance-rgb) / .18);
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at right top, rgb(var(--finance-rgb) / .10), transparent 34%),
+        linear-gradient(135deg, rgb(var(--finance-rgb) / .08), rgb(255 255 255) 46%);
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.dark .daily-stock-finance-card {
+    border-color: rgb(var(--finance-rgb) / .24);
+    background:
+        radial-gradient(circle at right top, rgb(var(--finance-rgb) / .16), transparent 36%),
+        linear-gradient(135deg, rgb(var(--finance-rgb) / .10), rgb(15 23 42) 50%);
+    box-shadow: none;
+}
+
+.finance-cost { --finance-rgb: 234 88 12; }
+.finance-revenue { --finance-rgb: 225 29 72; }
+
+.daily-stock-finance-icon {
+    display: inline-flex;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgb(var(--finance-rgb) / .13);
+    color: rgb(var(--finance-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--finance-rgb) / .16);
+}
+
+.daily-stock-finance-label {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgb(100 116 139);
+}
+
+.dark .daily-stock-finance-label {
+    color: rgb(148 163 184);
+}
+
+.daily-stock-finance-caption {
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgb(148 163 184);
+}
+
+.daily-stock-finance-value {
+    margin-top: 10px;
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 950;
+    color: rgb(var(--finance-rgb));
+    font-variant-numeric: tabular-nums;
+}
+
+.daily-stock-finance-value span {
+    margin-right: 5px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+@media (min-width: 768px) {
+    .daily-stock-finance-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .daily-stock-summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .daily-stock-card {
+        min-height: 132px;
+        padding: 16px;
+    }
+
+    .daily-stock-card-value {
+        font-size: 27px;
+    }
+}
 </style>
 @endsection
 

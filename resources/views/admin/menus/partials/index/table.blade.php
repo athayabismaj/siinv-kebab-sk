@@ -131,5 +131,6 @@
             </tbody>
         </table>
     </div>
-    @include('admin.menus.partials.pagination', ['items' => $menus])
 </div>
+
+@include('admin.menus.partials.pagination', ['items' => $menus])
