@@ -31,15 +31,18 @@ class BackupController extends Controller
 
     public function index()
     {
+        $totalBackups = BackupHistory::query()->count();
+        $successCount = BackupHistory::query()->where('status', 'success')->count();
+        $failedCount = BackupHistory::query()->where('status', 'failed')->count();
+        $totalSize = BackupHistory::query()
+            ->where('status', 'success')
+            ->pluck('file_size')
+            ->sum(fn ($size) => is_numeric($size) ? (int) $size : 0);
+        $lastBackup = BackupHistory::with('user')->latest()->first();
         $backups = BackupHistory::with('user')
             ->latest()
-            ->get();
-
-        $totalBackups = $backups->count();
-        $successCount = $backups->where('status', 'success')->count();
-        $failedCount = $backups->where('status', 'failed')->count();
-        $totalSize = $backups->where('status', 'success')->sum('file_size');
-        $lastBackup = $backups->first();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('developer.backups.index', compact(
             'backups',

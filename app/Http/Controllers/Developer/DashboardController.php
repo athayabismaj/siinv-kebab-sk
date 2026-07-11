@@ -3,14 +3,11 @@
 namespace App\Http\Controllers\Developer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
-use App\Models\User;
+use App\Models\BackupHistory;
 use App\Models\Role;
+use App\Models\User;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -19,8 +16,32 @@ class DashboardController extends Controller
         $laravelVersion = app()->version();
         $phpVersion = phpversion();
         $databaseSize = $this->getDatabaseSize();
+        $appEnv = app()->environment();
+        $debugMode = config('app.debug') ? 'Aktif' : 'Nonaktif';
+        $roleCounts = Role::query()
+            ->withCount(['users' => fn ($query) => $query->whereNull('deleted_at')])
+            ->pluck('users_count', 'name');
+        $totalUsers = User::query()->count();
+        $totalBackups = BackupHistory::query()->count();
+        $successfulBackups = BackupHistory::query()->where('status', 'success')->count();
+        $failedBackups = BackupHistory::query()->where('status', 'failed')->count();
+        $lastBackup = BackupHistory::with('user')->latest()->first();
+        $latestBackups = BackupHistory::with('user')->latest()->take(5)->get();
 
-        return view('developer.dashboard', compact('laravelVersion', 'phpVersion', 'databaseSize'));
+        return view('developer.dashboard', compact(
+            'laravelVersion',
+            'phpVersion',
+            'databaseSize',
+            'appEnv',
+            'debugMode',
+            'roleCounts',
+            'totalUsers',
+            'totalBackups',
+            'successfulBackups',
+            'failedBackups',
+            'lastBackup',
+            'latestBackups'
+        ));
     }
 
     public function clearCache()

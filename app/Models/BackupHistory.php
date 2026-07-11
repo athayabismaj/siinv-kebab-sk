@@ -11,6 +11,10 @@ class BackupHistory extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'file_size' => 'integer',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

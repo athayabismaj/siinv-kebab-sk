@@ -3,250 +3,199 @@
 @section('title', 'Manajemen Backup Database')
 
 @section('content')
-<div class="w-full space-y-6 overflow-x-hidden pb-10">
+@php
+    $formatSize = static function ($bytes): string {
+        $bytes = (float) ($bytes ?? 0);
 
-    {{-- HEADER + BREADCRUMB --}}
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-2">
-        <div class="flex-1">
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                <a href="{{ route('developer.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Developer</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Manajemen Backup</span>
+        if ($bytes <= 0) {
+            return '0 KB';
+        }
+
+        return $bytes >= 1048576
+            ? number_format($bytes / 1048576, 2) . ' MB'
+            : number_format($bytes / 1024, 2) . ' KB';
+    };
+
+    $successRate = $totalBackups > 0 ? round(($successCount / $totalBackups) * 100) : 0;
+@endphp
+
+<div
+    x-data="{
+        restoreUploadOpen: false,
+        restoreHistoryOpen: false,
+        restoreAction: '',
+        restoreName: '',
+        restoreUploadFileName: '',
+    }"
+    @keydown.escape.window="restoreUploadOpen = false; restoreHistoryOpen = false"
+    class="space-y-4">
+
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <nav class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                <a href="{{ route('developer.panel') }}" class="transition hover:text-blue-600 dark:hover:text-blue-400">Super Admin</a>
+                <span>/</span>
+                <span class="text-blue-600 dark:text-blue-400">Backup Database</span>
             </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">Manajemen Backup Database</h1>
-
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Mengelola, menjalankan secara manual, dan mengunduh riwayat backup database.
+            <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white">Manajemen Backup</h1>
+            <p class="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                Kelola backup, unduh arsip, dan restore database dengan konfirmasi aman.
             </p>
         </div>
-    </div>
 
-    {{-- FLASH MESSAGES --}}
-    @if (session('success'))
-        <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-4 py-3 rounded-xl flex items-center text-sm">
-            <svg class="w-5 h-5 mr-2.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-xl flex items-start text-sm">
-            <svg class="w-5 h-5 mr-2.5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span class="whitespace-pre-line">{{ session('error') }}</span>
-        </div>
-    @endif
-
-    {{-- STAT CARDS --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Backup</h2>
-                <p class="text-xl font-bold text-slate-800 dark:text-white">{{ number_format($totalBackups) }}</p>
-            </div>
-            <div class="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg></div>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Berhasil</h2>
-                <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">{{ number_format($successCount) }}</p>
-            </div>
-            <div class="p-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Gagal</h2>
-                <p class="text-xl font-bold text-red-600 dark:text-red-400">{{ number_format($failedCount) }}</p>
-            </div>
-            <div class="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-                <h2 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Ukuran</h2>
-                @php
-                    $sizeDisplay = $totalSize >= 1048576 
-                        ? number_format($totalSize / 1048576, 2) . ' MB'
-                        : number_format($totalSize / 1024, 2) . ' KB';
-                @endphp
-                <p class="text-xl font-bold text-slate-800 dark:text-white">{{ $totalSize > 0 ? $sizeDisplay : '0 KB' }}</p>
-            </div>
-            <div class="p-2 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg></div>
-        </div>
-    </div>
-
-    {{-- JADWAL BACKUP OTOMATIS --}}
-    <div class="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-start gap-3">
-            <div class="p-2 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg shrink-0 mt-0.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </div>
-            <div>
-                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    Jadwal Backup Otomatis
-                    <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 uppercase tracking-widest">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Aktif
-                    </span>
-                </h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Berjalan otomatis via sistem setiap: <strong>Harian (01:00)</strong>, <strong>Mingguan (Senin 02:00)</strong>, dan <strong>Bulanan (Tgl 1 03:00)</strong>. File berumur lebih dari 30 hari akan dihapus otomatis.</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {{-- BACKUP TERAKHIR --}}
-        @if($lastBackup)
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Backup Terakhir
-                </h2>
-                @if($lastBackup->status === 'success')
-                    <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800/50 dark:text-emerald-400 uppercase tracking-widest">Sukses</span>
-                @else
-                    <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400 uppercase tracking-widest">Gagal</span>
-                @endif
-            </div>
-
-            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
-                <p class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate" title="{{ $lastBackup->file_name }}">{{ $lastBackup->file_name }}</p>
-                <div class="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> {{ $lastBackup->created_at->format('d M Y, H:i') }}</span>
-                    @if($lastBackup->file_size)
-                        <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg> {{ $lastBackup->file_size >= 1048576 ? number_format($lastBackup->file_size / 1048576, 2) . ' MB' : number_format($lastBackup->file_size / 1024, 2) . ' KB' }}</span>
-                    @endif
-                    @if($lastBackup->user)
-                        <span class="flex items-center gap-1 ml-auto"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> {{ $lastBackup->user->name }}</span>
-                    @endif
-                </div>
-            </div>
-
-            @if($lastBackup->status === 'failed' && $lastBackup->error_message)
-                <div class="mt-3 rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 p-3">
-                    <p class="text-[11px] text-red-600 dark:text-red-400 whitespace-pre-line break-all font-mono leading-relaxed">{{ Str::limit($lastBackup->error_message, 150) }}</p>
-                </div>
-            @endif
-        </div>
-        @else
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-center justify-center text-slate-400 text-sm">
-            Belum ada data backup terakhir.
-        </div>
-        @endif
-
-        {{-- RESTORE / IMPORT DARI FILE --}}
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <h2 class="text-sm font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
-                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button type="button"
+                    @click="restoreUploadOpen = true"
+                    class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 Restore Manual
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Upload file backup PostgreSQL (.backup atau .dump) untuk memulihkan database.</p>
-            
-            <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-3">
-                @csrf
-                <input type="file" name="backup_file" required accept=".dump,.backup"
-                       class="w-full text-xs text-slate-600 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-600 dark:file:bg-blue-500/10 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-500/20 file:transition file:cursor-pointer bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                <input type="text" name="restore_confirmation" required placeholder="Ketik RESTORE untuk konfirmasi"
-                       class="w-full rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-slate-200">
-                
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all shadow-sm"
-                        style="background-color: #d97706; color: #fff;"
-                        onclick="return confirm('PERHATIAN: Proses restore akan menimpa data yang ada saat ini di database.\n\nLanjutkan proses restore?')">
-                    Upload & Restore
-                </button>
-            </form>
-        </div>
-    </div>
+            </button>
 
-    {{-- TABEL RIWAYAT --}}
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/20">
-            <div class="flex items-center gap-3">
-                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Riwayat Backup</h2>
-                <span class="inline-flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full">{{ $totalBackups }}</span>
-            </div>
             <form action="{{ route('developer.backups.create') }}" method="POST">
                 @csrf
                 <button type="submit"
-                   class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all shadow-sm"
-                   style="background-color: #059669; color: #fff;">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    Proses Backup Baru
+                        class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14"></path></svg>
+                    Backup Baru
                 </button>
             </form>
         </div>
+    </header>
 
-        {{-- Desktop Table --}}
-        <div class="hidden md:block overflow-x-auto">
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        @foreach([
+            ['label' => 'Total Backup', 'value' => number_format($totalBackups), 'note' => 'riwayat tersimpan', 'tone' => 'slate'],
+            ['label' => 'Berhasil', 'value' => number_format($successCount), 'note' => $successRate . '% sukses', 'tone' => 'emerald'],
+            ['label' => 'Gagal', 'value' => number_format($failedCount), 'note' => 'butuh pengecekan', 'tone' => 'rose'],
+            ['label' => 'Ukuran Backup', 'value' => $formatSize($totalSize), 'note' => 'total file sukses', 'tone' => 'blue'],
+        ] as $stat)
+            @php
+                $valueClass = match ($stat['tone']) {
+                    'emerald' => 'text-emerald-600 dark:text-emerald-400',
+                    'rose' => 'text-rose-600 dark:text-rose-400',
+                    'blue' => 'text-blue-600 dark:text-blue-400',
+                    default => 'text-slate-900 dark:text-white',
+                };
+            @endphp
+            <article class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <p class="truncate text-[9px] font-bold uppercase tracking-wider text-slate-400">{{ $stat['label'] }}</p>
+                <p class="mt-2 truncate text-xl font-black leading-none {{ $valueClass }}">{{ $stat['value'] }}</p>
+                <p class="mt-1 truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">{{ $stat['note'] }}</p>
+            </article>
+        @endforeach
+    </section>
+
+    <section class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0">
+                    <p class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Backup Terakhir</p>
+                    @if($lastBackup)
+                        <h2 class="mt-1 truncate text-base font-black text-slate-900 dark:text-white" title="{{ $lastBackup->file_name }}">
+                            {{ $lastBackup->file_name }}
+                        </h2>
+                        <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            <span>{{ $lastBackup->created_at->format('d M Y H:i') }}</span>
+                            <span class="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            <span>{{ $formatSize($lastBackup->file_size) }}</span>
+                            <span class="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            <span>{{ $lastBackup->user->name ?? 'Sistem' }}</span>
+                        </div>
+                    @else
+                        <h2 class="mt-1 text-base font-black text-slate-900 dark:text-white">Belum ada backup</h2>
+                        <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">Jalankan backup pertama untuk membuat arsip.</p>
+                    @endif
+                </div>
+
+                @if($lastBackup)
+                    <span class="inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider {{ $lastBackup->status === 'success' ? 'border-emerald-200 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300' : 'border-rose-200 text-rose-700 dark:border-rose-900/60 dark:text-rose-300' }}">
+                        {{ $lastBackup->status === 'success' ? 'Sukses' : 'Gagal' }}
+                    </span>
+                @endif
+            </div>
+
+            @if($lastBackup && $lastBackup->status === 'failed' && $lastBackup->error_message)
+                <div class="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/60 dark:bg-rose-500/10">
+                    <p class="break-all font-mono text-[11px] leading-relaxed text-rose-700 dark:text-rose-300">{{ Str::limit($lastBackup->error_message, 160) }}</p>
+                </div>
+            @endif
+        </article>
+
+        <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Jadwal Otomatis</p>
+                    <h2 class="mt-1 text-sm font-black text-slate-900 dark:text-white">Backup Aktif</h2>
+                    <p class="mt-1 text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                        Harian 01:00, mingguan Senin 02:00, bulanan tanggal 1 pukul 03:00.
+                    </p>
+                </div>
+                <span class="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    Aktif
+                </span>
+            </div>
+        </article>
+    </section>
+
+    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-sm font-black text-slate-900 dark:text-white">Riwayat Backup</h2>
+                <p class="mt-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">{{ number_format($backups->total()) }} data backup</p>
+            </div>
+            <span class="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                PostgreSQL Archive
+            </span>
+        </div>
+
+        <div class="hidden overflow-x-auto lg:block">
             <table class="min-w-full text-sm">
-                <thead class="text-xs uppercase text-slate-400 bg-slate-50 dark:bg-slate-800/60">
+                <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 dark:bg-slate-800/60">
                     <tr>
-                        <th class="px-6 py-3 text-left">Waktu</th>
-                        <th class="px-6 py-3 text-left">Nama File</th>
-                        <th class="px-6 py-3 text-left">Operator</th>
-                        <th class="px-6 py-3 text-left">Ukuran</th>
-                        <th class="px-6 py-3 text-center">Status</th>
-                        <th class="px-6 py-3 text-center">Aksi</th>
+                        <th class="px-4 py-3 text-left font-black">Waktu</th>
+                        <th class="px-4 py-3 text-left font-black">Nama File</th>
+                        <th class="px-4 py-3 text-left font-black">Operator</th>
+                        <th class="px-4 py-3 text-left font-black">Ukuran</th>
+                        <th class="px-4 py-3 text-center font-black">Status</th>
+                        <th class="px-4 py-3 text-right font-black">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @forelse ($backups as $backup)
-                        <tr class="border-t border-slate-200 dark:border-slate-800">
-                            <td class="px-6 py-4 text-slate-500 whitespace-nowrap">{{ $backup->created_at->format('d M Y H:i') }}</td>
-                            <td class="px-6 py-4 font-medium text-slate-800 dark:text-slate-100">
-                                <span class="truncate block max-w-xs" title="{{ $backup->file_name }}">{{ $backup->file_name }}</span>
+                        <tr class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/30">
+                            <td class="whitespace-nowrap px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $backup->created_at->format('d M Y H:i') }}</td>
+                            <td class="px-4 py-3">
+                                <p class="max-w-md truncate text-xs font-black text-slate-800 dark:text-slate-100" title="{{ $backup->file_name }}">{{ $backup->file_name }}</p>
                             </td>
-                            <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ $backup->user->name ?? '-' }}</td>
-                            <td class="px-6 py-4 font-semibold {{ $backup->file_size ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400' }} whitespace-nowrap">
-                                @if($backup->file_size)
-                                    {{ $backup->file_size >= 1048576 
-                                        ? number_format($backup->file_size / 1048576, 2) . ' MB'
-                                        : number_format($backup->file_size / 1024, 2) . ' KB' }}
-                                @else
-                                    —
-                                @endif
+                            <td class="whitespace-nowrap px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $backup->user->name ?? '-' }}</td>
+                            <td class="whitespace-nowrap px-4 py-3 text-xs font-black text-slate-700 dark:text-slate-200">{{ $formatSize($backup->file_size) }}</td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="inline-flex rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider {{ $backup->status === 'success' ? 'border-emerald-200 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300' : 'border-rose-200 text-rose-700 dark:border-rose-900/60 dark:text-rose-300' }}">
+                                    {{ $backup->status === 'success' ? 'Sukses' : 'Gagal' }}
+                                </span>
                             </td>
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-4 py-3">
                                 @if($backup->status === 'success')
-                                    <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800/50 dark:text-emerald-400">
-                                        Sukses
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider border bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400" title="{{ $backup->error_message }}">
-                                        Gagal
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                @if($backup->status === 'success')
-                                    <div class="flex items-center justify-center gap-2">
-                                        <a href="{{ route('developer.backups.download', $backup->id) }}" 
-                                           class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-[12px] font-bold text-emerald-600 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-                                           title="Unduh file backup">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    <div class="flex justify-end gap-2">
+                                        <a href="{{ route('developer.backups.download', $backup->id) }}"
+                                           class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[11px] font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                                             Unduh
                                         </a>
-                                        <form action="{{ route('developer.backups.restore', $backup->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <input type="text" name="restore_confirmation" required placeholder="RESTORE"
-                                                   class="w-24 rounded-lg border border-amber-200 bg-amber-50/60 px-2 py-1.5 text-[11px] font-semibold text-slate-700 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-slate-200">
-                                            <button type="submit"
-                                                    class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-[12px] font-bold text-amber-600 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                                                    title="Restore database dari file ini"
-                                                    onclick="return confirm('PERHATIAN: Proses restore akan menimpa data yang ada saat ini di database.\n\nApakah Anda yakin ingin me-restore dari backup ini?')">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                                Restore
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                                @click="restoreHistoryOpen = true; restoreAction = @js(route('developer.backups.restore', $backup->id)); restoreName = @js($backup->file_name)"
+                                                class="inline-flex h-8 items-center rounded-lg border border-amber-200 px-3 text-[11px] font-black text-amber-700 transition hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-500/10">
+                                            Restore
+                                        </button>
                                     </div>
                                 @else
-                                    <span class="text-slate-300 dark:text-slate-600">—</span>
+                                    <span class="block text-right text-xs font-bold text-slate-300 dark:text-slate-700">Tidak tersedia</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                            <td colspan="6" class="px-4 py-14 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">
                                 Belum ada riwayat backup database.
                             </td>
                         </tr>
@@ -255,44 +204,123 @@
             </table>
         </div>
 
-        {{-- Mobile Cards --}}
-        <div class="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
+        <div class="divide-y divide-slate-100 dark:divide-slate-800 lg:hidden">
             @forelse ($backups as $backup)
-                <div class="px-4 py-3 space-y-1.5">
+                <article class="space-y-3 px-4 py-4">
                     <div class="flex items-start justify-between gap-3">
-                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">
-                            {{ $backup->file_name }}
-                        </p>
-                        @if($backup->status === 'success')
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Sukses</span>
-                        @else
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Gagal</span>
-                        @endif
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-black text-slate-900 dark:text-white" title="{{ $backup->file_name }}">{{ $backup->file_name }}</p>
+                            <p class="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">{{ $backup->created_at->format('d M Y H:i') }} - {{ $backup->user->name ?? 'Sistem' }}</p>
+                        </div>
+                        <span class="inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider {{ $backup->status === 'success' ? 'border-emerald-200 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300' : 'border-rose-200 text-rose-700 dark:border-rose-900/60 dark:text-rose-300' }}">
+                            {{ $backup->status === 'success' ? 'Sukses' : 'Gagal' }}
+                        </span>
                     </div>
-                    <p class="text-xs text-slate-500">{{ $backup->created_at->format('d M Y H:i') }}</p>
+
                     <div class="flex items-center justify-between gap-3">
-                        <p class="text-sm text-slate-600 dark:text-slate-300">
-                            @if($backup->file_size)
-                                {{ $backup->file_size >= 1048576 ? number_format($backup->file_size / 1048576, 2) . ' MB' : number_format($backup->file_size / 1024, 2) . ' KB' }}
-                            @else
-                                —
-                            @endif
-                        </p>
+                        <span class="text-xs font-black text-slate-700 dark:text-slate-200">{{ $formatSize($backup->file_size) }}</span>
                         @if($backup->status === 'success')
-                            <a href="{{ route('developer.backups.download', $backup->id) }}" class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Unduh
-                            </a>
+                            <div class="flex items-center gap-3 text-xs font-black">
+                                <a href="{{ route('developer.backups.download', $backup->id) }}" class="text-slate-700 dark:text-slate-200">Unduh</a>
+                                <button type="button"
+                                        @click="restoreHistoryOpen = true; restoreAction = @js(route('developer.backups.restore', $backup->id)); restoreName = @js($backup->file_name)"
+                                        class="text-amber-700 dark:text-amber-300">
+                                    Restore
+                                </button>
+                            </div>
+                        @else
+                            <span class="text-xs font-bold text-slate-300 dark:text-slate-700">Tidak tersedia</span>
                         @endif
                     </div>
-                </div>
+                </article>
             @empty
-                <div class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                <div class="px-4 py-12 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">
                     Belum ada riwayat backup database.
                 </div>
             @endforelse
         </div>
+
+        @include('partials.pagination_simple', [
+            'paginator' => $backups,
+            'label' => 'data',
+        ])
+    </section>
+
+    <div x-show="restoreUploadOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/70 px-4 py-6">
+        <div @click.outside="restoreUploadOpen = false" class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:max-w-2xl sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-black text-slate-900 dark:text-white">Restore Manual</h2>
+                    <p class="mt-1 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">Upload file .backup atau .dump, lalu ketik RESTORE untuk konfirmasi.</p>
+                </div>
+                <button type="button" @click="restoreUploadOpen = false" class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" class="mt-5 space-y-4">
+                @csrf
+                <label class="block">
+                    <span class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">File Backup</span>
+                    <input id="restore-upload-file" type="file" name="backup_file" required accept=".dump,.backup"
+                           class="sr-only"
+                           @change="restoreUploadFileName = $event.target.files.length ? $event.target.files[0].name : ''">
+                    <span class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-3 py-2 transition hover:border-blue-400 hover:bg-blue-50/50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-blue-700 dark:hover:bg-blue-950/20">
+                        <span class="min-w-0 flex-1 truncate text-xs font-black text-slate-800 dark:text-slate-100" x-text="restoreUploadFileName || 'Belum ada file dipilih'"></span>
+                        <span class="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-slate-900 px-3 text-[11px] font-black text-white transition hover:bg-slate-800 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
+                            Pilih File
+                        </span>
+                    </span>
+                    <span class="mt-1.5 block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Format: .backup atau .dump</span>
+                </label>
+                <label class="block">
+                    <span class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Konfirmasi</span>
+                    <input type="text" name="restore_confirmation" required placeholder="Ketik RESTORE"
+                           class="h-10 w-full rounded-lg border border-amber-300 bg-white px-3 text-xs font-black text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 dark:border-amber-800 dark:bg-slate-950 dark:text-slate-100">
+                </label>
+                <div class="grid grid-cols-2 gap-2 pt-1 sm:flex sm:justify-end">
+                    <button type="button" @click="restoreUploadOpen = false" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-3 text-[11px] font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 sm:px-4 sm:text-xs">Batal</button>
+                    <button type="submit"
+                            class="inline-flex h-10 items-center justify-center rounded-lg border border-amber-600 px-3 text-[11px] font-black text-white shadow-sm shadow-amber-500/20 transition hover:brightness-95 sm:px-4 sm:text-xs"
+                            style="background-color: #d97706; color: #ffffff;"
+                            onclick="return confirm('PERHATIAN: Proses restore akan menimpa data yang ada saat ini di database.\n\nLanjutkan proses restore?')">
+                        Upload & Restore
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
+    <div x-show="restoreHistoryOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/70 px-4 py-6">
+        <div @click.outside="restoreHistoryOpen = false" class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                    <h2 class="text-lg font-black text-slate-900 dark:text-white">Restore Backup</h2>
+                    <p class="mt-1 truncate text-sm font-semibold text-slate-500 dark:text-slate-400" x-text="restoreName"></p>
+                </div>
+                <button type="button" @click="restoreHistoryOpen = false" class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form :action="restoreAction" method="POST" class="mt-5 space-y-4">
+                @csrf
+                <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-relaxed text-amber-800 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-200">
+                    Restore akan menimpa database saat ini. Ketik RESTORE untuk melanjutkan.
+                </p>
+                <input type="text" name="restore_confirmation" required placeholder="Ketik RESTORE"
+                       class="h-10 w-full rounded-lg border border-amber-300 bg-white px-3 text-xs font-black text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 dark:border-amber-800 dark:bg-slate-950 dark:text-slate-100">
+                <div class="grid grid-cols-2 gap-2 pt-1 sm:flex sm:justify-end">
+                    <button type="button" @click="restoreHistoryOpen = false" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-3 text-[11px] font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 sm:px-4 sm:text-xs">Batal</button>
+                    <button type="submit"
+                            class="inline-flex h-10 items-center justify-center rounded-lg border border-amber-600 px-3 text-[11px] font-black text-white shadow-sm shadow-amber-500/20 transition hover:brightness-95 sm:px-4 sm:text-xs"
+                            style="background-color: #d97706; color: #ffffff;"
+                            onclick="return confirm('PERHATIAN: Proses restore akan menimpa data yang ada saat ini di database.\n\nApakah Anda yakin ingin me-restore dari backup ini?')">
+                        Konfirmasi Restore
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection
