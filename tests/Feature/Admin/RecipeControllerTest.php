@@ -129,6 +129,102 @@ class RecipeControllerTest extends TestCase
         $response->assertSessionHasErrors('ingredients');
     }
 
+    public function test_update_recipe_does_not_touch_other_variant_recipe(): void
+    {
+        $admin = $this->createAdminUser();
+        [$variant, $ingredientA, $ingredientB] = $this->createRecipeDataset();
+
+        $otherVariant = MenuVariant::create([
+            'menu_id' => $variant->menu_id,
+            'name' => 'Jumbo',
+            'price' => 15000,
+            'is_available' => true,
+            'sort_order' => 2,
+        ]);
+
+        $variant->ingredients()->attach($ingredientA->id, ['quantity' => 1.00]);
+        $otherVariant->ingredients()->attach($ingredientB->id, ['quantity' => 4.00]);
+
+        $response = $this->actingAs($admin)->put(route('admin.recipes.update', $variant->id), [
+            'visible_ingredients' => [
+                (string) $ingredientA->id,
+                (string) $ingredientB->id,
+            ],
+            'ingredients' => [
+                (string) $ingredientA->id => 2.50,
+                (string) $ingredientB->id => 0,
+            ],
+        ]);
+
+        $response->assertRedirect(route('admin.recipes.index'));
+
+        $this->assertDatabaseHas('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $ingredientA->id,
+            'quantity' => 2.50,
+        ]);
+
+        $this->assertDatabaseHas('menu_variant_ingredients', [
+            'menu_variant_id' => $otherVariant->id,
+            'ingredient_id' => $ingredientB->id,
+            'quantity' => 4.00,
+        ]);
+
+        $this->assertDatabaseMissing('menu_variant_ingredients', [
+            'menu_variant_id' => $otherVariant->id,
+            'ingredient_id' => $ingredientA->id,
+        ]);
+    }
+
+    public function test_update_recipe_preserves_ingredients_hidden_by_category_filter(): void
+    {
+        $admin = $this->createAdminUser();
+        [$variant, $ingredientA, $ingredientB] = $this->createRecipeDataset();
+
+        $hiddenCategory = IngredientCategory::create(['name' => 'Bahan Tambahan']);
+        $hiddenIngredient = Ingredient::create([
+            'category_id' => $hiddenCategory->id,
+            'name' => 'Keju',
+            'display_unit' => 'gram',
+            'base_unit' => 'gram',
+            'stock' => 300,
+            'minimum_stock' => 30,
+        ]);
+
+        $variant->ingredients()->attach($ingredientA->id, ['quantity' => 1.00]);
+        $variant->ingredients()->attach($hiddenIngredient->id, ['quantity' => 3.00]);
+
+        $response = $this->actingAs($admin)->put(route('admin.recipes.update', $variant->id), [
+            'visible_ingredients' => [
+                (string) $ingredientA->id,
+                (string) $ingredientB->id,
+            ],
+            'ingredients' => [
+                (string) $ingredientA->id => 2.50,
+                (string) $ingredientB->id => 0,
+            ],
+        ]);
+
+        $response->assertRedirect(route('admin.recipes.index'));
+
+        $this->assertDatabaseHas('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $ingredientA->id,
+            'quantity' => 2.50,
+        ]);
+
+        $this->assertDatabaseHas('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $hiddenIngredient->id,
+            'quantity' => 3.00,
+        ]);
+
+        $this->assertDatabaseMissing('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $ingredientB->id,
+        ]);
+    }
+
     private function createAdminUser(): User
     {
         $role = Role::create(['name' => 'admin']);
@@ -188,4 +284,3 @@ class RecipeControllerTest extends TestCase
         return [$variant, $ingredientA, $ingredientB];
     }
 }
-

@@ -32,31 +32,17 @@
     </div>
 
     <!-- Alerts -->
-    @if(session('success'))
-        <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-300 shadow-sm">
-            <div class="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-800/50 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <p class="text-sm font-medium">{{ session('success') }}</p>
-        </div>
-    @endif
-
-    @if(session('error') || $errors->any())
+    @if($errors->any())
         <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-300 shadow-sm">
             <div class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-800/50 flex items-center justify-center shrink-0 mt-0.5">
                 <svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
             <div>
-                @if(session('error'))
-                    <p class="text-sm font-medium">{{ session('error') }}</p>
-                @endif
-                @if($errors->any())
-                    <ul class="list-disc list-inside text-sm font-medium space-y-1 mt-1">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                @endif
+                <ul class="list-disc list-inside text-sm font-medium space-y-1 mt-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         </div>
     @endif
@@ -179,6 +165,7 @@
                         </div>
                         <input type="number" min="0" step="1000" name="target_revenue"
                                value="{{ old('target_revenue', (int) $targetRevenue) }}"
+                               data-clear-zero-input
                                class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm">
                     </div>
                 </div>
@@ -187,6 +174,7 @@
                     <div class="relative">
                         <input type="number" min="0" name="target_transactions"
                                value="{{ old('target_transactions', $targetTransactions) }}"
+                               data-clear-zero-input
                                class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm">
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                             <span class="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-wider">Trx</span>
@@ -219,3 +207,25 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelectorAll('[data-clear-zero-input]').forEach((input) => {
+        input.addEventListener('focus', () => {
+            if (input.value === '0') {
+                input.value = '';
+            }
+        });
+
+        input.addEventListener('input', () => {
+            input.value = input.value.replace(/^0+(?=\d)/, '');
+        });
+
+        input.addEventListener('blur', () => {
+            if (input.value === '') {
+                input.value = '0';
+            }
+        });
+    });
+</script>
+@endpush

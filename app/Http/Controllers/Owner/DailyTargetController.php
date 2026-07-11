@@ -67,11 +67,26 @@ class DailyTargetController extends Controller
                 ->with('error', 'Simpan target gagal karena tabel daily_targets belum tersedia. Jalankan migrasi dulu.');
         }
 
+        $request->merge([
+            'target_revenue' => $this->normalizeNumericInput($request->input('target_revenue')),
+            'target_transactions' => $this->normalizeIntegerInput($request->input('target_transactions')),
+        ]);
+
         $validated = $request->validate([
             'target_date' => 'required|date',
             'target_revenue' => 'required|numeric|min:0',
             'target_transactions' => 'required|integer|min:0',
             'notes' => 'nullable|string|max:500',
+        ], [
+            'target_date.required' => 'Tanggal target wajib diisi.',
+            'target_date.date' => 'Tanggal target tidak valid.',
+            'target_revenue.required' => 'Target omzet harian wajib diisi.',
+            'target_revenue.numeric' => 'Target omzet harian harus berupa angka.',
+            'target_revenue.min' => 'Target omzet harian tidak boleh kurang dari 0.',
+            'target_transactions.required' => 'Target jumlah transaksi wajib diisi.',
+            'target_transactions.integer' => 'Target jumlah transaksi harus berupa angka bulat.',
+            'target_transactions.min' => 'Target jumlah transaksi tidak boleh kurang dari 0.',
+            'notes.max' => 'Catatan target maksimal 500 karakter.',
         ]);
 
         $effectiveDate = Carbon::parse((string) $validated['target_date'])->startOfDay();
@@ -98,5 +113,33 @@ class DailyTargetController extends Controller
         } catch (\Throwable) {
             return now()->startOfDay();
         }
+    }
+
+    private function normalizeNumericInput(mixed $value): mixed
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (string) ((float) $value);
+        }
+
+        $normalized = preg_replace('/[^\d.-]/', '', (string) $value);
+
+        return $normalized === '' ? $value : $normalized;
+    }
+
+    private function normalizeIntegerInput(mixed $value): mixed
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if (is_numeric($value) && floor((float) $value) === (float) $value) {
+            return (string) ((int) $value);
+        }
+
+        return $value;
     }
 }

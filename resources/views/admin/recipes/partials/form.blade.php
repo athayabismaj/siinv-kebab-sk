@@ -68,6 +68,7 @@
                                 $quantity = $existing ? $existing->pivot->quantity : 0;
                                 $hasError = $errors->has('ingredients.' . $ingredient->id);
                             @endphp
+                            <input type="hidden" name="visible_ingredients[]" value="{{ $ingredient->id }}">
 
                             <div class="relative p-4 rounded-xl border transition-all duration-200
                                         {{ $quantity > 0 

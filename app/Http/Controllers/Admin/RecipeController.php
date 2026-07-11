@@ -96,9 +96,25 @@ class RecipeController extends Controller
             $request->validate([
                 'ingredients' => 'required|array',
                 'ingredients.*' => 'nullable|numeric|min:0',
+                'visible_ingredients' => 'nullable|array',
+                'visible_ingredients.*' => 'integer',
             ]);
 
-            $ingredientIds = array_map('intval', array_keys($request->input('ingredients', [])));
+            $submittedIngredients = $request->input('ingredients', []);
+            $submittedIngredientIds = array_map('intval', array_keys($submittedIngredients));
+            $visibleIngredientIds = $request->filled('visible_ingredients')
+                ? array_map('intval', $request->input('visible_ingredients', []))
+                : $submittedIngredientIds;
+
+            $visibleIngredientIds = array_values(array_unique(array_filter($visibleIngredientIds, fn ($id) => $id > 0)));
+            $ingredientIds = array_values(array_unique(array_merge($submittedIngredientIds, $visibleIngredientIds)));
+
+            if (empty($visibleIngredientIds)) {
+                return back()
+                    ->withErrors(['ingredients' => 'Tidak ada bahan yang dapat diperbarui pada form ini.'])
+                    ->withInput();
+            }
+
             $validIngredientCount = Ingredient::whereIn('id', $ingredientIds)->count();
 
             if ($validIngredientCount !== count($ingredientIds)) {
@@ -107,24 +123,51 @@ class RecipeController extends Controller
                     ->withInput();
             }
 
-            $syncData = [];
+            $submittedOutsideVisible = array_diff($submittedIngredientIds, $visibleIngredientIds);
 
-            foreach ($request->ingredients as $ingredientId => $quantity) {
-                if ($quantity > 0) {
+            if (! empty($submittedOutsideVisible)) {
+                return back()
+                    ->withErrors(['ingredients' => 'Data bahan tidak sesuai dengan form resep yang dibuka.'])
+                    ->withInput();
+            }
+
+            $syncData = [];
+            $visibleIngredientLookup = array_flip($visibleIngredientIds);
+
+            foreach ($submittedIngredients as $ingredientId => $quantity) {
+                $ingredientId = (int) $ingredientId;
+
+                if (! isset($visibleIngredientLookup[$ingredientId])) {
+                    continue;
+                }
+
+                if ((float) $quantity > 0) {
                     $syncData[$ingredientId] = [
-                        'quantity' => $quantity
+                        'quantity' => (float) $quantity
                     ];
                 }
             }
 
-            if (empty($syncData)) {
+            $hasPreservedIngredients = DB::table('menu_variant_ingredients')
+                ->where('menu_variant_id', $variant->id)
+                ->whereNotIn('ingredient_id', $visibleIngredientIds)
+                ->exists();
+
+            if (empty($syncData) && ! $hasPreservedIngredients) {
                 return back()
                     ->withErrors(['ingredients' => 'Minimal satu bahan harus memiliki jumlah lebih dari 0.'])
                     ->withInput();
             }
 
-            DB::transaction(function () use ($variant, $syncData) {
-                $variant->ingredients()->sync($syncData);
+            DB::transaction(function () use ($variant, $visibleIngredientIds, $syncData) {
+                DB::table('menu_variant_ingredients')
+                    ->where('menu_variant_id', $variant->id)
+                    ->whereIn('ingredient_id', $visibleIngredientIds)
+                    ->delete();
+
+                if (! empty($syncData)) {
+                    $variant->ingredients()->attach($syncData);
+                }
             });
 
             AdminCache::bumpCatalog();
@@ -149,4 +192,3 @@ class RecipeController extends Controller
         }
     }
 }
-
