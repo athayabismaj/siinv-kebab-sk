@@ -30,9 +30,13 @@ class TransactionHistoryQueryService
                 'total_amount',
                 'paid_amount',
                 'change_amount',
+                'status',
+                'void_reason',
+                'voided_at',
+                'voided_by',
                 'created_at',
             ])
-            ->with(['user:id,name,username', 'paymentMethod:id,name'])
+            ->with(['user:id,name,username', 'voidedBy:id,name,username', 'paymentMethod:id,name'])
             ->withCount('details');
     }
 

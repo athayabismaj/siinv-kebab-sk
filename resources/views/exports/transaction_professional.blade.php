@@ -24,13 +24,25 @@
             <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Total</th>
         </tr>
         @forelse($transactions as $trx)
-            @php $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount; @endphp
+            @php
+                $statusRaw = strtolower(trim((string) ($trx->status ?? 'success')));
+                $isVoid = $statusRaw === 'void';
+                $isSuccess = $statusRaw === 'success';
+                $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount;
+                $voidReasonLabel = match (strtolower((string) $trx->void_reason)) {
+                    'restock' => 'Kembali Stok',
+                    'waste' => 'Waste',
+                    default => null,
+                };
+                $statusLabel = $isVoid ? 'VOID' : ($isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', (string) $trx->status)));
+                $exportStatusLabel = $isVoid && $voidReasonLabel ? $statusLabel . ' - ' . $voidReasonLabel : $statusLabel;
+            @endphp
             <tr>
                 <td style="border: 1px solid #000000;">{{ \Carbon\Carbon::parse($trx->created_at)->translatedFormat('d M Y H:i') }}</td>
                 <td style="border: 1px solid #000000;">{{ $trx->transaction_code }}</td>
                 <td style="border: 1px solid #000000;">{{ $trx->user->name ?? '-' }}</td>
                 <td style="border: 1px solid #000000;">{{ $trx->paymentMethod->name ?? '-' }}</td>
-                <td style="border: 1px solid #000000;">{{ $isPaid ? 'Lunas' : 'Kurang' }}</td>
+                <td style="border: 1px solid #000000;">{{ $exportStatusLabel }}</td>
                 <td style="text-align: center; border: 1px solid #000000;">{{ $trx->details_count }}</td>
                 <td style="text-align: right; border: 1px solid #000000;">{{ (float) $trx->total_amount }}</td>
             </tr>
@@ -72,7 +84,19 @@
         </thead>
         <tbody>
             @forelse($transactions as $index => $trx)
-                @php $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount; @endphp
+                @php
+                    $statusRaw = strtolower(trim((string) ($trx->status ?? 'success')));
+                    $isVoid = $statusRaw === 'void';
+                    $isSuccess = $statusRaw === 'success';
+                    $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount;
+                    $voidReasonLabel = match (strtolower((string) $trx->void_reason)) {
+                        'restock' => 'Kembali Stok',
+                        'waste' => 'Waste',
+                        default => null,
+                    };
+                    $statusLabel = $isVoid ? 'VOID' : ($isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', (string) $trx->status)));
+                    $statusColor = $isVoid ? '#d97706' : ($isPaid ? '#10b981' : '#ef4444');
+                @endphp
                 <tr style="border-bottom:1px solid #eee; {{ $index % 2 === 1 ? 'background-color:#f9f9f9;' : '' }}">
                     <td style="padding:7px 10px; text-align:left; font-weight:600; color:#222;">
                         {{ \Carbon\Carbon::parse($trx->created_at)->translatedFormat('d M Y') }}
@@ -81,7 +105,12 @@
                     <td style="padding:7px 10px; text-align:left; color:#333; font-weight:600;">{{ $trx->transaction_code }}</td>
                     <td style="padding:7px 10px; text-align:left; color:#555;">{{ $trx->user->name ?? '-' }}</td>
                     <td style="padding:7px 10px; text-align:left; color:#555;">{{ $trx->paymentMethod->name ?? '-' }}</td>
-                    <td style="padding:7px 10px; text-align:left; font-weight:bold; {{ $isPaid ? 'color:#10b981;' : 'color:#ef4444;' }}">{{ $isPaid ? 'Lunas' : 'Kurang' }}</td>
+                    <td style="padding:7px 10px; text-align:left; font-weight:bold; color:{{ $statusColor }};">
+                        {{ $statusLabel }}
+                        @if($isVoid && $voidReasonLabel)
+                            <div style="font-size:8px; font-weight:normal; color:#92400e; margin-top:2px;">{{ $voidReasonLabel }}</div>
+                        @endif
+                    </td>
                     <td style="padding:7px 10px; text-align:center; color:#555;">{{ $trx->details_count }}</td>
                     <td style="padding:7px 10px; text-align:right; color:#222; font-weight:bold;">Rp {{ number_format((float) $trx->total_amount, 0, ',', '.') }}</td>
                 </tr>

@@ -143,6 +143,7 @@ class TransactionHistoryController extends Controller
     {
         $transaction->load([
             'user:id,name,username',
+            'voidedBy:id,name,username',
             'paymentMethod:id,name',
             'details.menu:id,name',
         ]);
