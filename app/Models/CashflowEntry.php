@@ -9,6 +9,7 @@ class CashflowEntry extends Model
 {
     protected $fillable = [
         'entry_date',
+        'branch_id',
         'type',
         'amount',
         'source',
@@ -25,5 +26,9 @@ class CashflowEntry extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
-}
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+}

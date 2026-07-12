@@ -10,6 +10,7 @@ class DailyStockSession extends Model
 {
     protected $fillable = [
         'session_date',
+        'branch_id',
         'cashier_id',
         'opened_by',
         'closed_by',
@@ -30,6 +31,11 @@ class DailyStockSession extends Model
         return $this->belongsTo(User::class, 'cashier_id');
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function openedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'opened_by');
@@ -45,4 +51,3 @@ class DailyStockSession extends Model
         return $this->hasMany(DailyStockItem::class);
     }
 }
-

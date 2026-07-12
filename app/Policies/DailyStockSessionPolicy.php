@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\DailyStockSession;
 use App\Models\User;
+use App\Support\BranchScope;
 
 class DailyStockSessionPolicy
 {
@@ -19,17 +20,20 @@ class DailyStockSessionPolicy
 
     public function transfer(User $user, DailyStockSession $session): bool
     {
-        return $this->isHighLevel($user) || $user->id === $session->cashier_id;
+        return $this->sameBranch($user, $session)
+            && ($this->isHighLevel($user) || $user->id === $session->cashier_id);
     }
 
     public function close(User $user, DailyStockSession $session): bool
     {
-        return $this->isHighLevel($user) || $user->id === $session->cashier_id;
+        return $this->sameBranch($user, $session)
+            && ($this->isHighLevel($user) || $user->id === $session->cashier_id);
     }
 
     public function reopen(User $user, DailyStockSession $session): bool
     {
-        return $this->isHighLevel($user) || $user->id === $session->cashier_id;
+        return $this->sameBranch($user, $session)
+            && ($this->isHighLevel($user) || $user->id === $session->cashier_id);
     }
 
     public function viewReport(User $user): bool
@@ -47,5 +51,11 @@ class DailyStockSessionPolicy
         $roleName = strtolower((string) optional($user->role)->name);
         return in_array($roleName, ['admin', 'manager'], true);
     }
-}
 
+    private function sameBranch(User $user, DailyStockSession $session): bool
+    {
+        $scopedBranchId = BranchScope::scopedBranchIdFor($user);
+
+        return ! $scopedBranchId || (int) $session->branch_id === (int) $scopedBranchId;
+    }
+}

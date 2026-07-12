@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StockLog extends Model
 {
     protected $fillable = [
+        'branch_id',
         'ingredient_id',
         'type',
         'quantity',
@@ -23,6 +24,16 @@ class StockLog extends Model
         return $this->belongsTo(Ingredient::class);
     }
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function referenceTransaction()
+    {
+        return $this->belongsTo(Transaction::class, 'reference_id');
+    }
+
     public function getTypeLabelAttribute()
     {
         return match($this->type) {
@@ -31,7 +42,7 @@ class StockLog extends Model
             'adjustment' => 'Penyesuaian',
             'transfer_daily' => 'Transfer Harian',
             'daily_usage' => 'Pemakaian Harian',
-            'daily_return' => 'Pengembalian Harian',
+            'daily_return' => 'Pengembalian Stok Harian',
             default => 'Unknown'
         };
     }

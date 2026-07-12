@@ -10,6 +10,7 @@ class Transaction extends Model
 {
     protected $fillable = [
         'transaction_code',
+        'branch_id',
         'user_id',
         'total_amount',
         'payment_method_id',
@@ -32,6 +33,11 @@ class Transaction extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function paymentMethod(): BelongsTo
