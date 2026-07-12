@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
 use App\Services\Shared\PeriodFilterService;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -27,6 +28,10 @@ class TransactionHistoryController extends Controller
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
         $filters = $request->only(['search', 'user_id', 'payment_method_id']);
+        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        if ($branchId !== null) {
+            $filters['branch_id'] = $branchId;
+        }
 
         $listQuery = $this->queryService
             ->applyFilters(
@@ -46,7 +51,8 @@ class TransactionHistoryController extends Controller
             ->groupBy(fn ($trx) => $trx->created_at->toDateString());
 
         $paymentMethods = $this->paymentMethods();
-        $cashiers = $this->cashiers();
+        $branchOptions = BranchScope::options();
+        $cashiers = $this->cashiers($branchId);
 
         [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
             $this->periodFilter->buildNavigator($type, $dateFrom);
@@ -70,6 +76,8 @@ class TransactionHistoryController extends Controller
             'isFuture'           => $isFuture,
             'inputValue'         => $inputValue,
             'inputType'          => $inputType,
+            'branchOptions'      => $branchOptions,
+            'branchId'           => $branchId,
         ]);
     }
 
@@ -84,6 +92,10 @@ class TransactionHistoryController extends Controller
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
         $filters = $request->only(['search', 'user_id', 'payment_method_id']);
+        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        if ($branchId !== null) {
+            $filters['branch_id'] = $branchId;
+        }
 
         $listQuery = $this->queryService
             ->applyFilters(
@@ -163,17 +175,23 @@ class TransactionHistoryController extends Controller
         );
     }
 
-    private function cashiers()
+    private function cashiers(?int $branchId = null)
     {
         return Cache::remember(
-            AdminCache::key('transactions', 'owner:cashiers:list'),
+            AdminCache::key('transactions', 'owner:cashiers:list:' . ($branchId ?: 'all')),
             now()->addSeconds(90),
-            fn () => Transaction::query()
-                ->join('users', 'users.id', '=', 'transactions.user_id')
-                ->select('users.id', 'users.name')
-                ->distinct()
-                ->orderBy('users.name')
-                ->get()
+            function () use ($branchId) {
+                $query = Transaction::query()
+                    ->join('users', 'users.id', '=', 'transactions.user_id')
+                    ->select('users.id', 'users.name')
+                    ->distinct();
+
+                BranchScope::apply($query, $branchId, 'transactions.branch_id');
+
+                return $query
+                    ->orderBy('users.name')
+                    ->get();
+            }
         );
     }
 

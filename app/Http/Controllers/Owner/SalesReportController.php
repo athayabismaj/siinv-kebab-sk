@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Models\PeriodClosing;
 use App\Services\Owner\SalesReportQueryService;
 use App\Services\Shared\PeriodFilterService;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -42,6 +43,9 @@ class SalesReportController extends Controller
         $data = array_merge($data, compact(
             'prevFrom', 'prevTo', 'nextFrom', 'nextTo', 'isFuture', 'inputValue', 'inputType'
         ));
+
+        $data['branchOptions'] = BranchScope::options();
+        $data['branchId'] = $this->selectedBranchId($request);
 
         return view('owner.reports.sales_unified', $data);
     }
@@ -104,12 +108,13 @@ class SalesReportController extends Controller
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         $data = ['type' => $type];
+        $branchId = $this->selectedBranchId($request);
 
         if ($type === 'weekly') {
             $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
             $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
             $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-            $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false);
+            $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false, $branchId);
             
             $anchor = $selectedWeekStart;
 
@@ -122,7 +127,8 @@ class SalesReportController extends Controller
             $analytics = $this->queryService->buildPeriodMenuAnalytics(
                 $selectedMonth->copy()->startOfMonth(),
                 $selectedMonth->copy()->endOfMonth(),
-                false
+                false,
+                $branchId
             );
 
             $anchor = $selectedMonth;
@@ -132,7 +138,7 @@ class SalesReportController extends Controller
             ], $this->analyticsPayload($analytics));
         } else {
             $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-            $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
+            $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false, $branchId);
 
             $anchor = $selectedDate;
 
@@ -147,6 +153,9 @@ class SalesReportController extends Controller
         $data = array_merge($data, compact(
             'prevFrom', 'prevTo', 'nextFrom', 'nextTo', 'isFuture', 'inputValue', 'inputType'
         ));
+
+        $data['branchOptions'] = BranchScope::options();
+        $data['branchId'] = $branchId;
 
         return view('owner.analytics.menu', $data);
     }
@@ -207,8 +216,9 @@ class SalesReportController extends Controller
     public function exportDaily(Request $request)
     {
         $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-        $summary = $this->queryService->buildDailySummary($selectedDate);
-        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false);
+        $branchId = $this->selectedBranchId($request);
+        $summary = $this->queryService->buildDailySummary($selectedDate, $branchId);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false, $branchId);
 
         $filename = 'laporan-penjualan-harian-' . $selectedDate->toDateString() . '.csv';
 
@@ -228,7 +238,7 @@ class SalesReportController extends Controller
     public function exportMonthly(Request $request)
     {
         $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
-        $summary = $this->queryService->buildMonthlySummary($selectedMonth);
+        $summary = $this->queryService->buildMonthlySummary($selectedMonth, false, $this->selectedBranchId($request));
 
         $filename = 'laporan-penjualan-bulanan-' . $selectedMonth->format('Y-m') . '.csv';
 
@@ -261,10 +271,11 @@ class SalesReportController extends Controller
     public function exportWeekly(Request $request)
     {
         $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
+        $branchId = $this->selectedBranchId($request);
         $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
         $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-        $summary = $this->queryService->buildWeeklySummary($weekAnchor);
-        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false);
+        $summary = $this->queryService->buildWeeklySummary($weekAnchor, false, $branchId);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false, $branchId);
 
         $filename = 'laporan-penjualan-mingguan-' . $selectedWeekStart->toDateString() . '-sampai-' . $selectedWeekEnd->toDateString() . '.csv';
 
@@ -284,8 +295,10 @@ class SalesReportController extends Controller
     private function dailySalesPayload(Request $request): array
     {
         $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-        $summary = $this->queryService->buildDailySummary($selectedDate);
-        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate);
+        $branchId = $this->selectedBranchId($request);
+        $summary = $this->queryService->buildDailySummary($selectedDate, $branchId);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, true, $branchId);
+        $transactionOverview = $this->queryService->buildPeriodTransactionOverview($selectedDate, $selectedDate, $branchId);
 
         return [
             'selectedDate' => $selectedDate,
@@ -294,16 +307,19 @@ class SalesReportController extends Controller
             'avgTransaction' => $summary['avgTransaction'],
             'totalMenuSold' => $summary['totalMenuSold'],
             ...$this->analyticsPayload($analytics),
+            ...$transactionOverview,
         ];
     }
 
     private function weeklySalesPayload(Request $request): array
     {
         $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
+        $branchId = $this->selectedBranchId($request);
         $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
         $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-        $summary = $this->queryService->buildWeeklySummary($weekAnchor);
-        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd);
+        $summary = $this->queryService->buildWeeklySummary($weekAnchor, false, $branchId);
+        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, true, $branchId);
+        $transactionOverview = $this->queryService->buildPeriodTransactionOverview($selectedWeekStart, $selectedWeekEnd, $branchId);
 
         return [
             'selectedWeekStart' => $selectedWeekStart,
@@ -313,16 +329,25 @@ class SalesReportController extends Controller
             'avgTransaction' => $summary['avgTransaction'],
             'weeklyBreakdown' => $summary['weeklyBreakdown'],
             ...$this->analyticsPayload($analytics),
+            ...$transactionOverview,
         ];
     }
 
     private function monthlySalesPayload(Request $request): array
     {
         $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
-        $summary = $this->queryService->buildMonthlySummary($selectedMonth);
+        $branchId = $this->selectedBranchId($request);
+        $summary = $this->queryService->buildMonthlySummary($selectedMonth, false, $branchId);
         $analytics = $this->queryService->buildPeriodMenuAnalytics(
             $selectedMonth->copy()->startOfMonth(),
-            $selectedMonth->copy()->endOfMonth()
+            $selectedMonth->copy()->endOfMonth(),
+            true,
+            $branchId
+        );
+        $transactionOverview = $this->queryService->buildPeriodTransactionOverview(
+            $selectedMonth->copy()->startOfMonth(),
+            $selectedMonth->copy()->endOfMonth(),
+            $branchId
         );
 
         return [
@@ -332,6 +357,7 @@ class SalesReportController extends Controller
             'avgTransaction' => $summary['avgTransaction'],
             'dailyBreakdown' => $summary['dailyBreakdown'],
             ...$this->analyticsPayload($analytics),
+            ...$transactionOverview,
         ];
     }
 
@@ -403,5 +429,10 @@ class SalesReportController extends Controller
         } catch (\Throwable) {
             return $thisMonth;
         }
+    }
+
+    private function selectedBranchId(Request $request): ?int
+    {
+        return BranchScope::requestBranchId((int) $request->input('branch_id'));
     }
 }

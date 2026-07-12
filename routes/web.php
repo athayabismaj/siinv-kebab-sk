@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Owner\BranchController;
 use App\Http\Controllers\Owner\UserManagementController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\SalesReportController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UsageReportController;
 use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
 use App\Http\Controllers\Admin\DailyStockReportController;
+use App\Http\Controllers\Admin\BranchContextController;
 
 
 
@@ -87,6 +89,15 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
         Route::get('/panel', [OwnerDashboardController::class, 'index'])->name('panel');
 
         // ================= USER MANAGEMENT =================
+        Route::prefix('branches')->name('branches.')->group(function () {
+            Route::get('/', [BranchController::class, 'index'])->name('index');
+            Route::get('/create', [BranchController::class, 'create'])->name('create');
+            Route::post('/', [BranchController::class, 'store'])->name('store');
+            Route::get('/{branch}/edit', [BranchController::class, 'edit'])->name('edit');
+            Route::put('/{branch}', [BranchController::class, 'update'])->name('update');
+            Route::patch('/{branch}/toggle', [BranchController::class, 'toggle'])->name('toggle');
+        });
+
         Route::prefix('users')->name('users.')->group(function () {
 
             Route::get('/', [UserManagementController::class, 'index'])->name('index');
@@ -165,6 +176,7 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
 
         // ===== PANEL =====
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
+        Route::post('/branch-context', [BranchContextController::class, 'switch'])->name('branch-context.switch');
 
         // ===== INGREDIENT CATEGORIES =====
         Route::prefix('ingredient-categories')->name('ingredient-categories.')->group(function () {

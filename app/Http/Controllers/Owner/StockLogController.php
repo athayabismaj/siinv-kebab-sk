@@ -6,6 +6,7 @@ use App\Exports\StockLogsReportExport;
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
 use App\Models\StockLog;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\StockLogTypeMap;
 use App\Support\StockLogView;
@@ -22,11 +23,13 @@ class StockLogController extends Controller
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
         $typeFilter = $request->input('type');
+        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchOptions = BranchScope::options();
 
-        $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter);
+        $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter, $branchId);
         $summaryCards = StockLogView::summaryCards($summary);
 
-        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter)
+        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter, $branchId)
             ->paginate(10)
             ->withQueryString();
 
@@ -56,6 +59,7 @@ class StockLogController extends Controller
         $baseParams = array_filter([
             'period' => $period,
             'type' => $typeFilter,
+            'branch_id' => $branchId,
         ], fn ($value) => $value !== null && $value !== '');
 
         $prevDate = StockLogView::navigationDate($period, $selectedDate, 'prev');
@@ -94,7 +98,9 @@ class StockLogController extends Controller
             'isNextDisabled',
             'dateDisplay',
             'typeFilter',
-            'typeTabs'
+            'typeTabs',
+            'branchOptions',
+            'branchId'
         ));
     }
 
@@ -112,12 +118,13 @@ class StockLogController extends Controller
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
         $typeFilter = $request->input('type');
+        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
 
-        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter)
+        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter, $branchId)
             ->get()
             ->map(fn (StockLog $log) => StockLogView::decorate($log));
 
-        $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter);
+        $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter, $branchId);
         $dateDisplay = StockLogView::dateDisplay($period, $selectedDate, $rangeStart, $rangeEnd);
         $typeLabel = StockLogTypeMap::tabLabel($typeFilter);
         $fileName = 'riwayat-stok-owner-' . $period . '-' . $rangeStart->toDateString() . '_sd_' . $rangeEnd->toDateString();
@@ -151,9 +158,10 @@ class StockLogController extends Controller
         );
     }
 
-    private function summary($rangeStart, $rangeEnd, ?string $typeFilter): array
+    private function summary($rangeStart, $rangeEnd, ?string $typeFilter, ?int $branchId = null): array
     {
         $summaryQuery = StockLog::query()->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        BranchScope::apply($summaryQuery, $branchId, 'branch_id');
         $this->applyStockLogTypeFilter($summaryQuery, $typeFilter);
 
         $row = $summaryQuery
@@ -161,6 +169,7 @@ class StockLogController extends Controller
                 'COUNT(*) as total,
                  ' . StockLogTypeMap::restockCaseSql() . ',
                  ' . StockLogTypeMap::usageCaseSql() . ',
+                 ' . StockLogTypeMap::returnCaseSql() . ',
                  SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
                 ['adjustment']
             )
@@ -170,6 +179,7 @@ class StockLogController extends Controller
             'total' => (int) ($row->total ?? 0),
             'restock' => (int) ($row->restock ?? 0),
             'usage' => (int) ($row->usage ?? 0),
+            'return' => (int) ($row->stock_return ?? 0),
             'adjustment' => (int) ($row->adjustment ?? 0),
         ];
     }
@@ -183,12 +193,16 @@ class StockLogController extends Controller
         $query->whereIn('type', StockLogTypeMap::tabTypes($typeFilter));
     }
 
-    private function buildStockLogsQuery($rangeStart, $rangeEnd, ?string $typeFilter)
+    private function buildStockLogsQuery($rangeStart, $rangeEnd, ?string $typeFilter, ?int $branchId = null)
     {
-        $query = StockLog::with(['ingredient:id,name,display_unit,base_unit,pack_size'])
+        $query = StockLog::with([
+                'ingredient:id,name,display_unit,base_unit,pack_size',
+                'referenceTransaction:id,transaction_code',
+            ])
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ->latest();
 
+        BranchScope::apply($query, $branchId, 'branch_id');
         $this->applyStockLogTypeFilter($query, $typeFilter);
 
         return $query;

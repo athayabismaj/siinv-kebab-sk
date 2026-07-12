@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\DirectExportResponse;
+use App\Models\Branch;
 use App\Models\CashflowEntry;
 use App\Models\Transaction;
 use App\Services\Shared\PeriodFilterService;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -25,8 +27,10 @@ class CashflowController extends Controller
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
+        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchOptions = BranchScope::options();
 
-        $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
+        $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString(), $branchId);
         $this->applySearch($baseQuery, $request);
 
         $entries = (clone $baseQuery)->paginate(10)->withQueryString();
@@ -38,6 +42,7 @@ class CashflowController extends Controller
             $dateTo->copy()->endOfDay()->toDateTimeString(),
             $request
         );
+        $summary['branchName'] = $this->branchLabel($branchId);
 
         [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
             $this->periodFilter->buildNavigator($type, $dateFrom);
@@ -65,7 +70,9 @@ class CashflowController extends Controller
             'expenseTotal',
             'hpp',
             'netCash',
-            'expenseCount'
+            'expenseCount',
+            'branchOptions',
+            'branchId'
         ));
     }
 
@@ -79,8 +86,9 @@ class CashflowController extends Controller
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
+        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
 
-        $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
+        $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString(), $branchId);
         $this->applySearch($baseQuery, $request);
 
         $entries = (clone $baseQuery)->get();
@@ -90,6 +98,7 @@ class CashflowController extends Controller
             $dateTo->copy()->endOfDay()->toDateTimeString(),
             $request
         );
+        $summary['branchName'] = $this->branchLabel($branchId);
 
         $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
         if ($dateFrom->toDateString() === $dateTo->toDateString()) {
@@ -127,14 +136,18 @@ class CashflowController extends Controller
         );
     }
 
-    private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder
+    private function baseExpenseQuery(string $dateFrom, string $dateTo, ?int $branchId = null): Builder
     {
-        return CashflowEntry::query()
-            ->with('creator:id,name')
+        $query = CashflowEntry::query()
+            ->with(['creator:id,name', 'branch:id,name'])
             ->where('type', 'expense')
             ->whereBetween('entry_date', [$dateFrom, $dateTo])
             ->latest('entry_date')
             ->latest('id');
+
+        BranchScope::apply($query, $branchId, 'branch_id');
+
+        return $query;
     }
 
     private function summary(Builder $baseQuery, string $trxFrom, string $trxTo, Request $request): array
@@ -144,12 +157,16 @@ class CashflowController extends Controller
             'to' => $trxTo,
             'type' => (string) $request->input('type', 'daily'),
             'search' => trim((string) $request->input('search', '')),
+            'branch_id' => (string) $request->input('branch_id', ''),
         ])));
 
         return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($baseQuery, $trxFrom, $trxTo) {
-            $salesRevenue = (float) Transaction::query()
-                ->whereBetween('created_at', [$trxFrom, $trxTo])
-                ->sum('total_amount');
+            $branchId = BranchScope::requestBranchId((int) request('branch_id'));
+
+            $salesQuery = Transaction::query()
+                ->whereBetween('created_at', [$trxFrom, $trxTo]);
+            BranchScope::apply($salesQuery, $branchId, 'branch_id');
+            $salesRevenue = (float) $salesQuery->sum('total_amount');
 
             $expenseAggregate = (clone $baseQuery)
                 ->reorder()
@@ -168,6 +185,7 @@ class CashflowController extends Controller
                 ->join('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
                 ->whereBetween('dss.session_date', [$dateFrom, $dateTo])
                 ->where('dss.status', 'closed')
+                ->when($branchId, fn ($query) => $query->where('dss.branch_id', $branchId))
                 ->selectRaw("COALESCE(SUM(
                     CASE ingredients.display_unit
                         WHEN 'kg'  THEN (dsi.used_qty / 1000.0) * ingredients.selling_price
@@ -206,5 +224,14 @@ class CashflowController extends Controller
                     $u->where('name', 'like', "%{$search}%");
                 });
         });
+    }
+
+    private function branchLabel(?int $branchId): string
+    {
+        if (($branchId ?? 0) <= 0) {
+            return 'Semua Cabang';
+        }
+
+        return Branch::query()->whereKey($branchId)->value('name') ?: 'Cabang tidak ditemukan';
     }
 }

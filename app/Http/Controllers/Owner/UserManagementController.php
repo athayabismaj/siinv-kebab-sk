@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ApiToken;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\BranchScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,29 +18,47 @@ class UserManagementController extends Controller
 
     public function index()
     {
+        $usesBranches = BranchScope::supportsUserBranches();
+        $usesBranchAssignments = BranchScope::supportsUserBranchAssignments();
+
+        $with = ['role'];
+        if ($usesBranches) {
+            $with[] = 'branch:id,name,code';
+        }
+        if ($usesBranchAssignments) {
+            $with[] = 'assignedBranches:id,name,code';
+        }
+
         $users = User::query()
-            ->with('role')
+            ->with($with)
             ->whereHas('role', fn ($q) => $this->whereManagedRole($q))
             ->paginate(10);
 
-        return view('owner.user_management.index', compact('users'));
+        return view('owner.user_management.index', compact('users', 'usesBranches', 'usesBranchAssignments'));
     }
 
     public function create()
     {
         $roles = $this->managedRoles();
+        $branches = BranchScope::options();
+        $usesBranches = BranchScope::supportsUserBranches();
+        $usesBranchAssignments = BranchScope::supportsUserBranchAssignments();
+        $selectedBranchIds = collect(old('branch_ids', []))->map(fn ($id) => (int) $id)->all();
 
-        return view('owner.user_management.create', compact('roles'));
+        return view('owner.user_management.create', compact('roles', 'branches', 'usesBranches', 'usesBranchAssignments', 'selectedBranchIds'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate($this->storeRules(), $this->validationMessages());
+        $validated = $request->validate($this->storeRules($request), $this->validationMessages());
         $roleId = (int) $validated['role_id'];
 
         $this->ensureRoleAssignable($roleId, 'Tidak diizinkan membuat role owner.');
 
-        User::create($this->buildPayload($validated, true));
+        DB::transaction(function () use ($validated) {
+            $user = User::create($this->buildPayload($validated, true));
+            $this->syncBranchAssignments($user, $validated);
+        });
 
         return redirect()->route('owner.users.index')
             ->with('success', 'User berhasil dibuat.');
@@ -50,15 +69,19 @@ class UserManagementController extends Controller
         $this->ensureUserManageable($user);
 
         $roles = $this->managedRoles();
+        $branches = BranchScope::options();
+        $usesBranches = BranchScope::supportsUserBranches();
+        $usesBranchAssignments = BranchScope::supportsUserBranchAssignments();
+        $selectedBranchIds = $this->selectedBranchIdsFor($user);
 
-        return view('owner.user_management.edit', compact('user', 'roles'));
+        return view('owner.user_management.edit', compact('user', 'roles', 'branches', 'usesBranches', 'usesBranchAssignments', 'selectedBranchIds'));
     }
 
     public function update(Request $request, User $user)
     {
         $this->ensureUserManageable($user);
 
-        $validated = $request->validate($this->updateRules($user), $this->validationMessages());
+        $validated = $request->validate($this->updateRules($request, $user), $this->validationMessages());
         $roleId = (int) $validated['role_id'];
 
         $this->ensureRoleAssignable($roleId, 'Tidak diizinkan mengubah menjadi owner.');
@@ -67,7 +90,10 @@ class UserManagementController extends Controller
             && $validated['password'] !== null
             && $validated['password'] !== '';
 
-        $user->update($this->buildPayload($validated, false));
+        DB::transaction(function () use ($user, $validated) {
+            $user->update($this->buildPayload($validated, false));
+            $this->syncBranchAssignments($user, $validated);
+        });
 
         if ($passwordChanged) {
             ApiToken::where('user_id', $user->id)->delete();
@@ -133,26 +159,55 @@ class UserManagementController extends Controller
             ->with('success', 'User berhasil diaktifkan kembali.');
     }
 
-    private function storeRules(): array
+    private function storeRules(Request $request): array
     {
-        return [
+        $rules = [
             'name' => 'required|string|max:100',
             'username' => 'required|string|max:100|unique:users,username',
             'email' => 'required|email|max:150|unique:users,email',
             'password' => 'required|min:6',
             'role_id' => 'required|exists:roles,id',
         ];
+
+        $this->addBranchRules($rules, $request);
+
+        return $rules;
     }
 
-    private function updateRules(User $user): array
+    private function updateRules(Request $request, User $user): array
     {
-        return [
+        $rules = [
             'name' => 'required|string|max:100',
             'username' => 'required|string|max:100|unique:users,username,' . $user->id,
             'email' => 'required|email|max:150|unique:users,email,' . $user->id,
             'role_id' => 'required|exists:roles,id',
             'password' => 'nullable|min:6',
         ];
+
+        $this->addBranchRules($rules, $request);
+
+        return $rules;
+    }
+
+    private function addBranchRules(array &$rules, Request $request): void
+    {
+        if (! BranchScope::supportsUserBranches()) {
+            return;
+        }
+
+        $roleName = $this->roleNameFromId((int) $request->input('role_id'));
+
+        if ($roleName === 'admin' && BranchScope::supportsUserBranchAssignments()) {
+            $rules['branch_id'] = 'nullable|integer|exists:branches,id';
+            $rules['branch_ids'] = 'required|array|min:1';
+            $rules['branch_ids.*'] = 'integer|exists:branches,id';
+
+            return;
+        }
+
+        $rules['branch_id'] = 'required|integer|exists:branches,id';
+        $rules['branch_ids'] = 'nullable|array';
+        $rules['branch_ids.*'] = 'integer|exists:branches,id';
     }
 
     private function buildPayload(array $validated, bool $requirePassword): array
@@ -164,6 +219,14 @@ class UserManagementController extends Controller
             'role_id' => (int) $validated['role_id'],
         ];
 
+        if (BranchScope::supportsUserBranches()) {
+            $payload['branch_id'] = (int) (
+                $validated['branch_id']
+                ?? collect($validated['branch_ids'] ?? [])->first()
+                ?? BranchScope::defaultBranchId()
+            );
+        }
+
         $hasPassword = array_key_exists('password', $validated)
             && $validated['password'] !== null
             && $validated['password'] !== '';
@@ -173,6 +236,54 @@ class UserManagementController extends Controller
         }
 
         return $payload;
+    }
+
+    private function syncBranchAssignments(User $user, array $validated): void
+    {
+        if (! BranchScope::supportsUserBranchAssignments()) {
+            return;
+        }
+
+        $role = Role::find((int) $validated['role_id']);
+        $roleName = $this->normalizeRoleName($role?->name);
+
+        if ($roleName !== 'admin') {
+            $user->assignedBranches()->sync([]);
+
+            return;
+        }
+
+        $branchIds = collect($validated['branch_ids'] ?? [])
+            ->push($validated['branch_id'] ?? null)
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($branchIds)) {
+            $branchIds = array_filter([(int) BranchScope::defaultBranchId()]);
+        }
+
+        $user->assignedBranches()->sync($branchIds);
+    }
+
+    private function selectedBranchIdsFor(User $user): array
+    {
+        if (! BranchScope::supportsUserBranchAssignments()) {
+            return [];
+        }
+
+        $branchIds = $user->assignedBranches()
+            ->pluck('branches.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($user->branch_id) {
+            $branchIds[] = (int) $user->branch_id;
+        }
+
+        return array_values(array_unique($branchIds));
     }
 
     private function ensureRoleAssignable(int $roleId, string $message): void
@@ -211,6 +322,15 @@ class UserManagementController extends Controller
         return Str::lower(trim((string) $name));
     }
 
+    private function roleNameFromId(int $roleId): string
+    {
+        if ($roleId <= 0) {
+            return '';
+        }
+
+        return $this->normalizeRoleName(Role::query()->whereKey($roleId)->value('name'));
+    }
+
     private function validationMessages(): array
     {
         return [
@@ -224,6 +344,12 @@ class UserManagementController extends Controller
             'password.min' => 'Password minimal 6 karakter.',
             'role_id.required' => 'Role wajib dipilih.',
             'role_id.exists' => 'Role yang dipilih tidak tersedia.',
+            'branch_id.required' => 'Cabang wajib dipilih.',
+            'branch_id.exists' => 'Cabang yang dipilih tidak tersedia.',
+            'branch_ids.required' => 'Minimal satu cabang admin wajib dipilih.',
+            'branch_ids.min' => 'Minimal satu cabang admin wajib dipilih.',
+            'branch_ids.array' => 'Akses cabang admin tidak valid.',
+            'branch_ids.*.exists' => 'Salah satu cabang admin tidak tersedia.',
         ];
     }
 }

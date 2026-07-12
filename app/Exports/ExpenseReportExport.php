@@ -46,10 +46,11 @@ class ExpenseReportExport implements FromView, WithDrawings, WithStyles
         $sheet->getRowDimension(1)->setRowHeight(48);
         $sheet->getColumnDimension('A')->setWidth(13);
         $sheet->getColumnDimension('B')->setWidth(22);
-        $sheet->getColumnDimension('C')->setWidth(24);
-        $sheet->getColumnDimension('D')->setWidth(30);
-        $sheet->getColumnDimension('E')->setWidth(18);
-        $sheet->getColumnDimension('F')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(20);
+        $sheet->getColumnDimension('D')->setWidth(24);
+        $sheet->getColumnDimension('E')->setWidth(30);
+        $sheet->getColumnDimension('F')->setWidth(18);
+        $sheet->getColumnDimension('G')->setWidth(20);
 
         return [
             1 => ['font' => ['bold' => true, 'size' => 16]],

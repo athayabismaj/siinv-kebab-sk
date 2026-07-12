@@ -24,7 +24,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::withTrashed()
-            ->with('role')
+            ->with(['role', 'branch:id,name,code'])
             ->where('username', $validated['username'])
             ->first();
 
@@ -65,6 +65,11 @@ class AuthController extends Controller
                     'username' => $user->username,
                     'email' => $user->email,
                     'role' => $user->role?->name,
+                    'branch' => $user->branch ? [
+                        'id' => $user->branch->id,
+                        'name' => $user->branch->name,
+                        'code' => $user->branch->code,
+                    ] : null,
                 ],
             ],
         ]);
@@ -82,6 +87,11 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $user->role?->name,
+                'branch' => $user->branch ? [
+                    'id' => $user->branch->id,
+                    'name' => $user->branch->name,
+                    'code' => $user->branch->code,
+                ] : null,
             ],
         ]);
     }

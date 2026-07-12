@@ -6,6 +6,7 @@ use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\CashflowEntry;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Illuminate\Http\Request;
 
 class CashflowController extends Controller
@@ -44,6 +45,7 @@ class CashflowController extends Controller
             'source' => (string) $validated['source'],
             'note' => $validated['note'] ?? null,
             'created_by' => (int) $user->id,
+            'branch_id' => BranchScope::userBranchId($user),
         ]);
 
         AdminCache::bumpCashflow();
