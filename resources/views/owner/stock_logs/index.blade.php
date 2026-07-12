@@ -13,7 +13,7 @@
         'parentLabel' => 'Monitoring Stok',
         'currentLabel' => 'Riwayat Stok',
         'title' => 'Riwayat Stok',
-        'description' => 'Jejak perubahan stok dari restok, pemakaian transaksi kasir, transfer stok harian, dan penyesuaian manual.',
+        'description' => 'Jejak perubahan stok dari restok, pemakaian bahan, pengembalian stok, dan penyesuaian manual.',
     ])
 
     @include('admin.stocks.partials.logs.filters', [

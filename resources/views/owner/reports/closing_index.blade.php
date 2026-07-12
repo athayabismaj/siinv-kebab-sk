@@ -149,7 +149,7 @@
                                         <span class="text-[10px] font-medium text-slate-400 mr-0.5">Rp</span>{{ number_format($closing->total_revenue, 0, ',', '.') }}
                                     </td>
                                     <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-                                        {{ $closing->closedBy->name ?? 'System' }}
+                                        {{ $closing->closedBy->name ?? 'Sistem' }}
                                     </td>
                                     <td class="px-6 py-4 text-slate-400 dark:text-slate-500 text-xs tabular-nums">
                                         {{ $closing->created_at->format('d M Y, H:i') }}

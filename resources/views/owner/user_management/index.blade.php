@@ -9,44 +9,49 @@
 @section('content')
 <div class="space-y-8 max-w-full overflow-x-hidden">
 
-    <div class="mb-8">
-        
-        {{-- Breadcrumb --}}
-        <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-            <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Pengguna</span>
-        </nav>
+    <div class="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0 flex-1">
+            {{-- Breadcrumb --}}
+            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
+                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
+                <span class="text-slate-200 dark:text-slate-700">/</span>
+                <span class="text-slate-600 dark:text-slate-300">Pengguna</span>
+            </nav>
 
-        {{-- Judul --}}
-        <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-            Manajemen Pengguna
-        </h1>
+            {{-- Judul --}}
+            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
+                Manajemen Pengguna
+            </h1>
 
-        {{-- Deskripsi Halaman --}}
-        <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
-            Kelola hak akses pengguna, tambahkan kasir baru, atau nonaktifkan akun yang sudah tidak bertugas.<br class="hidden sm:block mt-1">
-            Pastikan setiap pengguna memiliki akses (role) yang sesuai dengan tanggung jawabnya.
-        </p>
+            {{-- Deskripsi Halaman --}}
+            <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
+                Kelola hak akses pengguna, tambahkan kasir baru, atau nonaktifkan akun yang sudah tidak bertugas.<br class="hidden sm:block mt-1">
+                Pastikan setiap pengguna memiliki akses (role) yang sesuai dengan tanggung jawabnya.
+            </p>
 
-        {{-- Indikator Total --}}
-        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-lg shadow-sm mb-4">
-            <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
-                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                Total Terdaftar:
-                <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun</span>
-            </span>
+            {{-- Indikator Total --}}
+            <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-lg shadow-sm">
+                <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Total Terdaftar:
+                    <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun</span>
+                </span>
+            </div>
         </div>
 
         {{-- Tombol Aksi --}}
-        <div class="flex flex-wrap gap-3">
+        <div class="flex w-full flex-col gap-3 sm:flex-row lg:mt-10 lg:w-auto lg:justify-end">
+            <a href="{{ route('owner.branches.index') }}"
+               class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1m-1 4h1m-1 4h1m5-4h1m-1 4h1"></path></svg>
+                Kelola Cabang
+            </a>
             <a href="{{ route('owner.users.create') }}"
-               class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold rounded-xl active:scale-95 transition-all shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                 Tambah Pengguna
             </a>
         </div>
-        
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:hidden">
@@ -83,6 +88,19 @@
                                 @endif
                             </div>
                         </div>
+                        @if($usesBranches ?? false)
+                            <div class="col-span-2">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cabang</p>
+                                @php
+                                    $branchNames = ($usesBranchAssignments ?? false) && strtolower($user->role->name ?? '') === 'admin'
+                                        ? $user->assignedBranches->pluck('name')->filter()->values()
+                                        : collect([$user->branch->name ?? 'Kebab SK']);
+                                @endphp
+                                <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                                    {{ $branchNames->isNotEmpty() ? $branchNames->join(', ') : ($user->branch->name ?? 'Kebab SK') }}
+                                </p>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -98,7 +116,7 @@
                     {{-- Reset Button --}}
                     <a href="{{ route('owner.users.reset.form', $user->id) }}" 
                        class="flex-1 flex items-center justify-center py-3.5 hover:bg-amber-50 dark:hover:bg-amber-500/10 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
-                        <span class="text-[11px] font-black uppercase tracking-[0.15em]">Reset</span>
+                        <span class="text-[11px] font-black uppercase tracking-[0.15em]">Atur Ulang</span>
                     </a>
                     
                     {{-- Disable Button --}}
@@ -132,6 +150,9 @@
                         <th class="px-6 py-4">Informasi User</th>
                         <th class="px-6 py-4">Username</th>
                         <th class="px-6 py-4">Role</th>
+                        @if($usesBranches ?? false)
+                            <th class="px-6 py-4">Cabang</th>
+                        @endif
                         <th class="px-6 py-4 text-center">Status</th>
                         <th class="px-6 py-4 text-center">Bergabung</th>
                         <th class="px-6 py-4 text-right">Aksi</th>
@@ -162,6 +183,28 @@
                                 </span>
                             </td>
 
+                            {{-- Cabang --}}
+                            @if($usesBranches ?? false)
+                                <td class="px-6 py-4">
+                                    @php
+                                        $branchNames = ($usesBranchAssignments ?? false) && strtolower($user->role->name ?? '') === 'admin'
+                                            ? $user->assignedBranches->pluck('name')->filter()->values()
+                                            : collect([$user->branch->name ?? 'Kebab SK']);
+                                    @endphp
+                                    <div class="flex max-w-xs flex-wrap gap-1.5">
+                                        @forelse($branchNames as $branchName)
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                                                {{ $branchName }}
+                                            </span>
+                                        @empty
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                                                {{ $user->branch->name ?? 'Kebab SK' }}
+                                            </span>
+                                        @endforelse
+                                    </div>
+                                </td>
+                            @endif
+
                             {{-- Status --}}
                             <td class="px-6 py-4 text-center">
                                 @if($user->deleted_at)
@@ -184,7 +227,7 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </a>
 
-                                    <a href="{{ route('owner.users.reset.form', $user->id) }}" title="Reset Password"
+                                    <a href="{{ route('owner.users.reset.form', $user->id) }}" title="Atur Ulang Kata Sandi"
                                        class="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                                     </a>
@@ -205,7 +248,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-20 text-center">
+                            <td colspan="{{ ($usesBranches ?? false) ? 7 : 6 }}" class="px-6 py-20 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-3">
                                         <svg class="w-6 h-6 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>

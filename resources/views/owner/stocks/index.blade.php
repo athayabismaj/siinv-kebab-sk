@@ -53,7 +53,7 @@
         </div>
         
         <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
-            Pantau ketersediaan stok bahan secara real-time. Halaman ini hanya untuk pemantauan (read only).
+            Pantau ketersediaan stok bahan secara langsung. Halaman ini hanya untuk pemantauan.
         </p>
 
     </div>

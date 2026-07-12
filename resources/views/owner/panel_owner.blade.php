@@ -161,7 +161,7 @@
     <section class="owner-dashboard-kpis gap-2.5">
         @foreach([
             ['label' => 'Omzet Hari Ini', 'value' => 'Rp ' . number_format($todayRevenue, 0, ',', '.'), 'note' => number_format($todayTransactionsCount) . ' transaksi', 'icon' => 'revenue'],
-            ['label' => 'Laba Bersih', 'value' => 'Rp ' . number_format($todayNetProfit, 0, ',', '.'), 'note' => 'omzet dikurangi pengeluaran', 'icon' => 'profit', 'success' => $todayNetProfit >= 0, 'danger' => $todayNetProfit < 0],
+            ['label' => 'Selisih Hari Ini', 'value' => 'Rp ' . number_format($todayNetProfit, 0, ',', '.'), 'note' => 'omzet dikurangi pengeluaran tercatat', 'icon' => 'profit', 'success' => $todayNetProfit >= 0, 'danger' => $todayNetProfit < 0],
             ['label' => 'Target Hari Ini', 'value' => $targetProgress . '%', 'note' => 'Rp ' . number_format($targetRevenue, 0, ',', '.'), 'icon' => 'target'],
             ['label' => 'Pengeluaran Hari Ini', 'value' => 'Rp ' . number_format($todayExpenseTotal, 0, ',', '.'), 'note' => number_format($todayExpenseCount) . ' catatan', 'icon' => 'expense', 'danger' => true],
         ] as $metric)

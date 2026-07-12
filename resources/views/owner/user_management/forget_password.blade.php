@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Reset Kata Sandi Pengguna')
+@section('title', 'Atur Ulang Kata Sandi Pengguna')
 
 @section('sidebar')
     @include('partials.sidebar_owner')
@@ -18,12 +18,12 @@
             <span class="text-slate-200 dark:text-slate-700">/</span>
             <a href="{{ route('owner.users.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Pengguna</a>
             <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Reset</span>
+            <span class="text-slate-600 dark:text-slate-300">Atur Ulang</span>
         </nav>
 
         {{-- Judul --}}
         <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-            Reset Password
+            Atur Ulang Kata Sandi
         </h1>
 
         {{-- Deskripsi Halaman --}}
@@ -55,7 +55,7 @@
                     {{-- Password Baru --}}
                     <div>
                         <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
-                            PASSWORD BARU
+                            KATA SANDI BARU
                         </label>
                         <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all overflow-hidden">
                             
@@ -68,7 +68,7 @@
                                    name="password"
                                    required
                                    autocomplete="new-password"
-                                   placeholder="Masukkan password baru..."
+                                   placeholder="Masukkan kata sandi baru..."
                                    class="flex-1 w-full border-none p-0 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 outline-none bg-white dark:bg-slate-900 dark:[color-scheme:dark]">
                             
                             {{-- Tombol Mata Kanan (Hide/Show) --}}
@@ -87,7 +87,7 @@
                     {{-- Konfirmasi Password --}}
                     <div>
                         <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
-                            KONFIRMASI PASSWORD
+                            KONFIRMASI KATA SANDI
                         </label>
                         <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all overflow-hidden">
                             
@@ -100,7 +100,7 @@
                                    name="password_confirmation"
                                    required
                                    autocomplete="new-password"
-                                   placeholder="Ulangi password baru..."
+                                   placeholder="Ulangi kata sandi baru..."
                                    class="flex-1 w-full border-none p-0 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 outline-none bg-white dark:bg-slate-900 dark:[color-scheme:dark]">
                             
                             {{-- Tombol Mata Kanan (Hide/Show) --}}
@@ -125,7 +125,7 @@
                     <button type="submit"
                             class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-[13px] font-bold shadow-sm transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Simpan Password Baru
+                        Simpan Kata Sandi Baru
                     </button>
                 </div>
 

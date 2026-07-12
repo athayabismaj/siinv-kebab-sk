@@ -24,7 +24,7 @@
         </h1>
 
         <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">
-            Perbarui informasi profil atau ganti hak akses (role) pengguna ini. <br class="hidden sm:block mt-1">Untuk mengganti kata sandi, silakan gunakan fitur Reset Password di halaman sebelumnya.
+            Perbarui informasi profil atau ganti hak akses (role) pengguna ini. <br class="hidden sm:block mt-1">Untuk mengganti kata sandi, silakan gunakan fitur Atur Ulang Kata Sandi di halaman sebelumnya.
         </p>
     </div>
 
