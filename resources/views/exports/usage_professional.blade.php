@@ -1,11 +1,11 @@
 @php
     $reportTitle = 'LAPORAN PEMAKAIAN BAHAN';
     $metaRows = [
-        ['Total Bahan Terpakai', number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') . ' Jenis Bahan', 'Jumlah Pemakaian', number_format($summary['logs_count'] ?? 0, 0, ',', '.') . ' Transaksi'],
+        ['Total Bahan Terpakai', number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') . ' Jenis Bahan', 'Jumlah Pemakaian', number_format($summary['logs_count'] ?? 0, 0, ',', '.') . ' kali'],
     ];
     $excelMetaRows = [
         ['Total Bahan Terpakai', number_format($summary['ingredients_count'] ?? 0, 0, ',', '.') . ' Jenis Bahan'],
-        ['Jumlah Pemakaian', number_format($summary['logs_count'] ?? 0, 0, ',', '.') . ' Transaksi'],
+        ['Jumlah Pemakaian', number_format($summary['logs_count'] ?? 0, 0, ',', '.') . ' kali'],
     ];
 @endphp
 
@@ -17,7 +17,7 @@
             <th style="font-weight: bold; border: 1px solid #000000;">Nama Bahan</th>
             <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Total Pemakaian</th>
             <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">Frekuensi Pemakaian</th>
-            <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">Terakhir Digunakan</th>
+            <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">Terakhir Dipakai</th>
         </tr>
         @forelse($items as $index => $item)
             <tr>
@@ -25,16 +25,16 @@
                 <td style="border: 1px solid #000000;">{{ $item->ingredient_name }}</td>
                 <td style="text-align: right; border: 1px solid #000000;">
                     @php
-                        $qtyLabel = \App\Support\UsageQuantityFormatter::parts(
+                        $qtyLabel = \App\Support\UsageQuantityFormatter::formatLabel(
                             (float) $item->total_quantity,
                             (string) ($item->base_unit ?? ''),
                             (string) ($item->display_unit ?? ''),
                             (int) ($item->pack_size ?? 1)
-                        )['quantity'];
+                        );
                     @endphp
                     {{ $qtyLabel }}
                 </td>
-                <td style="text-align: center; border: 1px solid #000000;">{{ $item->usage_count }}x</td>
+                <td style="text-align: center; border: 1px solid #000000;">{{ number_format($item->usage_count, 0, ',', '.') }} kali</td>
                 <td style="text-align: center; border: 1px solid #000000;">{{ $item->last_used_at ? \Carbon\Carbon::parse($item->last_used_at)->format('d/m/Y H:i') : '-' }}</td>
             </tr>
         @empty
@@ -68,7 +68,7 @@
                 <th style="width:40%; padding:8px 10px; text-align:left;   font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Nama Bahan</th>
                 <th style="width:25%; padding:8px 10px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Total Pemakaian</th>
                 <th style="width:15%; padding:8px 10px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Frekuensi</th>
-                <th style="width:15%; padding:8px 10px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Terakhir Digunakan</th>
+                <th style="width:15%; padding:8px 10px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Terakhir Dipakai</th>
             </tr>
         </thead>
         <tbody>
@@ -78,16 +78,16 @@
                     <td style="padding:7px 10px; text-align:left; font-weight:600; color:#222;">{{ $item->ingredient_name }}</td>
                     <td style="padding:7px 10px; text-align:right; color:#222;">
                         @php
-                            $qtyLabel = \App\Support\UsageQuantityFormatter::parts(
+                            $qtyLabel = \App\Support\UsageQuantityFormatter::formatLabel(
                                 (float) $item->total_quantity,
                                 (string) ($item->base_unit ?? ''),
                                 (string) ($item->display_unit ?? ''),
                                 (int) ($item->pack_size ?? 1)
-                            )['quantity'];
+                            );
                         @endphp
                         {{ $qtyLabel }}
                     </td>
-                    <td style="padding:7px 10px; text-align:center; color:#555;">{{ $item->usage_count }}&times;</td>
+                    <td style="padding:7px 10px; text-align:center; color:#555;">{{ number_format($item->usage_count, 0, ',', '.') }} kali</td>
                     <td style="padding:7px 10px; text-align:center; color:#888; font-size:10px;">{{ $item->last_used_at ? \Carbon\Carbon::parse($item->last_used_at)->format('d/m/y H:i') : '-' }}</td>
                 </tr>
             @empty

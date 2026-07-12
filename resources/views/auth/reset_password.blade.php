@@ -3,7 +3,7 @@
 @section('content')
 
     <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">
-        Reset Password
+        Atur Ulang Kata Sandi
     </h2>
 
     <form method="POST" action="{{ route('password.reset') }}" class="space-y-5">
@@ -12,7 +12,7 @@
         {{-- Password Baru --}}
         <div>
             <label class="block text-sm text-slate-600 mb-2">
-                Password Baru
+                Kata Sandi Baru
             </label>
             <input type="password"
                    name="password"
@@ -30,7 +30,7 @@
         {{-- Konfirmasi Password --}}
         <div>
             <label class="block text-sm text-slate-600 mb-2">
-                Konfirmasi Password
+                Konfirmasi Kata Sandi
             </label>
             <input type="password"
                    name="password_confirmation"
@@ -46,7 +46,7 @@
                 class="w-full bg-blue-600 text-white py-2.5 rounded-lg
                        hover:bg-blue-700 active:scale-[0.98]
                        transition">
-            Reset Password
+            Atur Ulang Kata Sandi
         </button>
     </form>
 

@@ -16,7 +16,7 @@
     {{-- HEADER --}}
     <div class="mb-10">
         <h1 class="text-2xl md:text-3xl font-semibold text-slate-800 dark:text-white">
-            Ubah Password
+            Ubah Kata Sandi
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
             Pastikan password baru Anda aman dan sulit ditebak
@@ -37,7 +37,7 @@
                 {{-- Password Saat Ini --}}
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                        Password Saat Ini
+                        Kata Sandi Saat Ini
                     </label>
                     <input type="password"
                            name="current_password"
@@ -56,7 +56,7 @@
                 {{-- Password Baru --}}
                 <div>
                     <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                        Password Baru
+                        Kata Sandi Baru
                     </label>
                     <input type="password"
                            name="password"
@@ -75,7 +75,7 @@
                 {{-- Konfirmasi Password --}}
                 <div>
                     <label class="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                        Konfirmasi Password
+                        Konfirmasi Kata Sandi
                     </label>
                     <input type="password"
                            name="password_confirmation"

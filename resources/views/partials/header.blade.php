@@ -43,6 +43,34 @@
 
     <div class="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
 
+        @php
+            $headerRoleName = strtolower(optional(optional(auth()->user())->role)->name ?? '');
+            $headerBranchOptions = $headerRoleName === 'admin' && class_exists(\App\Support\BranchScope::class)
+                ? \App\Support\BranchScope::optionsFor(auth()->user())
+                : collect();
+            $headerActiveBranchId = $headerRoleName === 'admin' && class_exists(\App\Support\BranchScope::class)
+                ? \App\Support\BranchScope::scopedBranchIdFor(auth()->user())
+                : null;
+        @endphp
+
+        @if($headerBranchOptions->count() > 1)
+            <form method="POST" action="{{ route('admin.branch-context.switch') }}" class="hidden sm:block">
+                @csrf
+                <label class="sr-only" for="active_branch_id">Cabang Aktif</label>
+                <select
+                    id="active_branch_id"
+                    name="branch_id"
+                    onchange="this.form.submit()"
+                    class="h-10 w-44 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                    @foreach($headerBranchOptions as $branch)
+                        <option value="{{ $branch->id }}" @selected((int) $headerActiveBranchId === (int) $branch->id)>
+                            {{ $branch->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        @endif
+
         {{-- Toggle Theme --}}
         <style>
             .theme-switch {
@@ -252,7 +280,7 @@
                    class="block px-4 py-2 text-sm
                           text-slate-600 dark:text-slate-300
                           hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    Ubah Password
+                    Ubah Kata Sandi
                 </a>
 
                 <form method="POST" action="{{ route('logout') }}">

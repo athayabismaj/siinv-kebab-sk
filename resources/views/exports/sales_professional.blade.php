@@ -17,9 +17,9 @@
         
         @if($type === 'daily')
             <tr>
-                <th style="font-weight: bold; text-align: left; border: 1px solid #000000; font-size: 12px; padding: 8px 10px;">Nama Item</th>
-                <th style="font-weight: bold; text-align: center; border: 1px solid #000000; font-size: 12px; padding: 8px 10px;">Terjual</th>
-                <th style="font-weight: bold; text-align: right; border: 1px solid #000000; font-size: 12px; padding: 8px 10px;">Subtotal</th>
+                <th style="font-weight: bold; text-align: left; border: 1px solid #000000; font-size: 12px; padding: 8px 10px;">Nama Menu</th>
+                <th style="font-weight: bold; text-align: center; border: 1px solid #000000; font-size: 12px; padding: 8px 10px;">Jumlah Terjual</th>
+                <th style="font-weight: bold; text-align: right; border: 1px solid #000000; font-size: 12px; padding: 8px 10px;">Total Penjualan</th>
             </tr>
             @forelse($contributions ?? [] as $row)
                 <tr>
@@ -90,9 +90,9 @@
         <thead>
             <tr style="background-color: #f0f0f0; border-top: 1px solid #bbb; border-bottom: 1px solid #bbb;">
                 @if($type === 'daily')
-                    <th style="width:50%; padding:10px 12px; text-align:left; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Nama Item</th>
-                    <th style="width:20%; padding:10px 12px; text-align:center; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Terjual</th>
-                    <th style="width:30%; padding:10px 12px; text-align:right; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Subtotal</th>
+                    <th style="width:50%; padding:10px 12px; text-align:left; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Nama Menu</th>
+                    <th style="width:20%; padding:10px 12px; text-align:center; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Jumlah Terjual</th>
+                    <th style="width:30%; padding:10px 12px; text-align:right; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Total Penjualan</th>
                 @else
                     <th style="width:50%; padding:10px 12px; text-align:left; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Tanggal</th>
                     <th style="width:20%; padding:10px 12px; text-align:center; font-size:11px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Transaksi</th>

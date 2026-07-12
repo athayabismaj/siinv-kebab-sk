@@ -17,7 +17,7 @@
         <div class="mt-6 flex items-center justify-center gap-3">
             <a href="{{ route('login') }}"
                class="inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 transition cursor-pointer">
-                Ke Login
+                Ke Masuk
             </a>
         </div>
     </div>

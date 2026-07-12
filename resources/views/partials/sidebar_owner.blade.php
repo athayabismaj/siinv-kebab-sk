@@ -27,7 +27,7 @@
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 8h6m-6-4h6"></path>',
                 ],
                 [
-                    'label' => 'Laporan Pemakaian',
+                    'label' => 'Laporan Pemakaian Bahan',
                     'route' => route('owner.reports.usage'),
                     'active' => request()->routeIs('owner.reports.usage') || request()->routeIs('owner.reports.usage.export'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
@@ -83,7 +83,7 @@
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>',
                 ],
                 [
-                    'label' => 'Laporan Pengeluaran',
+                    'label' => 'Laporan Pengeluaran Operasional',
                     'route' => route('owner.reports.cashflow'),
                     'active' => request()->routeIs('owner.reports.cashflow') || request()->routeIs('owner.reports.cashflow.export'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10V6m0 2v10m0 0v2"></path>',
@@ -93,6 +93,12 @@
         [
             'label' => 'Pengguna',
             'items' => [
+                [
+                    'label' => 'Cabang Operasional',
+                    'route' => route('owner.branches.index'),
+                    'active' => request()->routeIs('owner.branches.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1m-1 4h1m-1 4h1m5-4h1m-1 4h1"></path>',
+                ],
                 [
                     'label' => 'Daftar User',
                     'route' => route('owner.users.index'),

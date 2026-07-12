@@ -34,7 +34,7 @@
                     'waste' => 'Waste',
                     default => null,
                 };
-                $statusLabel = $isVoid ? 'VOID' : ($isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', (string) $trx->status)));
+                $statusLabel = $isVoid ? 'Pembatalan' : ($isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', (string) $trx->status)));
                 $exportStatusLabel = $isVoid && $voidReasonLabel ? $statusLabel . ' - ' . $voidReasonLabel : $statusLabel;
             @endphp
             <tr>
@@ -94,7 +94,7 @@
                         'waste' => 'Waste',
                         default => null,
                     };
-                    $statusLabel = $isVoid ? 'VOID' : ($isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', (string) $trx->status)));
+                    $statusLabel = $isVoid ? 'Pembatalan' : ($isSuccess ? ($isPaid ? 'Lunas' : 'Kurang') : strtoupper(str_replace('_', ' ', (string) $trx->status)));
                     $statusColor = $isVoid ? '#d97706' : ($isPaid ? '#10b981' : '#ef4444');
                 @endphp
                 <tr style="border-bottom:1px solid #eee; {{ $index % 2 === 1 ? 'background-color:#f9f9f9;' : '' }}">

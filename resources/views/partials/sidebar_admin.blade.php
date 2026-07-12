@@ -89,7 +89,7 @@
             'label' => 'Laporan',
             'items' => [
                 [
-                    'label' => 'Laporan Pemakaian',
+                    'label' => 'Laporan Pemakaian Bahan',
                     'route' => route('admin.reports.usage'),
                     'active' => request()->routeIs('admin.reports.usage') || request()->routeIs('admin.reports.usage.export'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
@@ -101,7 +101,7 @@
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
                 ],
                 [
-                    'label' => 'Laporan Pengeluaran',
+                    'label' => 'Laporan Pengeluaran Operasional',
                     'route' => route('admin.reports.cashflow'),
                     'active' => request()->routeIs('admin.reports.cashflow') || request()->routeIs('admin.reports.cashflow.*'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10V6m0 2v10m0 0v2"></path>',

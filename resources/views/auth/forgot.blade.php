@@ -3,7 +3,7 @@
 @section('content')
 
     <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">
-        Forgot Password
+        Lupa Kata Sandi
     </h2>
 
     <form method="POST" action="{{ route('password.sendOtp') }}" class="space-y-5">
@@ -38,7 +38,7 @@
     <div class="mt-6 text-center">
         <a href="{{ route('login') }}"
            class="text-sm text-slate-500 hover:text-blue-600 transition">
-            ← Kembali ke Login
+            ← Kembali ke Masuk
         </a>
     </div>
 

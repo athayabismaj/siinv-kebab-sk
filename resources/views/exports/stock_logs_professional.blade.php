@@ -1,11 +1,11 @@
 @php
     $reportTitle = 'LAPORAN RIWAYAT PERUBAHAN STOK BAHAN BAKU';
     $metaRows = [
-        ['Filter Log', $typeLabel, 'Total Log', number_format($summary['total'] ?? 0, 0, ',', '.')],
+        ['Filter Riwayat', $typeLabel, 'Total Riwayat', number_format($summary['total'] ?? 0, 0, ',', '.')],
     ];
     $excelMetaRows = [
-        ['Filter Log', $typeLabel],
-        ['Total Log', number_format($summary['total'] ?? 0, 0, ',', '.')],
+        ['Filter Riwayat', $typeLabel],
+        ['Total Riwayat', number_format($summary['total'] ?? 0, 0, ',', '.')],
     ];
 @endphp
 
@@ -28,13 +28,13 @@
                 <td style="border: 1px solid #000000;">{{ $log->ingredient->name ?? '-' }}</td>
                 <td style="border: 1px solid #000000;">{{ $log->display_type_label ?? '-' }}</td>
                 <td style="text-align: right; border: 1px solid #000000;">
-                    {{ $log->display_qty_prefix ?? '' }}{{ $log->display_qty ?? '0' }} {{ strtoupper($log->display_unit ?? '-') }}
+                    {{ $log->display_qty_prefix ?? '' }}{{ $log->display_qty ?? '0' }} {{ $log->display_unit ?? '-' }}
                     @if(!empty($log->display_pack_text))
                         ({{ $log->display_pack_text }})
                     @endif
                 </td>
                 <td style="border: 1px solid #000000;">{{ $log->display_source ?? '-' }}</td>
-                <td style="border: 1px solid #000000;">{{ $log->note ?? '-' }}</td>
+                <td style="border: 1px solid #000000;">{{ $log->display_note ?? '-' }}</td>
             </tr>
         @empty
             <tr>
@@ -77,13 +77,13 @@
                     <td style="padding:7px 10px; text-align:left; font-weight:600; color:#222;">{{ $log->ingredient->name ?? '-' }}</td>
                     <td style="padding:7px 10px; text-align:left; color:#222;">{{ $log->display_type_label ?? '-' }}</td>
                     <td style="padding:7px 10px; text-align:right; color:#222;">
-                        {{ $log->display_qty_prefix ?? '' }}{{ $log->display_qty ?? '0' }} {{ strtoupper($log->display_unit ?? '-') }}
+                        {{ $log->display_qty_prefix ?? '' }}{{ $log->display_qty ?? '0' }} {{ $log->display_unit ?? '-' }}
                         @if(!empty($log->display_pack_text))
                             <span style="color:#666;">({{ $log->display_pack_text }})</span>
                         @endif
                     </td>
                     <td style="padding:7px 10px; text-align:left; color:#555;">{{ $log->display_source ?? '-' }}</td>
-                    <td style="padding:7px 10px; text-align:left; color:#777;">{{ $log->note ?? '-' }}</td>
+                    <td style="padding:7px 10px; text-align:left; color:#777;">{{ $log->display_note ?? '-' }}</td>
                 </tr>
             @empty
                 <tr>
