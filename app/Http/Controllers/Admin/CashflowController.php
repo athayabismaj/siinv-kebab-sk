@@ -142,8 +142,10 @@ class CashflowController extends Controller
             'isExcel' => $format === 'excel',
         ];
 
-        $fileName = 'laporan-pengeluaran-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString();
-
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Pengeluaran_' . $dateSuffix;
         return $this->exportByFormat(
             $format,
             'exports.expense_professional',
@@ -209,7 +211,7 @@ class CashflowController extends Controller
                 'expenseTotal' => $expenseTotal,
                 'expenseCount' => $expenseCount,
                 'hpp'          => $hpp,
-                'netCash'      => $salesRevenue - $hpp - $expenseTotal,
+                'netCash'      => $salesRevenue - $expenseTotal,
             ];
         });
     }

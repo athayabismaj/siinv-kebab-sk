@@ -8,9 +8,10 @@ use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ExpenseReportExport implements FromView, WithDrawings, WithStyles
+class ExpenseReportExport implements FromView, WithDrawings, WithStyles, ShouldAutoSize
 {
     use HasReportLogoDrawing;
 
@@ -44,13 +45,6 @@ class ExpenseReportExport implements FromView, WithDrawings, WithStyles
     public function styles(Worksheet $sheet)
     {
         $sheet->getRowDimension(1)->setRowHeight(48);
-        $sheet->getColumnDimension('A')->setWidth(13);
-        $sheet->getColumnDimension('B')->setWidth(22);
-        $sheet->getColumnDimension('C')->setWidth(20);
-        $sheet->getColumnDimension('D')->setWidth(24);
-        $sheet->getColumnDimension('E')->setWidth(30);
-        $sheet->getColumnDimension('F')->setWidth(18);
-        $sheet->getColumnDimension('G')->setWidth(20);
 
         return [
             1 => ['font' => ['bold' => true, 'size' => 16]],
