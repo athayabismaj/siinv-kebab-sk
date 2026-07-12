@@ -23,7 +23,7 @@ class StockLogController extends Controller
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
         $typeFilter = $request->input('type');
-        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
         $branchOptions = BranchScope::options();
 
         $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter, $branchId);
@@ -118,7 +118,7 @@ class StockLogController extends Controller
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
         $typeFilter = $request->input('type');
-        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
 
         $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter, $branchId)
             ->get()

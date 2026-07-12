@@ -330,6 +330,6 @@ class SalesReportController extends Controller
 
     private function selectedBranchId(Request $request): ?int
     {
-        return BranchScope::requestBranchId((int) $request->input('branch_id'));
+        return BranchScope::ownerBranchId((int) $request->input('branch_id'));
     }
 }

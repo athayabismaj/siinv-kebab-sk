@@ -11,6 +11,7 @@ use App\Support\AdminCache;
 use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\ReportPeriod;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -74,12 +75,19 @@ class CashflowController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'entry_date' => 'nullable|date',
             'amount' => 'required|numeric|min:1',
             'source' => 'required|string|max:120',
             'note' => 'nullable|string|max:255',
         ]);
 
         $entryDate = now()->toDateString();
+
+        if (isset($validated['entry_date']) && Carbon::parse((string) $validated['entry_date'])->toDateString() !== $entryDate) {
+            return back()
+                ->withInput()
+                ->withErrors(['entry_date' => 'Tanggal pencatatan dikunci ke hari ini. Pengeluaran tidak dapat dicatat mundur.']);
+        }
 
         CashflowEntry::create([
             'entry_date' => $entryDate,

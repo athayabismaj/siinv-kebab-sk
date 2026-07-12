@@ -28,7 +28,7 @@ class TransactionHistoryController extends Controller
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
         $filters = $request->only(['search', 'user_id']);
-        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
         if ($branchId !== null) {
             $filters['branch_id'] = $branchId;
         }
@@ -92,7 +92,7 @@ class TransactionHistoryController extends Controller
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
         $filters = $request->only(['search', 'user_id', 'payment_method_id']);
-        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
         if ($branchId !== null) {
             $filters['branch_id'] = $branchId;
         }

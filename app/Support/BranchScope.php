@@ -225,4 +225,35 @@ class BranchScope
 
         session(['active_branch_id' => (int) $branchId]);
     }
+    /**
+     * Get the owner's active branch ID from session.
+     * Returns null if "Semua Cabang" (0) is selected or no session value.
+     * Owner controllers should call this instead of request('branch_id').
+     */
+    public static function ownerActiveBranchId(): ?int
+    {
+        $branchId = (int) session('owner_active_branch_id', 0);
+
+        return $branchId > 0 ? $branchId : null;
+    }
+
+    /**
+     * Resolve the effective branch_id for owner.
+     * Prefers session value over request value, for global header support.
+     */
+    public static function ownerBranchId(?int $requestBranchId = null): ?int
+    {
+        // If session has a value set by the global header, use it
+        $sessionBranchId = self::ownerActiveBranchId();
+        if ($sessionBranchId !== null) {
+            return self::requestBranchId($sessionBranchId);
+        }
+
+        // Fallback to request param (for backward compatibility / exports)
+        if (($requestBranchId ?? 0) > 0) {
+            return self::requestBranchId($requestBranchId);
+        }
+
+        return null;
+    }
 }

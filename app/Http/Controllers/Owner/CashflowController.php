@@ -27,7 +27,7 @@ class CashflowController extends Controller
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
-        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
         $branchOptions = BranchScope::options();
 
         $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString(), $branchId);
@@ -86,7 +86,7 @@ class CashflowController extends Controller
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
-        $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
 
         $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString(), $branchId);
         $this->applySearch($baseQuery, $request);
@@ -163,7 +163,7 @@ class CashflowController extends Controller
         ])));
 
         return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($baseQuery, $trxFrom, $trxTo) {
-            $branchId = BranchScope::requestBranchId((int) request('branch_id'));
+            $branchId = BranchScope::ownerBranchId((int) request('branch_id'));
 
             $salesQuery = Transaction::query()
                 ->whereBetween('created_at', [$trxFrom, $trxTo]);

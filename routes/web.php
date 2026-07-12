@@ -13,6 +13,7 @@ use App\Http\Controllers\Owner\StockMonitoringController;
 use App\Http\Controllers\Owner\StockLogController as OwnerStockLogController;
 use App\Http\Controllers\Owner\CashflowController as OwnerCashflowController;
 use App\Http\Controllers\Owner\DailyTargetController;
+use App\Http\Controllers\Owner\OwnerBranchContextController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientCategoryController;
 use App\Http\Controllers\Admin\MenuController;
@@ -87,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('owner.')->group(function () {
         // ================= PANEL =================
         Route::get('/panel', [OwnerDashboardController::class, 'index'])->name('panel');
+        Route::post('/branch-context', [OwnerBranchContextController::class, 'switch'])->name('branch-context.switch');
 
         // ================= USER MANAGEMENT =================
         Route::prefix('branches')->name('branches.')->group(function () {

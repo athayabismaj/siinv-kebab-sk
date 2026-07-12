@@ -133,8 +133,8 @@
                 </span>
             </div>
             <div class="daily-stock-card-foot">
-                <span>sesi kasir</span>
-                <span>periode aktif</span>
+                <span>Sesi Kasir</span>
+                <span>Periode Aktif</span>
             </div>
         </div>
 
@@ -146,12 +146,12 @@
                     <p class="daily-stock-card-value">{{ number_format($summary['items_count'], 0, ',', '.') }}</p>
                 </div>
                 <span class="daily-stock-card-icon">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                 </span>
             </div>
             <div class="daily-stock-card-foot">
-                <span>bahan baku</span>
-                <span>tercatat</span>
+                <span>Bahan Baku</span>
+                <span>Tercatat</span>
             </div>
         </div>
 
@@ -167,29 +167,24 @@
                         </p>
                     </div>
                     <span class="daily-stock-card-icon">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        @php
+                            $unitLower = strtolower($unitData['unit']);
+                        @endphp
+                        @if($unitLower === 'g' || $unitLower === 'gram' || $unitLower === 'kg')
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+                        @elseif($unitLower === 'ml' || $unitLower === 'liter' || $unitLower === 'l')
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                        @elseif($unitLower === 'pcs' || $unitLower === 'pcs.')
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        @else
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        @endif
                     </span>
                 </div>
 
-                <div class="daily-stock-unit-breakdown">
-                    <div class="daily-stock-unit-row">
-                        <span>Dibawa</span>
-                        <strong>
-                            {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
-                        </strong>
-                    </div>
-                    <div class="daily-stock-unit-row">
-                        <span>Sisa</span>
-                        <strong>
-                            {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
-                        </strong>
-                    </div>
-                    <div class="daily-stock-unit-row daily-stock-unit-row-used">
-                        <span>Terpakai</span>
-                        <strong>
-                            {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
-                        </strong>
-                    </div>
+                <div class="daily-stock-card-foot">
+                    <span>Bawa: <strong class="text-slate-700 dark:text-slate-200 font-bold ml-1">{{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}</strong></span>
+                    <span>Sisa: <strong class="text-slate-700 dark:text-slate-200 font-bold ml-1">{{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}</strong></span>
                 </div>
             </div>
         @endforeach
@@ -235,15 +230,15 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead class="hidden md:table-header-group">
-                    <tr class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                    <tr class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                         <th class="px-6 py-4 whitespace-nowrap">Sesi & Kasir</th>
                         <th class="px-6 py-4 text-center whitespace-nowrap">Status</th>
                         <th class="px-6 py-4 text-center whitespace-nowrap">Item</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap">Bawa</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap">Sisa</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap text-blue-600 dark:text-blue-400">Terpakai</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap text-orange-500">Est. Modal</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap text-rose-500">Est. Terjual</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap">Terpakai</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap">Est. Modal</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap">Est. Terjual</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -253,7 +248,7 @@
                         <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0">
+                                    <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold text-sm shrink-0">
                                         {{ strtoupper(substr($session->cashier->name ?? 'U', 0, 1)) }}
                                     </div>
                                     <div>
@@ -284,18 +279,18 @@
                             <td class="px-6 py-4 text-right whitespace-nowrap align-middle text-[13px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
                                 {{ rtrim(rtrim(number_format((float) ($session->total_remaining ?? 0), 2, ',', '.'), '0'), ',') }}
                             </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap align-middle text-[13px] font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+                            <td class="px-6 py-4 text-right whitespace-nowrap align-middle text-[13px] font-bold text-slate-700 dark:text-slate-200 tabular-nums">
                                 {{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
-                                <span class="inline-flex items-center justify-end font-bold text-orange-600 dark:text-orange-400 tabular-nums text-[14px]">
-                                    <span class="text-[10px] mr-1 text-orange-400 dark:text-orange-500">Rp</span>
+                                <span class="inline-flex items-center justify-end font-bold text-slate-700 dark:text-slate-200 tabular-nums text-[14px]">
+                                    <span class="text-[10px] mr-1 text-slate-400 dark:text-slate-500">Rp</span>
                                     {{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
-                                <span class="inline-flex items-center justify-end font-bold text-rose-600 dark:text-rose-400 tabular-nums text-[14px]">
-                                    <span class="text-[10px] mr-1 text-rose-400 dark:text-rose-500">Rp</span>
+                                <span class="inline-flex items-center justify-end font-bold text-slate-700 dark:text-slate-200 tabular-nums text-[14px]">
+                                    <span class="text-[10px] mr-1 text-slate-400 dark:text-slate-500">Rp</span>
                                     {{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}
                                 </span>
                             </td>
@@ -346,8 +341,8 @@
                                                 <p class="font-medium text-slate-700 dark:text-slate-400 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) ($session->total_remaining ?? 0), 2, ',', '.'), '0'), ',') }}</p>
                                             </div>
                                             <div class="px-2">
-                                                <p class="text-[9px] font-bold text-blue-500 uppercase tracking-widest mb-1">Pakai</p>
-                                                <p class="font-bold text-blue-600 dark:text-blue-400 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}</p>
+                                                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pakai</p>
+                                                <p class="font-bold text-slate-700 dark:text-slate-200 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -355,11 +350,11 @@
                                     {{-- Baris 3: Nilai Estimasi --}}
                                     <div class="flex items-center justify-between pt-1.5 px-1">
                                         <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Modal</p>
-                                        <p class="font-black text-orange-600 dark:text-orange-400 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-orange-400 mr-0.5">Rp</span>{{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</p>
+                                        <p class="font-black text-slate-700 dark:text-slate-200 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Rp</span>{{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</p>
                                     </div>
                                     <div class="flex items-center justify-between pt-1 px-1">
                                         <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Terjual</p>
-                                        <p class="font-black text-rose-600 dark:text-rose-400 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-rose-400 mr-0.5">Rp</span>{{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}</p>
+                                        <p class="font-black text-slate-700 dark:text-slate-200 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Rp</span>{{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}</p>
                                     </div>
 
                                 </div>
@@ -396,47 +391,26 @@
 
 .daily-stock-summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1rem;
+    align-items: start;
 }
 
 .daily-stock-card {
-    --tone-rgb: 37 99 235;
+    --tone-rgb: 71 85 105;
     position: relative;
     overflow: hidden;
-    min-height: 146px;
     border: 1px solid rgb(226 232 240);
     border-radius: 16px;
     background: rgb(255 255 255);
-    padding: 18px;
+    padding: 16px 20px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
-.daily-stock-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 3px;
-    background: rgb(var(--tone-rgb));
-    opacity: .8;
-}
-
-.daily-stock-card::after {
-    content: "";
-    position: absolute;
-    right: -36px;
-    top: -42px;
-    width: 104px;
-    height: 104px;
-    border-radius: 999px;
-    background: rgb(var(--tone-rgb) / .08);
-    pointer-events: none;
-}
-
 .daily-stock-card:hover {
-    border-color: rgb(var(--tone-rgb) / .35);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    border-color: rgb(203 213 225);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
     transform: translateY(-1px);
 }
 
@@ -447,7 +421,7 @@
 }
 
 .dark .daily-stock-card:hover {
-    border-color: rgb(var(--tone-rgb) / .42);
+    border-color: rgb(51 65 85);
     box-shadow: none;
 }
 
@@ -461,18 +435,22 @@
 }
 
 .daily-stock-card-label {
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .14em;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
     text-transform: uppercase;
-    color: rgb(var(--tone-rgb));
+    color: rgb(100 116 139);
+}
+
+.dark .daily-stock-card-label {
+    color: rgb(148 163 184);
 }
 
 .daily-stock-card-value {
-    margin-top: 10px;
-    font-size: 31px;
+    margin-top: 8px;
+    font-size: 28px;
     line-height: 1;
-    font-weight: 950;
+    font-weight: 800;
     color: rgb(15 23 42);
     font-variant-numeric: tabular-nums;
 }
@@ -482,22 +460,27 @@
 }
 
 .daily-stock-card-value-small {
-    font-size: 26px;
+    font-size: 24px;
 }
 
 .daily-stock-card-icon {
     position: relative;
     z-index: 1;
     display: inline-flex;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
-    background: rgb(var(--tone-rgb) / .10);
+    border-radius: 10px;
+    background: rgb(248 250 252);
     color: rgb(var(--tone-rgb));
-    box-shadow: inset 0 0 0 1px rgb(var(--tone-rgb) / .14);
+    box-shadow: inset 0 0 0 1px rgb(226 232 240);
+}
+
+.dark .daily-stock-card-icon {
+    background: rgb(30 41 59);
+    box-shadow: inset 0 0 0 1px rgb(51 65 85);
 }
 
 .daily-stock-card-foot {
@@ -508,10 +491,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    border-top: 1px solid rgb(226 232 240);
-    padding-top: 12px;
-    font-size: 10px;
-    font-weight: 800;
+    border-top: 1px dashed rgb(226 232 240);
+    padding-top: 14px;
+    font-size: 11px;
+    font-weight: 600;
     color: rgb(100 116 139);
 }
 
@@ -520,69 +503,15 @@
     color: rgb(148 163 184);
 }
 
-.daily-stock-unit-breakdown {
-    position: relative;
-    z-index: 1;
-    margin-top: 14px;
-    display: grid;
-    gap: 7px;
-}
 
-.daily-stock-unit-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: rgb(148 163 184);
-}
-
-.daily-stock-unit-row strong {
-    font-size: 13px;
-    letter-spacing: 0;
-    color: rgb(51 65 85);
-    font-variant-numeric: tabular-nums;
-}
-
-.dark .daily-stock-unit-row strong {
-    color: rgb(226 232 240);
-}
-
-.daily-stock-unit-row-used {
-    margin-top: 2px;
-    border-top: 1px solid rgb(226 232 240);
-    padding-top: 8px;
-    color: rgb(var(--tone-rgb));
-}
-
-.dark .daily-stock-unit-row-used {
-    border-color: rgb(30 41 59);
-}
-
-.daily-stock-unit-row-used strong {
-    color: rgb(var(--tone-rgb));
-    font-size: 14px;
-    font-weight: 950;
-}
 
 .tone-slate { --tone-rgb: 71 85 105; }
-.tone-blue { --tone-rgb: 37 99 235; }
-.tone-emerald { --tone-rgb: 5 150 105; }
-.tone-amber { --tone-rgb: 217 119 6; }
-.tone-violet { --tone-rgb: 124 58 237; }
-.tone-cyan { --tone-rgb: 8 145 178; }
-.tone-rose { --tone-rgb: 225 29 72; }
-
-.dark .tone-slate { --tone-rgb: 148 163 184; }
-.dark .tone-blue { --tone-rgb: 96 165 250; }
-.dark .tone-emerald { --tone-rgb: 52 211 153; }
-.dark .tone-amber { --tone-rgb: 251 191 36; }
-.dark .tone-violet { --tone-rgb: 167 139 250; }
-.dark .tone-cyan { --tone-rgb: 34 211 238; }
-.dark .tone-rose { --tone-rgb: 251 113 133; }
+.tone-blue { --tone-rgb: 59 130 246; }
+.tone-emerald { --tone-rgb: 16 185 129; }
+.tone-amber { --tone-rgb: 245 158 11; }
+.tone-violet { --tone-rgb: 139 92 246; }
+.tone-cyan { --tone-rgb: 6 182 212; }
+.tone-rose { --tone-rgb: 244 63 94; }
 
 .daily-stock-finance-grid {
     display: grid;
@@ -591,30 +520,25 @@
 }
 
 .daily-stock-finance-card {
-    --finance-rgb: 234 88 12;
+    --finance-rgb: 71 85 105;
     display: flex;
-    min-height: 116px;
     align-items: center;
     gap: 16px;
     overflow: hidden;
-    border: 1px solid rgb(var(--finance-rgb) / .18);
+    border: 1px solid rgb(226 232 240);
     border-radius: 16px;
-    background:
-        radial-gradient(circle at right top, rgb(var(--finance-rgb) / .10), transparent 34%),
-        linear-gradient(135deg, rgb(var(--finance-rgb) / .08), rgb(255 255 255) 46%);
-    padding: 18px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    background: rgb(255 255 255);
+    padding: 16px 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .dark .daily-stock-finance-card {
-    border-color: rgb(var(--finance-rgb) / .24);
-    background:
-        radial-gradient(circle at right top, rgb(var(--finance-rgb) / .16), transparent 36%),
-        linear-gradient(135deg, rgb(var(--finance-rgb) / .10), rgb(15 23 42) 50%);
+    border-color: rgb(30 41 59);
+    background: rgb(15 23 42);
     box-shadow: none;
 }
 
-.finance-cost { --finance-rgb: 234 88 12; }
+.finance-cost { --finance-rgb: 249 115 22; }
 .finance-revenue { --finance-rgb: 225 29 72; }
 
 .daily-stock-finance-icon {
@@ -624,16 +548,15 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    border-radius: 14px;
-    background: rgb(var(--finance-rgb) / .13);
+    border-radius: 12px;
+    background: rgb(var(--finance-rgb) / .10);
     color: rgb(var(--finance-rgb));
-    box-shadow: inset 0 0 0 1px rgb(var(--finance-rgb) / .16);
 }
 
 .daily-stock-finance-label {
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .14em;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
     text-transform: uppercase;
     color: rgb(100 116 139);
 }
@@ -645,23 +568,28 @@
 .daily-stock-finance-caption {
     margin-top: 2px;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 500;
     color: rgb(148 163 184);
 }
 
 .daily-stock-finance-value {
-    margin-top: 10px;
-    font-size: 25px;
+    margin-top: 8px;
+    font-size: 26px;
     line-height: 1;
-    font-weight: 950;
-    color: rgb(var(--finance-rgb));
+    font-weight: 800;
+    color: rgb(15 23 42);
     font-variant-numeric: tabular-nums;
 }
 
+.dark .daily-stock-finance-value {
+    color: rgb(248 250 252);
+}
+
 .daily-stock-finance-value span {
-    margin-right: 5px;
-    font-size: 13px;
-    font-weight: 900;
+    margin-right: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: rgb(148 163 184);
 }
 
 @media (min-width: 768px) {

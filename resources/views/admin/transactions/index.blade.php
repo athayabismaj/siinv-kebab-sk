@@ -254,108 +254,131 @@
             <input type="hidden" name="date_from" id="hidden_date_from" value="{{ $dateFrom->toDateString() }}">
             <input type="hidden" name="date_to" id="hidden_date_to" value="{{ $dateTo->toDateString() }}">
 
-            <div class="flex flex-col sm:flex-row gap-3 w-full">
-                <div class="flex-1 flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 shadow-sm transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
-                    <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $prevFrom, 'date_to' => $prevTo, 'user_id' => request('user_id')]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-                    </a>
-                    
-                    <div class="flex-1 flex px-2 relative min-w-0 justify-center">
-                        <input type="{{ $inputType }}" value="{{ $inputValue }}" onchange="updateDateRange(this, '{{ $type }}')" 
-                               max="{{ $inputType === 'month' ? now()->format('Y-m') : now()->toDateString() }}"
-                               class="w-full h-10 bg-transparent border-none text-[13px] font-bold text-slate-700 dark:text-slate-200 text-center focus:ring-0 p-0 cursor-pointer outline-none placeholder:text-slate-400 dark:[color-scheme:dark]">
+            <div class="flex flex-col gap-3 w-full">
+                
+                {{-- BARIS 1: Periode & Navigasi Tanggal --}}
+                <div class="flex flex-col md:flex-row gap-3 w-full">
+                    {{-- 1. TABS (KIRI) --}}
+                    <div class="flex rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
+                        <button type="button" onclick="changeType('daily')" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
+                        <button type="button" onclick="changeType('weekly')" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
+                        <button type="button" onclick="changeType('monthly')" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
                     </div>
 
-                    @if($isFuture)
-                        <div class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 dark:text-slate-700 cursor-not-allowed">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </div>
-                    @else
-                        <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $nextFrom, 'date_to' => $nextTo, 'user_id' => request('user_id')]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    {{-- 2. DATE NAVIGATOR (KANAN BARIS 1) --}}
+                    <div class="flex-1 min-w-0 flex items-center px-3 rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
+                        <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $prevFrom, 'date_to' => $prevTo, 'user_id' => request('user_id')]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
                         </a>
+                        
+                        <input type="{{ $inputType }}" value="{{ $inputValue }}" onchange="updateDateRange(this, '{{ $type }}')" 
+                               max="{{ $inputType === 'month' ? now()->format('Y-m') : now()->toDateString() }}"
+                               class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+
+                        @if($isFuture)
+                            <div class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 dark:text-slate-700 cursor-not-allowed">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                            </div>
+                        @else
+                            <a href="{{ route($routePrefix.'.index', ['type' => $type, 'date_from' => $nextFrom, 'date_to' => $nextTo, 'user_id' => request('user_id')]) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- BARIS 2: Filter Ekstra & Aksi --}}
+                <div class="flex flex-col md:flex-row gap-3 w-full">
+                    {{-- 3. KASIR SELECTOR (KIRI BARIS 2) --}}
+                    <div class="flex-1 shrink-0 min-w-0">
+                        <select name="user_id" onchange="this.form.submit()" class="h-[38px] w-full rounded-xl border border-slate-200 bg-white px-4 text-center text-[13px] font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                            <option value="">Semua Kasir</option>
+                            @foreach($cashiers as $cashier)
+                                <option value="{{ $cashier->id }}" {{ (string) request('user_id') === (string) $cashier->id ? 'selected' : '' }}>{{ $cashier->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- 4. ACTIONS (KANAN BARIS 2) --}}
+                    @if($hasActiveFilters)
+                        <div class="flex flex-row gap-3 shrink-0 md:justify-end">
+                            <a href="{{ route($routePrefix.'.index') }}" class="inline-flex flex-1 md:flex-none shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 h-[38px] text-[13px] font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-rose-400">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                <span>Atur Ulang</span>
+                            </a>
+                        </div>
                     @endif
-                </div>
-
-                @if($hasActiveFilters)
-                    <a href="{{ route($routePrefix.'.index') }}" class="inline-flex h-[42px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[12px] font-bold text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 shrink-0 whitespace-nowrap">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                        Atur Ulang
-                    </a>
-                @endif
-            </div>
-
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
-                <div class="flex w-full sm:w-auto rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
-                    <button type="button" onclick="changeType('daily')" class="flex-1 sm:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
-                    <button type="button" onclick="changeType('weekly')" class="flex-1 sm:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
-                    <button type="button" onclick="changeType('monthly')" class="flex-1 sm:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
-                </div>
-
-                <div class="w-full min-w-0 sm:flex-1">
-                    <select name="user_id" onchange="this.form.submit()" class="h-[38px] w-full rounded-xl border border-slate-200 bg-white px-4 text-center text-[13px] font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                        <option value="">Semua Kasir</option>
-                        @foreach($cashiers as $cashier)
-                            <option value="{{ $cashier->id }}" {{ (string) request('user_id') === (string) $cashier->id ? 'selected' : '' }}>{{ $cashier->name }}</option>
-                        @endforeach
-                    </select>
                 </div>
             </div>
         </div>
     </form>
 
-    <div class="transaction-monitor-summary">
-        <article class="transaction-monitor-card tone-blue">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Jumlah Transaksi</p>
-                    <p class="transaction-monitor-value">{{ number_format($totalTransactions, 0, ',', '.') }}</p>
-                    <p class="transaction-monitor-note">transaksi tercatat</p>
+    <div class="grid gap-4 items-start" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
+        
+        {{-- Jumlah Transaksi --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Jumlah Transaksi</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ number_format($totalTransactions, 0, ',', '.') }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5h6M9 12h6m-6 7h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5h6M9 12h6m-6 7h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>transaksi tercatat</span>
+            </div>
+        </div>
 
-        <article class="transaction-monitor-card tone-emerald">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Omzet</p>
-                    <p class="transaction-monitor-value">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
-                    <p class="transaction-monitor-note">total penjualan</p>
+        {{-- Omzet --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Omzet</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 10v-1m9-4a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-emerald-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 10v-1m9-4a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>total penjualan</span>
+            </div>
+        </div>
 
-        <article class="transaction-monitor-card tone-violet">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Rata-rata Transaksi</p>
-                    <p class="transaction-monitor-value">Rp {{ number_format($avgTransaction, 0, ',', '.') }}</p>
-                    <p class="transaction-monitor-note">nilai rata-rata</p>
+        {{-- Rata-rata Transaksi --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Rata-rata Transaksi</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">Rp {{ number_format($avgTransaction, 0, ',', '.') }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19V5m4 14v-7m4 7V9m4 10v-4m4 4H3"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-violet-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19V5m4 14v-7m4 7V9m4 10v-4m4 4H3"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>nilai rata-rata</span>
+            </div>
+        </div>
 
-        <article class="transaction-monitor-card tone-amber">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Kasir Teraktif</p>
-                    <p class="transaction-monitor-value truncate">{{ $topCashierName }}</p>
-                    <p class="transaction-monitor-note">paling banyak transaksi</p>
+        {{-- Kasir Teraktif --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div class="min-w-0 pr-2">
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Kasir Teraktif</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 truncate dark:text-white">{{ $topCashierName }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-amber-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>paling banyak transaksi</span>
+            </div>
+        </div>
+
     </div>
 
     @forelse($groupedTransactions as $date => $items)

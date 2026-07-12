@@ -45,16 +45,27 @@
 
         @php
             $headerRoleName = strtolower(optional(optional(auth()->user())->role)->name ?? '');
-            $headerBranchOptions = $headerRoleName === 'admin' && class_exists(\App\Support\BranchScope::class)
-                ? \App\Support\BranchScope::optionsFor(auth()->user())
-                : collect();
-            $headerActiveBranchId = $headerRoleName === 'admin' && class_exists(\App\Support\BranchScope::class)
-                ? \App\Support\BranchScope::scopedBranchIdFor(auth()->user())
-                : null;
+            
+            if ($headerRoleName === 'admin' && class_exists(\App\Support\BranchScope::class)) {
+                $headerBranchOptions = \App\Support\BranchScope::optionsFor(auth()->user());
+                $headerActiveBranchId = \App\Support\BranchScope::scopedBranchIdFor(auth()->user());
+                $headerBranchRoute = route('admin.branch-context.switch');
+                $headerShowAllOption = false;
+            } elseif ($headerRoleName === 'owner' && class_exists(\App\Support\BranchScope::class)) {
+                $headerBranchOptions = \App\Support\BranchScope::options();
+                $headerActiveBranchId = (int) session('owner_active_branch_id', 0);
+                $headerBranchRoute = route('owner.branch-context.switch');
+                $headerShowAllOption = true;
+            } else {
+                $headerBranchOptions = collect();
+                $headerActiveBranchId = null;
+                $headerBranchRoute = '#';
+                $headerShowAllOption = false;
+            }
         @endphp
 
-        @if($headerBranchOptions->count() > 1)
-            <form method="POST" action="{{ route('admin.branch-context.switch') }}" class="hidden sm:block">
+        @if($headerBranchOptions->count() > 1 || ($headerShowAllOption && $headerBranchOptions->count() >= 1))
+            <form method="POST" action="{{ $headerBranchRoute }}" class="hidden sm:block">
                 @csrf
                 <label class="sr-only" for="active_branch_id">Cabang Aktif</label>
                 <select
@@ -62,6 +73,9 @@
                     name="branch_id"
                     onchange="this.form.submit()"
                     class="h-10 w-44 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                    @if($headerShowAllOption)
+                        <option value="0" @selected((int) $headerActiveBranchId === 0)>Semua Cabang</option>
+                    @endif
                     @foreach($headerBranchOptions as $branch)
                         <option value="{{ $branch->id }}" @selected((int) $headerActiveBranchId === (int) $branch->id)>
                             {{ $branch->name }}

@@ -1,5 +1,5 @@
 @php
-    $reportTitle = 'LAPORAN PENGELUARAN ' . strtoupper($type === 'daily' ? 'HARIAN' : ($type === 'weekly' ? 'MINGGUAN' : 'BULANAN'));
+    $reportTitle = 'LAPORAN PENGELUARAN ' . ($periodLabel ?? 'KUSTOM');
     $netCash = ($summary['salesRevenue'] ?? 0) - ($summary['expenseTotal'] ?? 0);
 @endphp
 
