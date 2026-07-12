@@ -58,121 +58,145 @@
         </div>
     </div>
 
-    {{-- FILTER BAR (sama persis dengan pemakaian bahan) --}}
-    <div class="grid grid-cols-1 gap-3 w-full relative z-10 py-2 lg:items-center {{ ($branchOptions ?? collect())->isNotEmpty() ? 'lg:grid-cols-[auto_minmax(260px,1fr)_14rem_auto]' : 'lg:grid-cols-[auto_minmax(260px,1fr)_auto]' }}">
-        {{-- TAB TYPE --}}
-        <div class="flex w-full lg:w-auto rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
-            <a href="{{ route('owner.reports.sales', array_filter(['type' => 'daily', 'branch_id' => request('branch_id')])) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</a>
-            <a href="{{ route('owner.reports.sales', array_filter(['type' => 'weekly', 'branch_id' => request('branch_id')])) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</a>
-            <a href="{{ route('owner.reports.sales', array_filter(['type' => 'monthly', 'branch_id' => request('branch_id')])) }}" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</a>
-        </div>
+    {{-- FILTER SECTION --}}
+    <div class="relative z-10 py-2 mb-2">
+        <div class="flex flex-col gap-3 w-full">
+            
+            {{-- ROW 1: Date Navigator + Atur Ulang --}}
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                {{-- DATE NAVIGATOR --}}
+                <div class="min-w-0 flex items-center px-1 w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 flex-1">
+                    {{-- Prev --}}
+                    @if($type === 'daily')
+                        <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'date' => $prevFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                        </a>
+                    @elseif($type === 'weekly')
+                        <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'week_date' => $prevFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                        </a>
+                    @else
+                        <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'month' => $prevFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                        </a>
+                    @endif
 
-        {{-- DATE NAVIGATOR --}}
-        <div class="min-w-0 flex items-center px-1 w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
-            {{-- Prev --}}
-            @if($type === 'daily')
-                <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'date' => $prevFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-                </a>
-            @elseif($type === 'weekly')
-                <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'week_date' => $prevFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-                </a>
-            @else
-                <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'month' => $prevFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-                </a>
-            @endif
+                    {{-- Date Input --}}
+                    @if($type === 'daily')
+                        <input type="date"
+                               value="{{ $selectedDate->toDateString() }}"
+                               max="{{ now()->toDateString() }}"
+                               data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'daily', 'branch_id' => request('branch_id')])) }}"
+                               data-param="date"
+                               onchange="onSalesDateChange(this)"
+                               class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+                    @elseif($type === 'weekly')
+                        <input type="date"
+                               value="{{ $selectedWeekStart->toDateString() }}"
+                               max="{{ now()->toDateString() }}"
+                               data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'weekly', 'branch_id' => request('branch_id')])) }}"
+                               data-param="week_date"
+                               onchange="onSalesDateChange(this)"
+                               class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+                    @else
+                        <input type="month"
+                               value="{{ $selectedMonth->format('Y-m') }}"
+                               max="{{ now()->format('Y-m') }}"
+                               data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'monthly', 'branch_id' => request('branch_id')])) }}"
+                               data-param="month"
+                               onchange="onSalesDateChange(this)"
+                               class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+                    @endif
 
-            {{-- Date Input --}}
-            @if($type === 'daily')
-                <input type="date"
-                       value="{{ $selectedDate->toDateString() }}"
-                       data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'daily', 'branch_id' => request('branch_id')])) }}"
-                       data-param="date"
-                       onchange="onSalesDateChange(this)"
-                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
-            @elseif($type === 'weekly')
-                <input type="date"
-                       value="{{ $selectedWeekStart->toDateString() }}"
-                       data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'weekly', 'branch_id' => request('branch_id')])) }}"
-                       data-param="week_date"
-                       onchange="onSalesDateChange(this)"
-                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
-            @else
-                <input type="month"
-                       value="{{ $selectedMonth->format('Y-m') }}"
-                       data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'monthly', 'branch_id' => request('branch_id')])) }}"
-                       data-param="month"
-                       onchange="onSalesDateChange(this)"
-                       class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
-            @endif
+                    {{-- Next --}}
+                    @if($isFuture)
+                        <span class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                        </span>
+                    @else
+                        @if($type === 'daily')
+                            <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'date' => $nextFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                            </a>
+                        @elseif($type === 'weekly')
+                            <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'week_date' => $nextFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                            </a>
+                        @else
+                            <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'month' => $nextFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                            </a>
+                        @endif
+                    @endif
+                </div>
 
-            {{-- Next --}}
-            @if($isFuture)
-                <span class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                </span>
-            @else
-                @if($type === 'daily')
-                    <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'date' => $nextFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                    </a>
-                @elseif($type === 'weekly')
-                    <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'week_date' => $nextFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                    </a>
-                @else
-                    <a href="{{ route('owner.reports.sales', array_filter(['type' => $type, 'month' => $nextFrom, 'branch_id' => request('branch_id')])) }}" class="flex shrink-0 h-8 w-10 mt-1 mb-1 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                {{-- Tombol Atur Ulang --}}
+                @php
+                    $hasActiveFilters = request()->filled('date') || request()->filled('week_date') || request()->filled('month') || request()->filled('branch_id') || (request()->filled('type') && request('type') !== 'daily');
+                @endphp
+                @if($hasActiveFilters)
+                    <a href="{{ route('owner.reports.sales') }}" class="inline-flex h-[38px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[12px] font-bold text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 shrink-0 whitespace-nowrap">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                        Atur Ulang
                     </a>
                 @endif
-            @endif
-        </div>
-
-        @if(($branchOptions ?? collect())->isNotEmpty())
-            <div class="w-full min-w-0">
-                <select onchange="const url = new URL(window.location.href); if (this.value) { url.searchParams.set('branch_id', this.value); } else { url.searchParams.delete('branch_id'); } url.searchParams.delete('page'); window.location.href = url.toString();"
-                        class="h-[38px] w-full rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                    <option value="">Semua Cabang</option>
-                    @foreach($branchOptions as $branch)
-                        <option value="{{ $branch->id }}" {{ (string) request('branch_id') === (string) $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
-                    @endforeach
-                </select>
             </div>
-        @endif
 
-        {{-- EXPORT DROPDOWN --}}
-        <div class="flex items-center w-full lg:w-auto shrink-0 justify-end" x-data="{ exportOpen: false }">
-            <div class="relative w-full lg:w-auto">
-                <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-5 h-[38px] bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Ekspor Laporan
-                    <svg class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                
-                <div x-show="exportOpen"
-                     x-transition:enter="transition ease-out duration-100"
-                     x-transition:enter-start="transform opacity-0 scale-95"
-                     x-transition:enter-end="transform opacity-100 scale-100"
-                     x-transition:leave="transition ease-in duration-75"
-                     x-transition:leave-start="transform opacity-100 scale-100"
-                     x-transition:leave-end="transform opacity-0 scale-95"
-                     class="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-lg border border-slate-100 dark:bg-slate-800 dark:border-slate-700 py-1 z-50 overflow-hidden"
-                     style="display: none;">
-                    
-                    <a href="{{ route('owner.reports.sales.export', array_filter(['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'branch_id' => request('branch_id'), 'format' => 'html'])) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-blue-400 font-medium transition-colors">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                        Format HTML
-                    </a>
-                    <a href="{{ route('owner.reports.sales.export', array_filter(['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'branch_id' => request('branch_id'), 'format' => 'pdf'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-rose-400 font-medium transition-colors">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        Format PDF
-                    </a>
-                    <a href="{{ route('owner.reports.sales.export', array_filter(['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'branch_id' => request('branch_id'), 'format' => 'excel'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-emerald-400 font-medium transition-colors">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Format Excel
-                    </a>
+            {{-- ROW 2: Period Tabs + Branch Dropdown + Export Button --}}
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                {{-- TAB TYPE --}}
+                <div class="flex w-full sm:w-auto rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
+                    <a href="{{ route('owner.reports.sales', array_filter(['type' => 'daily', 'branch_id' => request('branch_id')])) }}" class="flex-1 sm:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</a>
+                    <a href="{{ route('owner.reports.sales', array_filter(['type' => 'weekly', 'branch_id' => request('branch_id')])) }}" class="flex-1 sm:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</a>
+                    <a href="{{ route('owner.reports.sales', array_filter(['type' => 'monthly', 'branch_id' => request('branch_id')])) }}" class="flex-1 sm:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</a>
+                </div>
+
+                {{-- BRANCH DROPDOWN --}}
+                @if(($branchOptions ?? collect())->isNotEmpty())
+                    <div class="w-full min-w-0 sm:flex-1">
+                        <select onchange="onBranchChange(this)"
+                                class="h-[38px] w-full rounded-xl border border-slate-200 bg-white px-4 text-center text-[13px] font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                            <option value="">Semua Cabang</option>
+                            @foreach($branchOptions as $branch)
+                                <option value="{{ $branch->id }}" {{ (string) request('branch_id') === (string) $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                {{-- EXPORT DROPDOWN --}}
+                <div class="flex items-center w-full sm:w-auto shrink-0 justify-end" x-data="{ exportOpen: false }">
+                    <div class="relative w-full sm:w-auto">
+                        <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 h-[38px] bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            Ekspor Laporan
+                            <svg class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        
+                        <div x-show="exportOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-lg border border-slate-100 dark:bg-slate-800 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                             style="display: none;">
+                            
+                            <a href="{{ route('owner.reports.sales.export', array_filter(['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'branch_id' => request('branch_id'), 'format' => 'html'])) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-blue-400 font-medium transition-colors">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                                Format HTML
+                            </a>
+                            <a href="{{ route('owner.reports.sales.export', array_filter(['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'branch_id' => request('branch_id'), 'format' => 'pdf'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-rose-400 font-medium transition-colors">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                Format PDF
+                            </a>
+                            <a href="{{ route('owner.reports.sales.export', array_filter(['type' => $type, 'date' => request('date'), 'week_date' => request('week_date'), 'month' => request('month'), 'branch_id' => request('branch_id'), 'format' => 'excel'])) }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-emerald-400 font-medium transition-colors">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Format Excel
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -484,6 +508,17 @@ function onSalesDateChange(inputEl) {
     const url = new URL(baseUrl, window.location.origin);
     url.searchParams.set(param, inputEl.value);
     window.location.href = url.toString();
+}
+
+function onBranchChange(selectEl) {
+    const url = new URL(window.location.href);
+    if (selectEl.value) {
+        url.searchParams.set('branch_id', selectEl.value);
+    } else {
+        url.searchParams.delete('branch_id');
+    }
+    url.searchParams.delete('page');
+    window.location.assign(url.toString());
 }
 
 (function() {

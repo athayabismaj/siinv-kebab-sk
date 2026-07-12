@@ -27,7 +27,7 @@ class TransactionHistoryController extends Controller
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = $this->periodFilter->resolveDateRange($request, $type);
-        $filters = $request->only(['search', 'user_id', 'payment_method_id']);
+        $filters = $request->only(['search', 'user_id']);
         $branchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
         if ($branchId !== null) {
             $filters['branch_id'] = $branchId;
@@ -50,7 +50,7 @@ class TransactionHistoryController extends Controller
         $groupedTransactions = $transactions->getCollection()
             ->groupBy(fn ($trx) => $trx->created_at->toDateString());
 
-        $paymentMethods = $this->paymentMethods();
+
         $branchOptions = BranchScope::options();
         $cashiers = $this->cashiers($branchId);
 
@@ -60,7 +60,7 @@ class TransactionHistoryController extends Controller
         return view('owner.transactions.index', [
             'transactions'       => $transactions,
             'groupedTransactions' => $groupedTransactions,
-            'paymentMethods'     => $paymentMethods,
+
             'cashiers'           => $cashiers,
             'dateFrom'           => $dateFrom,
             'dateTo'             => $dateTo,
@@ -122,20 +122,29 @@ class TransactionHistoryController extends Controller
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
+        $branchName = 'Semua Cabang';
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch) {
+                $branchName = $branch->name;
+            }
+        }
+
         $viewData = [
             'transactions' => $transactions,
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
+            'branchName' => $branchName,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'logoPath' => ReportBrand::logoPath(),
             'isExcel' => $format === 'excel',
         ];
 
-        $fileName = 'riwayat-transaksi-' . $dateFrom->format('Y-m-d');
-        if (!$dateFrom->isSameDay($dateTo)) {
-            $fileName .= '-sd-' . $dateTo->format('Y-m-d');
-        }
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Riwayat_Transaksi_' . $dateSuffix;
 
         return $this->exportByFormat(
             $format,
@@ -161,18 +170,6 @@ class TransactionHistoryController extends Controller
         ]);
 
         return view('owner.transactions.show', compact('transaction'));
-    }
-
-    private function paymentMethods()
-    {
-        return Cache::remember(
-            AdminCache::key('payment_methods', 'owner:list'),
-            now()->addSeconds(90),
-            fn () => PaymentMethod::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-        );
     }
 
     private function cashiers(?int $branchId = null)

@@ -39,8 +39,7 @@ class TransactionController extends Controller
         $this->applyCommonFilters(
             $query,
             $request,
-            includeUserFilter: ! $isOwnerView,
-            includePaymentMethodFilter: $isOwnerView
+            includeUserFilter: ! $isOwnerView
         );
         $this->applyDateFilters($query, $request, $isOwnerView, $selectedDate, $dateTo);
 
@@ -52,7 +51,7 @@ class TransactionController extends Controller
         $viewData['type'] = $type;
         $viewData['dateFrom'] = $dateFrom;
         $viewData['dateTo'] = $dateTo;
-        $viewData['paymentMethods'] = $this->paymentMethodOptions();
+
         $viewData['cashiers'] = $this->cashierOptions();
         $viewData['transactions'] = $transactions;
 
@@ -129,8 +128,7 @@ class TransactionController extends Controller
     private function applyCommonFilters(
         $query,
         Request $request,
-        bool $includeUserFilter = false,
-        bool $includePaymentMethodFilter = true
+        bool $includeUserFilter = false
     ): void
     {
         if ($request->filled('search')) {
@@ -142,10 +140,6 @@ class TransactionController extends Controller
                             ->orWhere('username', 'like', "%{$search}%");
                     });
             });
-        }
-
-        if ($includePaymentMethodFilter && $request->filled('payment_method_id')) {
-            $query->where('payment_method_id', (int) $request->input('payment_method_id'));
         }
 
         if ($includeUserFilter && $request->filled('user_id')) {
@@ -242,18 +236,6 @@ class TransactionController extends Controller
         return $data;
     }
 
-    private function paymentMethodOptions()
-    {
-        return Cache::remember(
-            AdminCache::key('payment_methods', 'list'),
-            now()->addMinutes(2),
-            fn () => PaymentMethod::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-        );
-    }
-
     private function cashierOptions()
     {
         return Cache::remember(
@@ -300,8 +282,7 @@ class TransactionController extends Controller
                 $this->applyCommonFilters(
                     $summaryQuery,
                     $request,
-                    includeUserFilter: true,
-                    includePaymentMethodFilter: false
+                    includeUserFilter: true
                 );
                 $this->applyDateFilters($summaryQuery, $request, false, $selectedDate, $summaryEndDate);
 

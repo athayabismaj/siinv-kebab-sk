@@ -173,15 +173,15 @@ class SalesReportController extends Controller
         if ($type === 'weekly') {
             $data = $this->weeklySalesPayload($request);
             $periodeLabel = $data['selectedWeekStart']->translatedFormat('d F Y') . ' s/d ' . $data['selectedWeekEnd']->translatedFormat('d F Y');
-            $fileName = 'laporan-penjualan-mingguan-' . $data['selectedWeekStart']->format('Y-m-d') . '-sd-' . $data['selectedWeekEnd']->format('Y-m-d');
+            $fileName = 'Penjualan_' . $data['selectedWeekStart']->format('dM') . '-' . $data['selectedWeekEnd']->format('dMY');
         } elseif ($type === 'monthly') {
             $data = $this->monthlySalesPayload($request);
             $periodeLabel = $data['selectedMonth']->translatedFormat('F Y');
-            $fileName = 'laporan-penjualan-bulanan-' . $data['selectedMonth']->format('Y-m');
+            $fileName = 'Penjualan_' . $data['selectedMonth']->format('M_Y');
         } else {
             $data = $this->dailySalesPayload($request);
             $periodeLabel = $data['selectedDate']->translatedFormat('d F Y');
-            $fileName = 'laporan-penjualan-harian-' . $data['selectedDate']->format('Y-m-d');
+            $fileName = 'Penjualan_' . $data['selectedDate']->format('dMY');
         }
 
         $periodLabels = [
@@ -213,84 +213,7 @@ class SalesReportController extends Controller
         );
     }
 
-    public function exportDaily(Request $request)
-    {
-        $selectedDate = $this->resolveSelectedDate((string) $request->input('date', ''));
-        $branchId = $this->selectedBranchId($request);
-        $summary = $this->queryService->buildDailySummary($selectedDate, $branchId);
-        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedDate, $selectedDate, false, $branchId);
 
-        $filename = 'laporan-penjualan-harian-' . $selectedDate->toDateString() . '.csv';
-
-        return $this->streamContributionCsv(
-            $filename,
-            [
-                ['Jenis Laporan', 'Harian'],
-                ['Tanggal', $selectedDate->format('Y-m-d')],
-                ['Total Omzet', (string) $summary['totalRevenue']],
-                ['Jumlah Transaksi', (string) $summary['totalTransactions']],
-                ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)],
-            ],
-            $analytics['contributions']
-        );
-    }
-
-    public function exportMonthly(Request $request)
-    {
-        $selectedMonth = $this->resolveSelectedMonth((string) $request->input('month', ''));
-        $summary = $this->queryService->buildMonthlySummary($selectedMonth, false, $this->selectedBranchId($request));
-
-        $filename = 'laporan-penjualan-bulanan-' . $selectedMonth->format('Y-m') . '.csv';
-
-        return response()->streamDownload(function () use ($selectedMonth, $summary) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
-
-            fputcsv($output, ['Jenis Laporan', 'Bulanan']);
-            fputcsv($output, ['Bulan', $selectedMonth->format('Y-m')]);
-            fputcsv($output, ['Total Omzet', (string) $summary['totalRevenue']]);
-            fputcsv($output, ['Jumlah Transaksi', (string) $summary['totalTransactions']]);
-            fputcsv($output, ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)]);
-            fputcsv($output, []);
-
-            fputcsv($output, ['Tanggal', 'Jumlah Transaksi', 'Omzet']);
-            foreach ($summary['dailyBreakdown'] as $row) {
-                fputcsv($output, [
-                    $row->date,
-                    (int) $row->trx_count,
-                    (float) $row->revenue,
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
-    }
-
-    public function exportWeekly(Request $request)
-    {
-        $weekAnchor = $this->resolveSelectedDate((string) $request->input('week_date', ''));
-        $branchId = $this->selectedBranchId($request);
-        $selectedWeekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
-        $selectedWeekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-        $summary = $this->queryService->buildWeeklySummary($weekAnchor, false, $branchId);
-        $analytics = $this->queryService->buildPeriodMenuAnalytics($selectedWeekStart, $selectedWeekEnd, false, $branchId);
-
-        $filename = 'laporan-penjualan-mingguan-' . $selectedWeekStart->toDateString() . '-sampai-' . $selectedWeekEnd->toDateString() . '.csv';
-
-        return $this->streamContributionCsv(
-            $filename,
-            [
-                ['Jenis Laporan', 'Mingguan'],
-                ['Periode', $selectedWeekStart->format('Y-m-d') . ' s/d ' . $selectedWeekEnd->format('Y-m-d')],
-                ['Total Omzet', (string) $summary['totalRevenue']],
-                ['Jumlah Transaksi', (string) $summary['totalTransactions']],
-                ['Rata-rata Transaksi', (string) round($summary['avgTransaction'], 2)],
-            ],
-            $analytics['contributions']
-        );
-    }
 
     private function dailySalesPayload(Request $request): array
     {
@@ -371,33 +294,7 @@ class SalesReportController extends Controller
         ];
     }
 
-    private function streamContributionCsv(string $filename, array $metaRows, $contributions)
-    {
-        return response()->streamDownload(function () use ($metaRows, $contributions) {
-            $output = fopen('php://output', 'w');
-            fwrite($output, "\xEF\xBB\xBF");
 
-            foreach ($metaRows as $row) {
-                fputcsv($output, $row);
-            }
-
-            fputcsv($output, []);
-            fputcsv($output, ['Menu', 'Qty', 'Kontribusi (%)', 'Penjualan']);
-
-            foreach ($contributions as $item) {
-                fputcsv($output, [
-                    $item->menu_name,
-                    (int) $item->total_qty,
-                    (float) $item->contribution,
-                    (float) $item->total_sales,
-                ]);
-            }
-
-            fclose($output);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
-    }
 
     private function resolveSelectedDate(string $dateInput): Carbon
     {
