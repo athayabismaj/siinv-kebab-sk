@@ -17,7 +17,7 @@
         <button type="submit" class="w-full md:w-auto px-5 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">Terapkan</button>
 
         @if($hasActiveFilters)
-            <a href="{{ route('admin.transactions.index') }}" class="w-full md:w-auto text-sm text-slate-500 px-2 py-2 text-center hover:text-slate-700 dark:hover:text-slate-300">Reset</a>
+            <a href="{{ route('admin.transactions.index') }}" class="w-full md:w-auto text-sm text-slate-500 px-2 py-2 text-center hover:text-slate-700 dark:hover:text-slate-300">Atur Ulang</a>
         @endif
     </div>
 </form>

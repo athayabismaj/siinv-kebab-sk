@@ -38,7 +38,7 @@
                         </td>
                         <td class="px-6 py-4 text-center">
                             <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                                {{ number_format($item->usage_count) }}x
+                                {{ number_format($item->usage_count, 0, ',', '.') }} kali
                             </span>
                         </td>
                         <td class="px-6 py-4 text-right">
@@ -57,7 +57,7 @@
                                     <div>
                                         <p class="font-bold text-slate-900 dark:text-white text-sm">{{ $item->ingredient_name }}</p>
                                         <div class="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mt-0.5">
-                                            <span>{{ number_format($item->usage_count) }}x dipakai</span>
+                                            <span>{{ number_format($item->usage_count, 0, ',', '.') }} kali dipakai</span>
                                             <span class="text-slate-300 dark:text-slate-600">•</span>
                                             <span>{{ $item->last_used_mobile }}</span>
                                         </div>

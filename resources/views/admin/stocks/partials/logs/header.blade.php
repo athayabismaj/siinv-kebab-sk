@@ -6,7 +6,7 @@
     $parentLabel = $parentLabel ?? 'Restok & Penyesuaian';
     $currentLabel = $currentLabel ?? 'Riwayat Stok';
     $title = $title ?? 'Riwayat Perubahan Stok';
-    $description = $description ?? 'Jejak riwayat penambahan stok, pemakaian dari transaksi kasir, dan penyesuaian (adjustment) manual.';
+    $description = $description ?? 'Jejak perubahan stok dari restok, pemakaian bahan, pengembalian stok, dan penyesuaian manual.';
 @endphp
 
 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-2">

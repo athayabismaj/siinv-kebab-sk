@@ -19,7 +19,7 @@
         @if(request()->filled('search') || request()->filled('category'))
             <a href="{{ route('admin.recipes.index') }}" class="mr-1 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-red-500 transition-colors">
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                Reset
+                Atur Ulang
             </a>
         @endif
 

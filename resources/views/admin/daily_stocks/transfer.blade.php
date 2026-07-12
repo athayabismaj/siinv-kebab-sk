@@ -156,7 +156,7 @@
 
         @if($search || $selectedCategoryId > 0)
             <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]) }}" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl px-4 text-[12px] font-bold text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/30">
-                Reset
+                Atur Ulang
             </a>
         @endif
 

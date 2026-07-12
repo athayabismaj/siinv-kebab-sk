@@ -3,15 +3,15 @@
         <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
             <a href="{{ $isOwner ? route('owner.panel') : route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
             <span class="text-slate-300 dark:text-slate-600">/</span>
-            <span class="text-blue-600 dark:text-blue-400">Laporan Pemakaian</span>
+            <span class="text-blue-600 dark:text-blue-400">Laporan Pemakaian Bahan</span>
         </nav>
 
         <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-            Laporan Pemakaian
+            Laporan Pemakaian Bahan
         </h1>
 
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-            Pantau total bahan baku yang terpakai berdasarkan periode harian, mingguan, atau bulanan secara *real-time*.
+        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
+            Pantau total bahan baku yang terpakai berdasarkan periode harian, mingguan, atau bulanan. Data pemakaian bahan dihitung berdasarkan resep menu dari transaksi penjualan yang berhasil pada periode yang dipilih.
         </p>
     </div>
 

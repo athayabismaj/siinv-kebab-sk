@@ -48,7 +48,7 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="font-black text-sm tabular-nums leading-none {{ $log->display_qty_text_class }}">
-                                    {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold uppercase ml-0.5">{{ $log->display_unit }}</span>
+                                    {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold ml-0.5">{{ $log->display_unit }}</span>
                                 </div>
                                 @if($log->display_pack_text)
                                     <div class="text-[10px] font-semibold text-slate-400 mt-1">({{ $log->display_pack_text }})</div>
@@ -56,7 +56,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ $log->display_source }}</div>
-                                <div class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{{ $log->note ?: '-' }}</div>
+                                <div class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{{ $log->display_note ?: '-' }}</div>
                             </td>
                         </tr>
 
@@ -69,13 +69,13 @@
                                             <div class="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mt-1">
                                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                 {{ $log->created_at->format('H:i') }}
-                                                <span class="mx-0.5">•</span>
+                                                <span class="mx-0.5">&bull;</span>
                                                 {{ $log->display_source }}
                                             </div>
                                         </div>
                                         <div class="text-right flex flex-col items-end">
                                             <span class="font-black text-sm tabular-nums leading-none {{ $log->display_qty_text_class }}">
-                                                {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold uppercase ml-0.5">{{ $log->display_unit }}</span>
+                                                {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold ml-0.5">{{ $log->display_unit }}</span>
                                             </span>
                                             @if($log->display_pack_text)
                                                 <div class="text-[10px] font-semibold text-slate-400 mt-1">({{ $log->display_pack_text }})</div>
@@ -86,7 +86,7 @@
                                         <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border {{ $log->display_type_badge_class }}">
                                             {{ $log->display_type_label }}
                                         </span>
-                                        <span class="text-[11px] text-slate-500 italic line-clamp-1 text-right">{{ $log->note ?: 'Tanpa catatan' }}</span>
+                                        <span class="text-[11px] text-slate-500 italic line-clamp-1 text-right">{{ $log->display_note ?: 'Tanpa catatan' }}</span>
                                     </div>
                                 </div>
                             </td>

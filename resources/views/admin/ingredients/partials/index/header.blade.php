@@ -9,7 +9,7 @@
         <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">Manajemen Bahan</h1>
 
         <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-            Kelola stok bahan baku secara real-time. Pantau level stok dan pastikan ketersediaan selalu terjaga.
+            Kelola stok bahan baku secara langsung. Pantau level stok dan pastikan ketersediaan selalu terjaga.
         </p>
     </div>
 

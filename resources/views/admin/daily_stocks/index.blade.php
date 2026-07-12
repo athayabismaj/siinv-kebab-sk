@@ -140,7 +140,7 @@
 
         <div class="flex items-center gap-2">
             @if($search || $selectedCategoryId > 0)
-                <a href="{{ route('admin.daily-stocks.index', ['date' => $selectedDate->toDateString(), 'cashier_id' => $selectedCashierId]) }}" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-red-500 transition-colors px-2">Reset</a>
+                <a href="{{ route('admin.daily-stocks.index', ['date' => $selectedDate->toDateString(), 'cashier_id' => $selectedCashierId]) }}" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-red-500 transition-colors px-2">Atur Ulang</a>
             @endif
             <button type="submit" class="w-full sm:w-auto px-6 h-10 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition shadow-sm dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
                 Filter

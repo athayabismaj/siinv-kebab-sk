@@ -14,7 +14,7 @@
         <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
             <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
             <span class="text-slate-300 dark:text-slate-600">/</span>
-            <a href="{{ route('admin.reports.cashflow') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Laporan Pengeluaran</a>
+            <a href="{{ route('admin.reports.cashflow') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Laporan Pengeluaran Operasional</a>
             <span class="text-slate-300 dark:text-slate-600">/</span>
             <span class="text-blue-600 dark:text-blue-400">Input Pengeluaran</span>
         </nav>
