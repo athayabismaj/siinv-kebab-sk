@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use App\Support\ReportPeriod;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,6 +34,7 @@ class TransactionController extends Controller
         }
 
         $query = $this->baseTransactionQuery();
+        $this->applyBranchScope($query, $isOwnerView);
 
         $this->applyCommonFilters(
             $query,
@@ -63,6 +65,13 @@ class TransactionController extends Controller
 
     public function show(Request $request, Transaction $transaction)
     {
+        if (! $this->isOwnerView($request)) {
+            $branchId = BranchScope::scopedBranchIdFor($request->user());
+            if ($branchId && (int) $transaction->branch_id !== (int) $branchId) {
+                abort(404);
+            }
+        }
+
         $transaction->load([
             'user:id,name,username',
             'voidedBy:id,name,username',
@@ -97,11 +106,24 @@ class TransactionController extends Controller
                 'void_reason',
                 'voided_at',
                 'voided_by',
+                'branch_id',
                 'created_at',
             ])
             ->with(['user:id,name,username', 'voidedBy:id,name,username', 'paymentMethod:id,name'])
             ->withCount('details')
             ->latest();
+    }
+
+    private function applyBranchScope($query, bool $isOwnerView): void
+    {
+        if ($isOwnerView) {
+            return;
+        }
+
+        $query->when(
+            BranchScope::scopedBranchIdFor(auth()->user()),
+            fn ($query, $branchId) => $query->where('transactions.branch_id', $branchId)
+        );
     }
 
     private function applyCommonFilters(
@@ -235,10 +257,11 @@ class TransactionController extends Controller
     private function cashierOptions()
     {
         return Cache::remember(
-            AdminCache::key('transactions', 'cashiers:list'),
+            AdminCache::key('transactions', 'cashiers:list:' . (string) (BranchScope::scopedBranchIdFor(auth()->user()) ?? 'all')),
             now()->addSeconds(90),
             fn () => Transaction::query()
                 ->join('users', 'users.id', '=', 'transactions.user_id')
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('transactions.branch_id', $branchId))
                 ->select('users.id', 'users.name')
                 ->distinct()
                 ->orderBy('users.name')
@@ -265,6 +288,7 @@ class TransactionController extends Controller
             'selected_date' => $selectedDate?->toDateString(),
             'summary_end' => $summaryEndDate?->toDateString(),
             'type' => (string) $request->input('type', 'daily'),
+            'branch_id' => BranchScope::scopedBranchIdFor(auth()->user()),
         ]));
 
         return Cache::remember(
@@ -272,6 +296,7 @@ class TransactionController extends Controller
             now()->addSeconds(90),
             function () use ($request, $selectedDate, $summaryEndDate) {
                 $summaryQuery = Transaction::query();
+                $this->applyBranchScope($summaryQuery, false);
                 $this->applyCommonFilters(
                     $summaryQuery,
                     $request,

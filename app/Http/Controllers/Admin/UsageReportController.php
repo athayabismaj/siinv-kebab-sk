@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
 use App\Models\StockLog;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\ReportPeriod;
 use App\Support\UsageQuantityFormatter;
@@ -29,11 +30,13 @@ class UsageReportController extends Controller
         [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
         $rangeStart = $dateFrom->copy()->startOfDay();
         $rangeEnd = $dateTo->copy()->endOfDay();
+        $branchId = $this->selectedBranchId($request);
+        $branchOptions = request()->routeIs('owner.*') ? BranchScope::options() : collect();
 
         $runtimeError = null;
 
         try {
-            $baseQuery = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd);
+            $baseQuery = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd, $branchId);
 
             $usageItems = (clone $baseQuery)
                 ->orderByDesc('total_quantity')
@@ -61,13 +64,14 @@ class UsageReportController extends Controller
                 })
             );
 
-            $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd);
+            $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd, $branchId);
         } catch (Throwable $e) {
             Log::error('Usage report failed to load', [
                 'message' => $e->getMessage(),
                 'date_from' => $dateFrom->toDateString(),
                 'date_to' => $dateTo->toDateString(),
                 'type' => $type,
+                'branch_id' => $branchId,
             ]);
 
             $runtimeError = 'Laporan pemakaian gagal dimuat sementara. Coba lagi beberapa saat.';
@@ -108,7 +112,9 @@ class UsageReportController extends Controller
             'runtimeError',
             'today',
             'week',
-            'month'
+            'month',
+            'branchOptions',
+            'branchId'
         ));
     }
 
@@ -124,12 +130,13 @@ class UsageReportController extends Controller
         [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
         $rangeStart = $dateFrom->copy()->startOfDay();
         $rangeEnd = $dateTo->copy()->endOfDay();
+        $branchId = $this->selectedBranchId($request);
 
-        $rows = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd)
+        $rows = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd, $branchId)
             ->orderByDesc('total_quantity')
             ->get();
 
-        $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd);
+        $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd, $branchId);
         $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
         if ($dateFrom->toDateString() === $dateTo->toDateString()) {
             $periodeLabel = $dateFrom->translatedFormat('d F Y');
@@ -166,12 +173,10 @@ class UsageReportController extends Controller
         );
     }
 
-    private function baseUsageAggregateQuery(Carbon $rangeStart, Carbon $rangeEnd)
+    private function baseUsageAggregateQuery(Carbon $rangeStart, Carbon $rangeEnd, ?int $branchId = null)
     {
-        return StockLog::query()
+        return $this->baseSuccessfulUsageLogQuery($rangeStart, $rangeEnd, $branchId)
             ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
-            ->whereIn('stock_logs.type', ['out', 'daily_usage'])
-            ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
             ->selectRaw(
                 'stock_logs.ingredient_id,
                 ingredients.name as ingredient_name,
@@ -195,31 +200,52 @@ class UsageReportController extends Controller
             );
     }
 
-    private function summary(string $type, string $from, string $to, Carbon $rangeStart, Carbon $rangeEnd): array
+    private function baseSuccessfulUsageLogQuery(Carbon $rangeStart, Carbon $rangeEnd, ?int $selectedBranchId = null)
+    {
+        $branchId = $selectedBranchId ?? BranchScope::scopedBranchIdFor(auth()->user());
+
+        return StockLog::query()
+            ->join('transactions', 'transactions.id', '=', 'stock_logs.reference_id')
+            ->where('stock_logs.type', 'daily_usage')
+            ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
+            ->when($branchId, fn ($query, $branchId) => $query->where('transactions.branch_id', $branchId))
+            ->where(function ($query) {
+                $query->whereNull('transactions.status')
+                    ->orWhereRaw('LOWER(transactions.status) = ?', ['success']);
+            });
+    }
+
+    private function summary(string $type, string $from, string $to, Carbon $rangeStart, Carbon $rangeEnd, ?int $branchId = null): array
     {
         $summaryKey = AdminCache::key('usage', 'summary:' . md5(json_encode([
             'type' => $type,
             'from' => $from,
             'to' => $to,
+            'source' => 'successful_daily_usage_v2',
+            'branch_id' => $branchId ?? BranchScope::scopedBranchIdFor(auth()->user()),
         ])));
 
-        return Cache::remember($summaryKey, now()->addSeconds(120), function () use ($rangeStart, $rangeEnd) {
-            $summaryBaseQuery = StockLog::query()
-                ->whereIn('type', ['out', 'daily_usage'])
-                ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        return Cache::remember($summaryKey, now()->addSeconds(120), function () use ($rangeStart, $rangeEnd, $branchId) {
+            $summaryBaseQuery = $this->baseSuccessfulUsageLogQuery($rangeStart, $rangeEnd, $branchId);
 
             // Kelompokkan total pemakaian per satuan dasar (base_unit)
-            $byUnit = StockLog::query()
+            $unitRows = $this->baseSuccessfulUsageLogQuery($rangeStart, $rangeEnd, $branchId)
                 ->join('ingredients', 'ingredients.id', '=', 'stock_logs.ingredient_id')
-                ->whereIn('stock_logs.type', ['out', 'daily_usage'])
-                ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
-                ->selectRaw('UPPER(COALESCE(NULLIF(ingredients.base_unit, \'\'), \'unit\')) as unit_label, SUM(ABS(stock_logs.quantity)) as total')
+                ->selectRaw('LOWER(COALESCE(NULLIF(ingredients.base_unit, \'\'), \'unit\')) as unit_label, SUM(ABS(stock_logs.quantity)) as total')
                 ->groupBy('unit_label')
                 ->orderByDesc('total')
-                ->get()
-                ->map(fn ($row) => [
-                    'unit'  => $row->unit_label,
-                    'total' => round((float) $row->total, 2),
+                ->get();
+
+            $unitTotals = ['g' => 0.0, 'ml' => 0.0, 'pcs' => 0.0];
+            foreach ($unitRows as $row) {
+                $unitKey = $this->normalizeSummaryUnit((string) $row->unit_label);
+                $unitTotals[$unitKey] = ($unitTotals[$unitKey] ?? 0.0) + (float) $row->total;
+            }
+
+            $byUnit = collect($unitTotals)
+                ->map(fn (float $total, string $unit) => [
+                    'unit' => $this->summaryUnitLabel($unit),
+                    'total' => round($total, 2),
                 ])
                 ->values()
                 ->toArray();
@@ -230,5 +256,36 @@ class UsageReportController extends Controller
                 'by_unit' => $byUnit,
             ];
         });
+    }
+
+    private function normalizeSummaryUnit(string $unit): string
+    {
+        $unit = strtolower(trim($unit));
+
+        return match ($unit) {
+            'g', 'gr', 'gram' => 'g',
+            'ml', 'milliliter', 'mililiter' => 'ml',
+            'pcs', 'pc', 'piece', 'pieces' => 'pcs',
+            'pack', 'pak' => 'pak',
+            default => $unit !== '' ? $unit : 'unit',
+        };
+    }
+
+    private function summaryUnitLabel(string $unit): string
+    {
+        return match ($unit) {
+            'g' => 'Gram',
+            'ml' => 'Mililiter',
+            'pcs' => 'Pcs',
+            'pak' => 'Pak',
+            default => ucfirst($unit),
+        };
+    }
+
+    private function selectedBranchId(Request $request): ?int
+    {
+        return $request->routeIs('owner.*')
+            ? BranchScope::requestBranchId((int) $request->input('branch_id'))
+            : null;
     }
 }

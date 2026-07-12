@@ -8,6 +8,7 @@ use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\User;
 use App\Services\DailyStockService;
+use App\Support\BranchScope;
 use App\Support\IngredientUnit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,12 +45,14 @@ class DailyStockController extends Controller
         $selectedDate = $this->resolveDate((string) $request->input('date', now()->toDateString()));
         $search = trim((string) ($validated['search'] ?? ''));
         $selectedCategoryId = (int) ($validated['category_id'] ?? 0);
+        $branchId = BranchScope::scopedBranchIdFor(auth()->user());
 
         $cashiers = User::query()
             ->with('role:id,name')
             ->whereHas('role', fn ($q) => $q->whereRaw("LOWER(TRIM(name)) = 'kasir'"))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->orderBy('name')
-            ->get(['id', 'name', 'role_id']);
+            ->get(['id', 'name', 'role_id', 'branch_id']);
 
         $selectedCashierId = (int) ($request->input('cashier_id') ?: ($cashiers->first()->id ?? 0));
 
@@ -66,6 +69,7 @@ class DailyStockController extends Controller
                 ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price'])
                 ->where('session_date', $selectedDate->toDateString())
                 ->where('cashier_id', $selectedCashierId)
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                 ->first();
 
             if ($session && $this->isOpenStatus($session->status)) {
@@ -173,6 +177,7 @@ class DailyStockController extends Controller
 
         $session = DailyStockSession::query()
             ->with(['cashier:id,name', 'items.ingredient:id,name,display_unit,pack_size'])
+            ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->findOrFail((int) $validated['session_id']);
 
         $this->authorize('transfer', $session);
@@ -243,6 +248,7 @@ class DailyStockController extends Controller
 
         $session = DailyStockSession::query()
             ->with(['cashier:id,name', 'items.ingredient:id,name,display_unit,pack_size'])
+            ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->findOrFail((int) $validated['session_id']);
 
         $this->authorize('close', $session);
@@ -299,6 +305,12 @@ class DailyStockController extends Controller
         }
 
         try {
+            $branchId = BranchScope::scopedBranchIdFor(auth()->user());
+            $cashierBranchId = (int) User::query()->whereKey((int) $validated['cashier_id'])->value('branch_id');
+            if ($branchId && $cashierBranchId !== (int) $branchId) {
+                return back()->withInput()->with('error', 'Kasir yang dipilih bukan bagian dari cabang Anda.');
+            }
+
             $session = $this->dailyStockService->openSession(
                 $sessionDate,
                 (int) $validated['cashier_id'],
@@ -352,7 +364,9 @@ class DailyStockController extends Controller
         ]);
 
         try {
-            $session = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
+            $session = DailyStockSession::query()
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
+                ->findOrFail((int) $validated['session_id']);
             $this->authorize('transfer', $session);
 
             $rawTransfers = $validated['transfers'] ?? [];
@@ -459,6 +473,7 @@ class DailyStockController extends Controller
         try {
             $session = DailyStockSession::query()
                 ->with('items.ingredient')
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
                 ->findOrFail((int) $validated['session_id']);
 
             $this->authorize('close', $session);
@@ -515,7 +530,9 @@ class DailyStockController extends Controller
         ]);
 
         try {
-            $sessionModel = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
+            $sessionModel = DailyStockSession::query()
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
+                ->findOrFail((int) $validated['session_id']);
             $this->authorize('reopen', $sessionModel);
 
             if ($this->isPastSessionDate($sessionModel->session_date)) {
@@ -564,7 +581,9 @@ class DailyStockController extends Controller
         ]);
 
         try {
-            $sessionModel = DailyStockSession::query()->findOrFail((int) $validated['session_id']);
+            $sessionModel = DailyStockSession::query()
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
+                ->findOrFail((int) $validated['session_id']);
             $this->authorize('reopen', $sessionModel);
 
             $session = $this->dailyStockService->reconcileSessionUsage((int) $validated['session_id']);

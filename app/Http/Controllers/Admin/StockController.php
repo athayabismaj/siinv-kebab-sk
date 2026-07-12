@@ -9,6 +9,7 @@ use App\Models\IngredientCategory;
 use App\Models\StockLog;
 use App\Exports\StockLogsReportExport;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use App\Support\IngredientStockView;
 use App\Support\IngredientUnit;
 use App\Support\ReportBrand;
@@ -167,10 +168,13 @@ class StockController extends Controller
                 $validated['input_unit'] ?? null
             );
 
-            DB::transaction(function () use ($validated, $ingredient, $quantityInBaseUnit) {
+            $branchId = BranchScope::scopedBranchIdFor(auth()->user());
+
+            DB::transaction(function () use ($validated, $ingredient, $quantityInBaseUnit, $branchId) {
                 $ingredient->increment('stock', $quantityInBaseUnit);
 
                 StockLog::create([
+                    'branch_id' => $branchId,
                     'ingredient_id' => $ingredient->id,
                     'type' => 'in',
                     'quantity' => $quantityInBaseUnit,
@@ -224,7 +228,9 @@ class StockController extends Controller
                     ->with('error', 'Stok baru sama dengan stok saat ini. Tidak ada perubahan yang disimpan.');
             }
 
-            DB::transaction(function () use ($validated, $ingredient, $newStockInBaseUnit) {
+            $branchId = BranchScope::scopedBranchIdFor(auth()->user());
+
+            DB::transaction(function () use ($validated, $ingredient, $newStockInBaseUnit, $branchId) {
                 $difference = $newStockInBaseUnit - $ingredient->stock;
 
                 $ingredient->update([
@@ -232,6 +238,7 @@ class StockController extends Controller
                 ]);
 
                 StockLog::create([
+                    'branch_id' => $branchId,
                     'ingredient_id' => $ingredient->id,
                     'type' => 'adjustment',
                     'quantity' => $difference,
@@ -273,10 +280,12 @@ class StockController extends Controller
                 'period' => $period,
                 'date' => $selectedDate->toDateString(),
                 'type' => (string) $typeFilter,
+                'branch_id' => BranchScope::scopedBranchIdFor(auth()->user()),
             ]))),
             now()->addSeconds(60),
             function () use ($rangeStart, $rangeEnd, $typeFilter) {
                 $summaryBaseQuery = StockLog::query()
+                    ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
                     ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
 
                 $this->applyStockLogTypeFilter($summaryBaseQuery, $typeFilter);
@@ -286,6 +295,7 @@ class StockController extends Controller
                         'COUNT(*) as total,
                          ' . StockLogTypeMap::restockCaseSql() . ',
                          ' . StockLogTypeMap::usageCaseSql() . ',
+                         ' . StockLogTypeMap::returnCaseSql() . ',
                          SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
                         ['adjustment']
                     )
@@ -295,6 +305,7 @@ class StockController extends Controller
                     'total' => (int) ($row->total ?? 0),
                     'restock' => (int) ($row->restock ?? 0),
                     'usage' => (int) ($row->usage ?? 0),
+                    'return' => (int) ($row->stock_return ?? 0),
                     'adjustment' => (int) ($row->adjustment ?? 0),
                 ];
             }
@@ -392,13 +403,16 @@ class StockController extends Controller
         $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter)->get();
         $logs = $logs->map(fn (StockLog $log) => StockLogView::decorate($log));
 
-        $summaryQuery = StockLog::query()->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        $summaryQuery = StockLog::query()
+            ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
         $this->applyStockLogTypeFilter($summaryQuery, $typeFilter);
         $summaryRow = $summaryQuery
             ->selectRaw(
                 'COUNT(*) as total,
                  ' . StockLogTypeMap::restockCaseSql() . ',
                  ' . StockLogTypeMap::usageCaseSql() . ',
+                 ' . StockLogTypeMap::returnCaseSql() . ',
                  SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
                 ['adjustment']
             )
@@ -408,6 +422,7 @@ class StockController extends Controller
             'total' => (int) ($summaryRow->total ?? 0),
             'restock' => (int) ($summaryRow->restock ?? 0),
             'usage' => (int) ($summaryRow->usage ?? 0),
+            'return' => (int) ($summaryRow->stock_return ?? 0),
             'adjustment' => (int) ($summaryRow->adjustment ?? 0),
         ];
 
@@ -534,8 +549,12 @@ class StockController extends Controller
 
     private function buildStockLogsQuery($rangeStart, $rangeEnd, ?string $typeFilter)
     {
-        $query = StockLog::with(['ingredient:id,name,display_unit,base_unit,pack_size'])
+        $query = StockLog::with([
+                'ingredient:id,name,display_unit,base_unit,pack_size',
+                'referenceTransaction:id,transaction_code',
+            ])
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->latest();
 
         $this->applyStockLogTypeFilter($query, $typeFilter);

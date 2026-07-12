@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\CashflowEntry;
 use App\Models\Transaction;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\ReportPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,6 +32,7 @@ class CashflowController extends Controller
         $groupedEntries = $entries->getCollection()->groupBy(fn ($entry) => $entry->entry_date->toDateString());
 
         $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $request, $baseQuery);
+        $summary['branchName'] = $this->branchLabel(BranchScope::scopedBranchIdFor(auth()->user()));
 
         [$prevFrom, $prevTo, $nextFrom, $nextTo, $isFuture, $inputValue, $inputType] =
             ReportPeriod::buildNavigator($type, $dateFrom);
@@ -80,6 +83,7 @@ class CashflowController extends Controller
 
         CashflowEntry::create([
             'entry_date' => $entryDate,
+            'branch_id' => BranchScope::scopedBranchIdFor(auth()->user()),
             'type' => 'expense',
             'amount' => $validated['amount'],
             'source' => $validated['source'],
@@ -114,6 +118,7 @@ class CashflowController extends Controller
 
         $entries = (clone $baseQuery)->get();
         $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $request, $baseQuery);
+        $summary['branchName'] = $this->branchLabel(BranchScope::scopedBranchIdFor(auth()->user()));
 
         $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
         if ($dateFrom->toDateString() === $dateTo->toDateString()) {
@@ -154,8 +159,9 @@ class CashflowController extends Controller
     private function baseExpenseQuery(string $dateFrom, string $dateTo): Builder
     {
         return CashflowEntry::query()
-            ->with('creator:id,name')
+            ->with(['creator:id,name', 'branch:id,name'])
             ->where('type', 'expense')
+            ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->whereBetween('entry_date', [$dateFrom, $dateTo])
             ->latest('entry_date')
             ->latest('id');
@@ -168,10 +174,12 @@ class CashflowController extends Controller
             'from' => $dateFrom,
             'to' => $dateTo,
             'search' => trim((string) $request->input('search', '')),
+            'branch_id' => BranchScope::scopedBranchIdFor(auth()->user()),
         ])));
 
         return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($dateFrom, $dateTo, $baseQuery) {
             $salesRevenue = (float) Transaction::query()
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
                 ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->sum('total_amount');
 
@@ -184,6 +192,7 @@ class CashflowController extends Controller
                 ->join('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'dss.id')
                 ->join('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
                 ->whereBetween('dss.session_date', [$dateFrom, $dateTo])
+                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('dss.branch_id', $branchId))
                 ->where('dss.status', 'closed')
                 ->selectRaw("COALESCE(SUM(
                     CASE ingredients.display_unit
@@ -223,5 +232,14 @@ class CashflowController extends Controller
                     $u->where('name', 'like', "%{$search}%");
                 });
         });
+    }
+
+    private function branchLabel(?int $branchId): string
+    {
+        if (($branchId ?? 0) <= 0) {
+            return 'Semua Cabang';
+        }
+
+        return Branch::query()->whereKey($branchId)->value('name') ?: 'Cabang tidak ditemukan';
     }
 }

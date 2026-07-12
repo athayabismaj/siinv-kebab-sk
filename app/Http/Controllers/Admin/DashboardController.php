@@ -10,6 +10,7 @@ use App\Models\Menu;
 use App\Models\StockLog;
 use App\Models\Transaction;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -75,10 +76,13 @@ class DashboardController extends Controller
 
     private function getTransactionsTodayCount($todayStart, $todayEnd, string $todayKey): int
     {
+        $branchId = $this->scopedBranchId();
+
         return (int) Cache::remember(
-            AdminCache::key('dashboard', 'transactions_today:' . $todayKey),
+            AdminCache::key('dashboard', 'transactions_today:' . $todayKey . ':' . (string) ($branchId ?? 'all')),
             now()->addSeconds(90),
             fn () => Transaction::query()
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                 ->whereBetween('created_at', [$todayStart, $todayEnd])
                 ->count()
         );
@@ -125,11 +129,14 @@ class DashboardController extends Controller
 
     private function getRecentStockActivities($todayStart, $todayEnd, string $todayKey)
     {
+        $branchId = $this->scopedBranchId();
+
         return Cache::remember(
-            AdminCache::key('dashboard', 'stock_activities_today:' . $todayKey),
+            AdminCache::key('dashboard', 'stock_activities_today:' . $todayKey . ':' . (string) ($branchId ?? 'all')),
             now()->addSeconds(90),
             fn () => StockLog::query()
                 ->with('ingredient:id,name,base_unit')
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                 ->whereBetween('created_at', [$todayStart, $todayEnd])
                 ->latest()
                 ->limit(10)
@@ -140,12 +147,15 @@ class DashboardController extends Controller
 
     private function getTopMenusToday($todayStart, $todayEnd, string $todayKey)
     {
+        $branchId = $this->scopedBranchId();
+
         return Cache::remember(
-            AdminCache::key('dashboard', 'top_menus_today:' . $todayKey),
+            AdminCache::key('dashboard', 'top_menus_today:' . $todayKey . ':' . (string) ($branchId ?? 'all')),
             now()->addSeconds(90),
             fn () => DB::table('transaction_details')
                 ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
                 ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
+                ->when($branchId, fn ($query) => $query->where('transactions.branch_id', $branchId))
                 ->whereBetween('transactions.created_at', [$todayStart, $todayEnd])
                 ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
                 ->groupBy('menus.id', 'menus.name')
@@ -157,15 +167,18 @@ class DashboardController extends Controller
 
     private function getSalesLast7Days()
     {
+        $branchId = $this->scopedBranchId();
+
         return Cache::remember(
-            AdminCache::key('dashboard', 'sales_last_7_days:' . now()->toDateString()),
+            AdminCache::key('dashboard', 'sales_last_7_days:' . now()->toDateString() . ':' . (string) ($branchId ?? 'all')),
             now()->addSeconds(90),
-            function () {
+            function () use ($branchId) {
                 $todayEnd = now()->endOfDay();
                 $last7Start = now()->subDays(6)->startOfDay();
 
                 $dailySalesRaw = Transaction::query()
                     ->selectRaw('DATE(created_at) as sale_date, COALESCE(SUM(total_amount), 0) as omzet')
+                    ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                     ->whereBetween('created_at', [$last7Start->toDateTimeString(), $todayEnd->toDateTimeString()])
                     ->groupByRaw('DATE(created_at)')
                     ->orderByRaw('DATE(created_at) asc')
@@ -200,15 +213,18 @@ class DashboardController extends Controller
 
     private function getExpenseToday(string $todayKey): array
     {
+        $branchId = $this->scopedBranchId();
+
         return Cache::remember(
-            AdminCache::key('dashboard', 'expense_today:' . $todayKey),
+            AdminCache::key('dashboard', 'expense_today:' . $todayKey . ':' . (string) ($branchId ?? 'all')),
             now()->addSeconds(90),
-            function () use ($todayKey) {
+            function () use ($todayKey, $branchId) {
                 if (!Schema::hasTable('cashflow_entries')) {
                     return ['total' => 0.0, 'count' => 0];
                 }
 
                 $aggregate = CashflowEntry::query()
+                    ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                     ->whereDate('entry_date', $todayKey)
                     ->where('type', 'expense')
                     ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count')
@@ -224,10 +240,12 @@ class DashboardController extends Controller
 
     private function getDailyStockStatus(string $todayKey): array
     {
+        $branchId = $this->scopedBranchId();
+
         return Cache::remember(
-            AdminCache::key('dashboard', 'daily_stock_status:' . $todayKey),
+            AdminCache::key('dashboard', 'daily_stock_status:' . $todayKey . ':' . (string) ($branchId ?? 'all')),
             now()->addSeconds(60),
-            function () use ($todayKey) {
+            function () use ($todayKey, $branchId) {
                 if (!Schema::hasTable('daily_stock_sessions')) {
                     return [
                         'key' => 'not_opened',
@@ -240,6 +258,7 @@ class DashboardController extends Controller
                 }
 
                 $aggregate = DailyStockSession::query()
+                    ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                     ->whereDate('session_date', $todayKey)
                     ->selectRaw(
                         "COUNT(*) as total_sessions,
@@ -352,6 +371,11 @@ class DashboardController extends Controller
         }
 
         return trim($formatted . ' ' . $displayUnit);
+    }
+
+    private function scopedBranchId(): ?int
+    {
+        return BranchScope::scopedBranchIdFor(auth()->user());
     }
 }
 
