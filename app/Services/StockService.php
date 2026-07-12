@@ -21,7 +21,8 @@ class StockService
         int $transactionId,
         ?string $note = null,
         ?int $cashierId = null,
-        Carbon|string|null $transactionAt = null
+        Carbon|string|null $transactionAt = null,
+        ?int $branchId = null
     ): void
     {
         $cashierId = (int) ($cashierId ?? 0);
@@ -38,6 +39,7 @@ class StockService
 
         $session = DailyStockSession::query()
             ->where('cashier_id', $cashierId)
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereDate('session_date', $sessionDate)
             ->whereRaw("LOWER(TRIM(status)) = 'open'")
             ->lockForUpdate()
@@ -96,6 +98,7 @@ class StockService
             $dailyItem->increment('used_qty', $usedQty);
 
             StockLog::create([
+                'branch_id' => $branchId ?: $session->branch_id,
                 'ingredient_id' => $lockedIngredient->id,
                 'type' => 'daily_usage',
                 'quantity' => -$usedQty,

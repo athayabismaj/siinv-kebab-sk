@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\DailyStockSession;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -33,18 +34,22 @@ class DailyStockReportQueryService
 
     public function summary(Carbon $dateFrom, Carbon $dateTo): array
     {
+        $branchId = $this->scopedBranchId();
+
         $cacheKey = AdminCache::key(
             'daily_stock',
-            'summary:' . md5($dateFrom->toDateString() . '|' . $dateTo->toDateString())
+            'summary:' . md5($dateFrom->toDateString() . '|' . $dateTo->toDateString() . '|' . (string) ($branchId ?? 'all'))
         );
 
-        return Cache::remember($cacheKey, now()->addSeconds(120), function () use ($dateFrom, $dateTo) {
+        return Cache::remember($cacheKey, now()->addSeconds(120), function () use ($dateFrom, $dateTo, $branchId) {
             $sessionsCount = DailyStockSession::query()
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                 ->whereBetween('session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->count();
 
             $itemsCount = DailyStockSession::query()
                 ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
+                ->when($branchId, fn ($query) => $query->where('daily_stock_sessions.branch_id', $branchId))
                 ->whereBetween('daily_stock_sessions.session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->count('dsi.id');
 
@@ -52,6 +57,7 @@ class DailyStockReportQueryService
             $byUnit = DailyStockSession::query()
                 ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
                 ->leftJoin('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
+                ->when($branchId, fn ($query) => $query->where('daily_stock_sessions.branch_id', $branchId))
                 ->whereBetween('daily_stock_sessions.session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->whereNotNull('dsi.id')
                 ->selectRaw("
@@ -75,6 +81,7 @@ class DailyStockReportQueryService
             $valueAggregate = DailyStockSession::query()
                 ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
                 ->leftJoin('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
+                ->when($branchId, fn ($query) => $query->where('daily_stock_sessions.branch_id', $branchId))
                 ->whereBetween('daily_stock_sessions.session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->selectRaw('COALESCE(SUM(' . $this->buildValueExpression('dsi') . '), 0) as total_value')
                 ->value('total_value');
@@ -82,6 +89,7 @@ class DailyStockReportQueryService
             $revenueAggregate = DailyStockSession::query()
                 ->leftJoin('daily_stock_items as dsi', 'dsi.daily_stock_session_id', '=', 'daily_stock_sessions.id')
                 ->leftJoin('ingredients', 'ingredients.id', '=', 'dsi.ingredient_id')
+                ->when($branchId, fn ($query) => $query->where('daily_stock_sessions.branch_id', $branchId))
                 ->whereBetween('daily_stock_sessions.session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->selectRaw('COALESCE(SUM(' . $this->buildRevenueExpression('dsi') . '), 0) as total_revenue')
                 ->value('total_revenue');
@@ -116,6 +124,7 @@ class DailyStockReportQueryService
             ->withCount('items')
             ->addSelect(['total_value' => $valueSubquery])
             ->addSelect(['total_revenue' => $revenueSubquery])
+            ->when($this->scopedBranchId(), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->whereBetween('session_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
             ->orderByDesc('session_date')
             ->orderByDesc('id');
@@ -162,5 +171,10 @@ class DailyStockReportQueryService
                 ELSE            {$qty} * {$price}
             END
         ";
+    }
+
+    private function scopedBranchId(): ?int
+    {
+        return BranchScope::scopedBranchIdFor(auth()->user());
     }
 }

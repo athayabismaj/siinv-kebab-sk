@@ -6,6 +6,8 @@ use App\Models\DailyTarget;
 use App\Models\Transaction;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
+use App\Models\User;
+use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -334,16 +336,20 @@ class ApiTransactionService
 
             $now = now(config('app.timezone', 'Asia/Jakarta'));
             $transactionCode = $this->generateTransactionCode($now);
+            $cashier = User::query()->with('branch:id,name,code')->find($userId);
+            $branchId = BranchScope::userBranchId($cashier);
 
             // Cari sesi kasir yang aktif hari ini untuk menautkan transaksi ke sesi
             $activeSessionId = \App\Models\DailyStockSession::query()
                 ->where('cashier_id', $userId)
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                 ->whereDate('session_date', $now->toDateString())
                 ->whereRaw("LOWER(TRIM(status)) = 'open'")
                 ->value('id');
 
             $transactionId = DB::table('transactions')->insertGetId([
                 'transaction_code' => $transactionCode,
+                'branch_id' => $branchId,
                 'user_id' => $userId,
                 'total_amount' => $draft['total_amount'],
                 'payment_method_id' => (int) $draft['payment_method']->id,
@@ -373,7 +379,8 @@ class ApiTransactionService
                     $transactionId,
                     $note,
                     $userId,
-                    $now
+                    $now,
+                    $branchId
                 );
             }
 

@@ -4,6 +4,7 @@ namespace App\Services\Owner;
 
 use App\Models\Transaction;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -59,6 +60,10 @@ class TransactionHistoryQueryService
 
         if (!empty($filters['payment_method_id'])) {
             $query->where('payment_method_id', (int) $filters['payment_method_id']);
+        }
+
+        if (!empty($filters['branch_id'])) {
+            BranchScope::apply($query, (int) $filters['branch_id'], 'transactions.branch_id');
         }
 
         return $query;
@@ -118,6 +123,7 @@ class TransactionHistoryQueryService
             'search' => trim((string) ($filters['search'] ?? '')),
             'user_id' => (string) ($filters['user_id'] ?? ''),
             'payment_method_id' => (string) ($filters['payment_method_id'] ?? ''),
+            'branch_id' => (string) ($filters['branch_id'] ?? ''),
         ])));
     }
 }

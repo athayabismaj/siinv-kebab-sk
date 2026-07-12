@@ -22,7 +22,7 @@ class UsageQuantityFormatter
 
             $packSize = max(1, $packSize);
             if ($packSize > 1) {
-                $packLabel = self::num($totalQuantity / $packSize) . ' pack';
+                $packLabel = self::num($totalQuantity / $packSize) . ' pak';
             }
 
             return [
@@ -62,7 +62,7 @@ class UsageQuantityFormatter
 
     private static function num(float $value): string
     {
-        $trimmed = rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+        $trimmed = rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',');
 
         return $trimmed === '' ? '0' : $trimmed;
     }

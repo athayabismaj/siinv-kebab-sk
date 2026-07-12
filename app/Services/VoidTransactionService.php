@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\MenuVariant;
+use App\Support\BranchScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
@@ -58,6 +59,7 @@ class VoidTransactionService implements VoidTransactionServiceInterface
             if (
                 (int) $lockedTransaction->daily_stock_session_id !== (int) $lockedSession->id
                 || (int) $lockedSession->cashier_id !== (int) $lockedTransaction->user_id
+                || (int) $lockedSession->branch_id !== (int) $lockedTransaction->branch_id
             ) {
                 throw new \Exception("Unauthorized: Anda tidak memiliki otoritas untuk mem-void transaksi ini pada sesi kasir tersebut.");
             }
@@ -103,11 +105,12 @@ class VoidTransactionService implements VoidTransactionServiceInterface
 
                         // Catat ke stock_logs dengan tipe 'daily_return'
                         \App\Models\StockLog::create([
+                            'branch_id' => $lockedTransaction->branch_id,
                             'ingredient_id' => $lockedIngredient->id,
                             'type' => 'daily_return',
                             'quantity' => $totalKuantitas,
                             'reference_id' => $lockedTransaction->id,
-                            'note' => "RESTOCK to Daily Session from Void Transaction {$lockedTransaction->transaction_code}",
+                            'note' => "Pengembalian stok dari pembatalan transaksi {$lockedTransaction->transaction_code}",
                         ]);
 
                     } elseif ($requestDto->inventoryAction === VoidInventoryActionEnum::WASTE) {
@@ -116,11 +119,12 @@ class VoidTransactionService implements VoidTransactionServiceInterface
                         $costLoss = (float) $lockedIngredient->cost_price * $totalKuantitas;
 
                         DB::table('waste_logs')->insert([
+                            'branch_id' => $lockedTransaction->branch_id,
                             'daily_stock_session_id' => $lockedSession->id,
                             'ingredient_id' => $lockedIngredient->id,
                             'quantity' => $totalKuantitas,
                             'cost_loss' => $costLoss,
-                            'notes' => "WASTE from Void Transaction {$lockedTransaction->transaction_code}",
+                            'notes' => "Bahan terbuang dari pembatalan transaksi {$lockedTransaction->transaction_code}",
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
@@ -130,6 +134,7 @@ class VoidTransactionService implements VoidTransactionServiceInterface
 
             // 6. Catat refund sebagai expense di CashflowEntry
             \App\Models\CashflowEntry::create([
+                'branch_id' => $lockedTransaction->branch_id,
                 'entry_date' => now()->toDateString(),
                 'type' => 'expense',
                 'amount' => $lockedTransaction->total_amount,
@@ -172,6 +177,11 @@ class VoidTransactionService implements VoidTransactionServiceInterface
      */
     private function authorizeActor($actor, Transaction $transaction, int|string $currentSessionId): bool
     {
+        $scopedBranchId = BranchScope::scopedBranchIdFor($actor);
+        if ($scopedBranchId && (int) $transaction->branch_id !== (int) $scopedBranchId) {
+            return false;
+        }
+
         // Validasi Mutlak: Transaksi ini harus berasal dari sesi kasir yang sedang aktif.
         // Jika daily_stock_session_id null (data lama), izinkan owner/admin saja.
         if ($transaction->daily_stock_session_id !== null) {

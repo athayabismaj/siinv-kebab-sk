@@ -6,7 +6,9 @@ use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\StockLog;
+use App\Models\User;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -71,10 +73,12 @@ class DailyStockService
             $date = $sessionDate instanceof Carbon
                 ? $sessionDate->copy()->startOfDay()->toDateString()
                 : Carbon::parse((string) $sessionDate)->startOfDay()->toDateString();
+            $branchId = BranchScope::userBranchId(User::query()->with('role')->find($cashierId));
 
             $session = DailyStockSession::query()
                 ->where('session_date', $date)
                 ->where('cashier_id', $cashierId)
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
                 ->lockForUpdate()
                 ->first();
 
@@ -93,6 +97,7 @@ class DailyStockService
 
             return DailyStockSession::query()->create([
                 'session_date' => $date,
+                'branch_id' => $branchId,
                 'cashier_id' => $cashierId,
                 'opened_by' => $openedBy,
                 'status' => 'open',
@@ -166,6 +171,7 @@ class DailyStockService
             }
 
             StockLog::query()->create([
+                'branch_id' => $session->branch_id,
                 'ingredient_id' => $ingredient->id,
                 'type' => 'transfer_daily',
                 'quantity' => -$qty,
@@ -276,6 +282,7 @@ class DailyStockService
                 }
 
                 StockLog::query()->create([
+                    'branch_id' => $session->branch_id,
                     'ingredient_id' => $ingredient->id,
                     'type' => 'transfer_daily',
                     'quantity' => -$qty,
@@ -369,6 +376,7 @@ class DailyStockService
                 $additionalUsage = max(0, $used - $usedBefore);
                 if ($additionalUsage > 0) {
                     StockLog::query()->create([
+                        'branch_id' => $session->branch_id,
                         'ingredient_id' => $ingredient->id,
                         'type' => 'daily_usage',
                         'quantity' => -$additionalUsage,
@@ -381,6 +389,7 @@ class DailyStockService
                     $ingredient->increment('stock', $returned);
 
                     StockLog::query()->create([
+                        'branch_id' => $session->branch_id,
                         'ingredient_id' => $ingredient->id,
                         'type' => 'daily_return',
                         'quantity' => $returned,
