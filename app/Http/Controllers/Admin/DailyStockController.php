@@ -45,16 +45,19 @@ class DailyStockController extends Controller
         $selectedDate = $this->resolveDate((string) $request->input('date', now()->toDateString()));
         $search = trim((string) ($validated['search'] ?? ''));
         $selectedCategoryId = (int) ($validated['category_id'] ?? 0);
-        $branchId = BranchScope::scopedBranchIdFor(auth()->user());
+        $activeBranchId = BranchScope::scopedBranchIdFor(auth()->user());
 
         $cashiers = User::query()
-            ->with('role:id,name')
+            ->with(['role:id,name', 'branch:id,name'])
             ->whereHas('role', fn ($q) => $q->whereRaw("LOWER(TRIM(name)) = 'kasir'"))
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->when($activeBranchId, fn (Builder $query) => $this->applyCashierBranchScope($query, (int) $activeBranchId))
             ->orderBy('name')
             ->get(['id', 'name', 'role_id', 'branch_id']);
 
         $selectedCashierId = (int) ($request->input('cashier_id') ?: ($cashiers->first()->id ?? 0));
+        if ($selectedCashierId > 0 && ! $cashiers->contains('id', $selectedCashierId)) {
+            $selectedCashierId = (int) ($cashiers->first()->id ?? 0);
+        }
 
         $session = null;
         $sessionItems = new LengthAwarePaginator(
@@ -69,7 +72,7 @@ class DailyStockController extends Controller
                 ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price'])
                 ->where('session_date', $selectedDate->toDateString())
                 ->where('cashier_id', $selectedCashierId)
-                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+                ->when($activeBranchId, fn ($query) => $query->where('branch_id', $activeBranchId))
                 ->first();
 
             if ($session && $this->isOpenStatus($session->status)) {
@@ -157,6 +160,36 @@ class DailyStockController extends Controller
             'search' => $search,
             'selectedCategoryId' => $selectedCategoryId,
         ]);
+    }
+
+    private function applyCashierBranchScope(Builder $query, int $branchId): void
+    {
+        $query->where(function (Builder $scope) use ($branchId) {
+            $scope->where('branch_id', $branchId);
+
+            if (BranchScope::supportsUserBranchAssignments()) {
+                $scope->orWhereHas('assignedBranches', fn (Builder $branchQuery) => $branchQuery->where('branches.id', $branchId));
+            }
+        });
+    }
+
+    private function cashierBelongsToBranch(int $cashierId, ?int $branchId): bool
+    {
+        if (! $branchId) {
+            return true;
+        }
+
+        return User::query()
+            ->whereKey($cashierId)
+            ->whereHas('role', fn (Builder $query) => $query->whereRaw("LOWER(TRIM(name)) = 'kasir'"))
+            ->where(function (Builder $query) use ($branchId) {
+                $query->where('branch_id', $branchId);
+
+                if (BranchScope::supportsUserBranchAssignments()) {
+                    $query->orWhereHas('assignedBranches', fn (Builder $branchQuery) => $branchQuery->where('branches.id', $branchId));
+                }
+            })
+            ->exists();
     }
 
     public function transferForm(Request $request)
@@ -306,8 +339,12 @@ class DailyStockController extends Controller
 
         try {
             $branchId = BranchScope::scopedBranchIdFor(auth()->user());
-            $cashierBranchId = (int) User::query()->whereKey((int) $validated['cashier_id'])->value('branch_id');
-            if ($branchId && $cashierBranchId !== (int) $branchId) {
+
+            if (BranchScope::supportsUserBranches() && ! $branchId) {
+                return back()->withInput()->with('error', 'Cabang kasir tidak valid atau tidak termasuk akses admin.');
+            }
+
+            if (! $this->cashierBelongsToBranch((int) $validated['cashier_id'], $branchId)) {
                 return back()->withInput()->with('error', 'Kasir yang dipilih bukan bagian dari cabang Anda.');
             }
 
@@ -315,7 +352,8 @@ class DailyStockController extends Controller
                 $sessionDate,
                 (int) $validated['cashier_id'],
                 (int) auth()->id(),
-                $validated['notes'] ?? null
+                $validated['notes'] ?? null,
+                $branchId
             );
 
             return redirect()

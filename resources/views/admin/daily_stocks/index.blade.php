@@ -40,113 +40,93 @@
         </div>
     </div>
 
-        {{-- ================= KONTROL FILTER ================= --}}
     @php
         $todayDate = now()->startOfDay();
-        $isAtToday = $selectedDate->copy()->startOfDay()->greaterThanOrEqualTo($todayDate);
+        $isSelectedFutureDate = $selectedDate->isAfter($todayDate);
+        $isSelectedPastDate = $selectedDate->isBefore($todayDate);
+        $isAtToday = $selectedDate->isSameDay($todayDate);
+        
         $prevDate = $selectedDate->copy()->subDay()->toDateString();
         $nextDate = $selectedDate->copy()->addDay()->toDateString();
         $baseQuery = request()->except(['date', 'cashier_id', 'page']);
+        
+        // Atur ulang muncul jika tidak di hari ini, kategori aktif, atau kasir yang dipilih bukan kasir default (pertama)
+        $firstCashierId = (int) ($cashiers->first()->id ?? 0);
+        $hasActiveFilters = !$isAtToday || $selectedCategoryId > 0 || ((int) $selectedCashierId !== $firstCashierId);
     @endphp
-    <div class="bg-transparent border-none">
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[7fr_3fr] lg:items-center">
-            <div>
-                <div class="flex items-center px-1 w-full h-[46px] rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
-                    <a
-                        href="{{ route('admin.daily-stocks.index', array_merge($baseQuery, ['date' => $prevDate, 'cashier_id' => $selectedCashierId])) }}"
-                        class="flex shrink-0 h-8 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                    >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-                    </a>
 
-                    <form method="GET" action="{{ route('admin.daily-stocks.index') }}" class="flex-1 min-w-0">
-                        @foreach($baseQuery as $key => $value)
-                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                        @endforeach
-                        <input type="hidden" name="cashier_id" value="{{ $selectedCashierId }}">
-                        <input
-                            type="date"
-                            name="date"
-                            value="{{ $selectedDate->toDateString() }}"
-                            max="{{ $todayDate->toDateString() }}"
-                            onchange="this.form.submit()"
-                            class="h-[38px] w-full bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]"
-                        >
-                    </form>
+    <div class="flex flex-col gap-3 w-full mb-4 relative z-10">
+        {{-- ROW 1: Date Navigator + Atur Ulang --}}
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+            {{-- DATE NAVIGATOR --}}
+            <div class="flex-1 flex items-center px-1 w-full h-10 rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
+                <a href="{{ route('admin.daily-stocks.index', array_merge($baseQuery, ['date' => $prevDate, 'cashier_id' => $selectedCashierId])) }}" class="flex shrink-0 h-8 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                </a>
 
-                    @if($isAtToday)
-                        <span class="flex shrink-0 h-8 w-10 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </span>
-                    @else
-                        <a
-                            href="{{ route('admin.daily-stocks.index', array_merge($baseQuery, ['date' => $nextDate, 'cashier_id' => $selectedCashierId])) }}"
-                            class="flex shrink-0 h-8 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                        >
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </a>
-                    @endif
-                </div>
-            </div>
-
-            <div>
-                <form method="GET" action="{{ route('admin.daily-stocks.index') }}">
+                <form method="GET" action="{{ route('admin.daily-stocks.index') }}" class="flex-1 min-w-0 h-full">
                     @foreach($baseQuery as $key => $value)
                         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                     @endforeach
-                    <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
-                    <div class="relative">
-                        <select
-                            name="cashier_id"
-                            onchange="this.form.submit()"
-                            class="h-[46px] w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-[13px] font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                        >
-                            <option value="">Semua Kasir</option>
-                            @forelse($cashiers as $cashier)
-                                <option value="{{ $cashier->id }}" {{ (int) $selectedCashierId === (int) $cashier->id ? 'selected' : '' }}>
-                                    {{ $cashier->name }}
-                                </option>
-                            @empty
-                                <option value="">Belum ada kasir</option>
-                            @endforelse
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                            <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
+                    <input type="hidden" name="cashier_id" value="{{ $selectedCashierId }}">
+                    <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" max="{{ $todayDate->toDateString() }}" onchange="this.form.submit()" class="h-full w-full bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 </form>
+
+                @if($isAtToday)
+                    <span class="flex shrink-0 h-8 w-10 items-center justify-center rounded-lg text-slate-300 cursor-not-allowed dark:text-slate-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </span>
+                @else
+                    <a href="{{ route('admin.daily-stocks.index', array_merge($baseQuery, ['date' => $nextDate, 'cashier_id' => $selectedCashierId])) }}" class="flex shrink-0 h-8 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                    </a>
+                @endif
             </div>
-        </div>
-    </div>
 
-    <form method="GET" action="{{ route('admin.daily-stocks.index') }}" class="flex flex-col sm:flex-row gap-3 w-full relative z-10 py-1">
-        <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
-        <input type="hidden" name="cashier_id" value="{{ $selectedCashierId }}">
-
-        <div class="flex-1 relative flex items-center w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
-            <svg class="w-4 h-4 text-slate-400 absolute left-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z"/>
-            </svg>
-            <input type="search" name="search" value="{{ $search }}" placeholder="Cari bahan pada sesi ini..."
-                class="w-full h-10 bg-transparent pl-10 pr-4 text-[13px] font-medium text-slate-700 outline-none dark:text-slate-200 placeholder:text-slate-400">
-        </div>
-
-        <select name="category_id" class="w-full sm:w-56 h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-            <option value="">Semua Kategori</option>
-            @foreach($categories as $category)
-                <option value="{{ $category->id }}" {{ (int) $selectedCategoryId === (int) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-            @endforeach
-        </select>
-
-        <div class="flex items-center gap-2">
-            @if($search || $selectedCategoryId > 0)
-                <a href="{{ route('admin.daily-stocks.index', ['date' => $selectedDate->toDateString(), 'cashier_id' => $selectedCashierId]) }}" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-red-500 transition-colors px-2">Atur Ulang</a>
+            {{-- ATUR ULANG --}}
+            @if($hasActiveFilters)
+                <a href="{{ route('admin.daily-stocks.index') }}" class="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[12px] font-bold text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 shrink-0 whitespace-nowrap">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Atur Ulang
+                </a>
             @endif
-            <button type="submit" class="w-full sm:w-auto px-6 h-10 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition shadow-sm dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
-                Filter
-            </button>
         </div>
-    </form>
+
+        {{-- ROW 2: Cashier Dropdown + Category Dropdown --}}
+        <form method="GET" action="{{ route('admin.daily-stocks.index') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+            <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+            
+            {{-- CASHIER DROPDOWN --}}
+            <div class="w-full sm:flex-1 relative">
+                <select name="cashier_id" onchange="this.form.submit()" class="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-center text-[13px] font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                    <option value="">Semua Kasir</option>
+                    @forelse($cashiers as $cashier)
+                        <option value="{{ $cashier->id }}" {{ (int) $selectedCashierId === (int) $cashier->id ? 'selected' : '' }}>
+                            {{ $cashier->name }}{{ $cashier->branch?->name ? ' - '.$cashier->branch->name : '' }}
+                        </option>
+                    @empty
+                        <option value="">Belum ada kasir</option>
+                    @endforelse
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            {{-- CATEGORY DROPDOWN --}}
+            <div class="w-full sm:flex-1 relative">
+                <select name="category_id" onchange="this.form.submit()" class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-center text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 appearance-none">
+                    <option value="">Semua Kategori</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->id }}" {{ (int) $selectedCategoryId === (int) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+        </form>
+    </div>
 
     {{-- ================= KONDISI EMPTY / ERROR ================= --}}
     @if($selectedCashierId <= 0)
@@ -210,20 +190,29 @@
             $isSessionOpen = $sessionStatus === 'open';
         @endphp
 
-        {{-- ================= SUMMARY CARDS (Grouped by Unit) ================= --}}
-        {{-- Tailwind safelist: md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 --}}
-        <div class="grid grid-cols-2 md:grid-cols-{{ count($summary['by_unit']) + 2 > 5 ? 5 : count($summary['by_unit']) + 2 }} gap-3 mb-6">
+        {{-- ================= SUMMARY CARDS ================= --}}
+        @php
+            $cardCount = count($summary['by_unit'] ?? []) + 2;
+        @endphp
+        <div class="grid gap-3 mb-6 pb-2 overflow-x-auto custom-scrollbar hide-scrollbar-mobile" style="grid-template-columns: repeat({{ $cardCount }}, minmax(220px, 1fr));">
             {{-- Card 1: Total Bahan --}}
-            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+            <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(37,99,235,0.05)] hover:shadow-[0_8px_20px_-6px_rgba(37,99,235,0.15)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Jenis Bahan</p>
+                        <div class="flex items-baseline gap-1.5 mt-2">
+                            <span class="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{{ $summary['items_count'] }}</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Item</span>
+                        </div>
                     </div>
-                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Jenis<br>Bahan</p>
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-all duration-300 shrink-0">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    </div>
                 </div>
-                <div>
-                    <span class="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums">{{ $summary['items_count'] }}</span>
-                    <span class="text-[10px] font-medium text-slate-400 ml-1">item</span>
+                
+                {{-- Decorative element at bottom for balance --}}
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800/60 mt-auto">
+                    <span class="text-[10px] font-medium text-slate-400">Total varian dalam sesi</span>
                 </div>
             </div>
 
@@ -241,52 +230,52 @@
                     $colorSet = $unitColors[$idx % count($unitColors)];
                     $bgColor = $colorSet['bg'];
                 @endphp
-                <div class="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-8 h-8 rounded-full bg-{{ $bgColor }}-50 dark:bg-slate-800 flex items-center justify-center text-{{ $bgColor }}-600 dark:text-{{ $bgColor }}-400 shrink-0">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $colorSet['icon'] }}"></path></svg>
+                <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Stok {{ $unitData['unit'] }}</p>
+                            <div class="flex items-baseline gap-1.5 mt-1">
+                                <span class="text-2xl font-black text-{{ $bgColor }}-600 dark:text-{{ $bgColor }}-400 tracking-tight">{{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}</span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase">Terpakai</span>
+                            </div>
                         </div>
-                        <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">
-                            Stok<br><span class="text-{{ $bgColor }}-600 dark:text-{{ $bgColor }}-400">{{ $unitData['unit'] }}</span>
-                        </p>
+                        <div class="w-10 h-10 rounded-xl bg-{{ $bgColor }}-50 dark:bg-{{ $bgColor }}-900/20 flex items-center justify-center text-{{ $bgColor }}-600 dark:text-{{ $bgColor }}-400 group-hover:scale-110 group-hover:bg-{{ $bgColor }}-100 dark:group-hover:bg-{{ $bgColor }}-900/40 transition-all duration-300 shrink-0">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $colorSet['icon'] }}"></path></svg>
+                        </div>
                     </div>
-
-                    {{-- Mini metrics per unit --}}
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Dibawa</span>
-                            <span class="text-[13px] font-extrabold text-slate-800 dark:text-white tabular-nums">
-                                {{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}
-                            </span>
+                    
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/60 mt-auto">
+                        <div class="flex flex-col">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Awal</span>
+                            <span class="text-[13px] font-extrabold text-slate-700 dark:text-slate-300">{{ rtrim(rtrim(number_format($unitData['opening'], 2, '.', ''), '0'), '.') }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Sisa</span>
-                            <span class="text-[13px] font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
-                                {{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}
-                            </span>
-                        </div>
-                        <div class="h-px bg-slate-100 dark:bg-slate-800"></div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Terpakai</span>
-                            <span class="text-[14px] font-black text-orange-600 dark:text-orange-400 tabular-nums">
-                                {{ rtrim(rtrim(number_format($unitData['used'], 2, '.', ''), '0'), '.') }}
-                            </span>
+                        <div class="h-5 w-px bg-slate-200 dark:bg-slate-700"></div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-[9px] font-bold text-amber-500 uppercase tracking-wider">Sisa</span>
+                            <span class="text-[13px] font-extrabold text-slate-700 dark:text-slate-300">{{ rtrim(rtrim(number_format($unitData['remaining'], 2, '.', ''), '0'), '.') }}</span>
                         </div>
                     </div>
                 </div>
             @endforeach
 
             {{-- Card Terakhir: Est Nilai Terpakai (Rupiah - selalu bisa dijumlahkan) --}}
-            <div class="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow col-span-2 lg:col-span-1">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v8m0-8V6m0 12v2M5 12a7 7 0 1114 0 7 7 0 01-14 0z"></path></svg>
+            <div class="relative overflow-hidden p-5 bg-gradient-to-br from-rose-50 to-white dark:from-rose-900/20 dark:to-slate-900 rounded-2xl border border-rose-100 dark:border-rose-800/50 shadow-[0_2px_10px_-3px_rgba(225,29,72,0.05)] hover:shadow-[0_8px_20px_-6px_rgba(225,29,72,0.15)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-1">Nilai Terpakai</p>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-sm font-bold text-rose-400 dark:text-rose-500">Rp</span>
+                            <span class="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight">{{ number_format($summary['total_value'] ?? 0, 0, ',', '.') }}</span>
+                        </div>
                     </div>
-                    <p class="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest leading-tight">Nilai<br>Terpakai</p>
+                    <div class="w-10 h-10 rounded-xl bg-white dark:bg-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-110 shadow-sm transition-all duration-300 shrink-0">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v8m0-8V6m0 12v2M5 12a7 7 0 1114 0 7 7 0 01-14 0z"></path></svg>
+                    </div>
                 </div>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-xs font-bold text-rose-400 dark:text-rose-500">Rp</span>
-                    <span class="text-2xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($summary['total_value'] ?? 0, 0, ',', '.') }}</span>
+                
+                {{-- Decorative element at bottom --}}
+                <div class="pt-3 border-t border-rose-100/50 dark:border-rose-800/30 mt-auto">
+                    <span class="text-[10px] font-medium text-rose-400/80">Total estimasi bahan habis</span>
                 </div>
             </div>
         </div>
@@ -392,15 +381,15 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead class="hidden md:table-header-group">
-                        <tr class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
-                            <th class="px-6 py-4 whitespace-nowrap">Bahan Baku</th>
-                            <th class="px-6 py-4 text-center whitespace-nowrap">Dibawa</th>
-                            <th class="px-6 py-4 text-center whitespace-nowrap">Sisa (Akhir)</th>
-                            <th class="px-6 py-4 text-right whitespace-nowrap text-blue-600 dark:text-blue-400">Total Terpakai</th>
-                            <th class="px-6 py-4 text-right whitespace-nowrap text-rose-500">Est. Nilai</th>
+                        <tr class="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                            <th class="px-6 py-4 whitespace-nowrap text-left rounded-tl-xl">Bahan Baku</th>
+                            <th class="px-6 py-4 whitespace-nowrap text-right">Dibawa</th>
+                            <th class="px-6 py-4 whitespace-nowrap text-right">Sisa (Akhir)</th>
+                            <th class="px-6 py-4 whitespace-nowrap text-right text-blue-600 dark:text-blue-400">Total Terpakai</th>
+                            <th class="px-6 py-4 whitespace-nowrap text-right text-rose-500 rounded-tr-xl">Est. Nilai</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    <tbody class="divide-y divide-slate-100/80 dark:divide-slate-800/60">
                         @forelse($sessionItems as $item)
                             
                             {{-- ROW DESKTOP --}}
@@ -415,40 +404,54 @@
                                     default   => $usedQty * $selPrice,
                                 };
                             @endphp
-                            <tr class="hidden md:table-row hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <p class="font-bold text-[14px] text-slate-900 dark:text-white">{{ $item->ingredient->name }}</p>
-                                    @if($selPrice > 0)
-                                        <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
-                                            Rp {{ number_format($selPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
-                                        </p>
-                                    @endif
+                            <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group">
+                                <td class="px-6 py-5 whitespace-nowrap align-middle">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                            <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-[14px] text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors">{{ $item->ingredient->name }}</p>
+                                            @if($selPrice > 0)
+                                                <p class="text-[11px] text-slate-400 font-medium mt-0.5">
+                                                    Rp {{ number_format($selPrice, 0, ',', '.') }} / {{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap align-middle">
-                                    <span class="text-[13px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-                                        {{ rtrim(rtrim(number_format((float) $item->opening_display, 2, '.', ''), '0'), '.') }}
-                                    </span>
-                                    <span class="text-[10px] font-bold text-slate-400 ml-1 uppercase tracking-wider">{{ $item->display_unit }}</span>
-                                </td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap align-middle">
-                                    <span class="text-[13px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-                                        {{ rtrim(rtrim(number_format((float) $item->remaining_display, 2, '.', ''), '0'), '.') }}
-                                    </span>
-                                    <span class="text-[10px] font-bold text-slate-400 ml-1 uppercase tracking-wider">{{ $item->display_unit }}</span>
-                                </td>
-                                <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
-                                    <span class="text-[14px] font-black text-blue-600 dark:text-blue-400 tabular-nums">
-                                        {{ rtrim(rtrim(number_format((float) $item->used_display, 2, '.', ''), '0'), '.') }}
-                                    </span>
-                                    <span class="text-[10px] font-bold text-blue-400 ml-1 uppercase tracking-wider">{{ $item->display_unit }}</span>
-                                </td>
-                                <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
-                                    @if($itemValue > 0)
-                                        <span class="text-[13px] font-black text-rose-600 dark:text-rose-400 tabular-nums">
-                                            <span class="text-[10px] font-bold text-rose-400 mr-0.5">Rp</span>{{ number_format($itemValue, 0, ',', '.') }}
+                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                    <div class="inline-flex items-baseline gap-1">
+                                        <span class="text-[14px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
+                                            {{ rtrim(rtrim(number_format((float) $item->opening_display, 2, '.', ''), '0'), '.') }}
                                         </span>
+                                        <span class="text-[10px] font-semibold text-slate-400 uppercase">{{ $item->display_unit }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                    <div class="inline-flex items-baseline gap-1">
+                                        <span class="text-[14px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
+                                            {{ rtrim(rtrim(number_format((float) $item->remaining_display, 2, '.', ''), '0'), '.') }}
+                                        </span>
+                                        <span class="text-[10px] font-semibold text-slate-400 uppercase">{{ $item->display_unit }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                    <div class="inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50/50 dark:bg-blue-900/10">
+                                        <span class="text-[15px] font-black text-blue-600 dark:text-blue-400 tabular-nums">
+                                            {{ rtrim(rtrim(number_format((float) $item->used_display, 2, '.', ''), '0'), '.') }}
+                                        </span>
+                                        <span class="text-[10px] font-bold text-blue-500 uppercase">{{ $item->display_unit }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                    @if($itemValue > 0)
+                                        <div class="inline-flex items-baseline gap-1">
+                                            <span class="text-[10px] font-bold text-rose-400">Rp</span>
+                                            <span class="text-[14px] font-black text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($itemValue, 0, ',', '.') }}</span>
+                                        </div>
                                     @else
-                                        <span class="text-[11px] text-slate-300 dark:text-slate-600">—</span>
+                                        <span class="text-[12px] text-slate-300 dark:text-slate-600 font-medium">—</span>
                                     @endif
                                 </td>
                             </tr>
@@ -456,34 +459,37 @@
                             {{-- CARD MOBILE --}}
                             <tr class="md:hidden border-b border-slate-100 dark:border-slate-800/50 last:border-0">
                                 <td class="p-0">
-                                    <div class="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                                        <div class="mb-3">
-                                            <p class="font-bold text-slate-900 dark:text-white text-[15px] leading-tight">{{ $item->ingredient->name }}</p>
+                                    <div class="p-4 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                        <div class="flex justify-between items-start mb-3 gap-2">
+                                            <div>
+                                                <p class="font-bold text-slate-900 dark:text-white text-[14px] leading-tight">{{ $item->ingredient->name }}</p>
+                                                @if($selPrice > 0)
+                                                    <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
+                                                        Rp {{ number_format($selPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
+                                                    </p>
+                                                @endif
+                                            </div>
+                                            @if($itemValue > 0)
+                                                <div class="text-right">
+                                                    <span class="text-[9px] font-bold text-rose-400">Rp</span>
+                                                    <span class="text-[13px] font-black text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($itemValue, 0, ',', '.') }}</span>
+                                                </div>
+                                            @endif
                                         </div>
                                         
                                         {{-- Metric Grid Mobile --}}
-                                        <div class="grid grid-cols-4 gap-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-100 dark:border-slate-700/50 text-center divide-x divide-slate-200 dark:divide-slate-700">
-                                            <div>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dibawa</p>
-                                                <p class="font-bold text-slate-700 dark:text-slate-300 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) $item->opening_display, 2, '.', ''), '0'), '.') }} <span class="text-[9px] font-normal uppercase">{{ $item->display_unit }}</span></p>
+                                        <div class="flex items-center bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-100 dark:border-slate-700/50 text-center divide-x divide-slate-200/60 dark:divide-slate-700/60">
+                                            <div class="flex-1">
+                                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dibawa</p>
+                                                <p class="font-bold text-slate-700 dark:text-slate-300 text-[11px] tabular-nums">{{ rtrim(rtrim(number_format((float) $item->opening_display, 2, '.', ''), '0'), '.') }} <span class="text-[8px] font-normal uppercase">{{ $item->display_unit }}</span></p>
                                             </div>
-                                            <div>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sisa</p>
-                                                <p class="font-bold text-slate-700 dark:text-slate-300 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) $item->remaining_display, 2, '.', ''), '0'), '.') }} <span class="text-[9px] font-normal uppercase">{{ $item->display_unit }}</span></p>
+                                            <div class="flex-1">
+                                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sisa</p>
+                                                <p class="font-bold text-slate-700 dark:text-slate-300 text-[11px] tabular-nums">{{ rtrim(rtrim(number_format((float) $item->remaining_display, 2, '.', ''), '0'), '.') }} <span class="text-[8px] font-normal uppercase">{{ $item->display_unit }}</span></p>
                                             </div>
-                                            <div>
-                                                <p class="text-[9px] font-bold text-blue-500 uppercase tracking-widest mb-1">Pakai</p>
-                                                <p class="font-black text-blue-600 dark:text-blue-400 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) $item->used_display, 2, '.', ''), '0'), '.') }} <span class="text-[9px] font-normal uppercase">{{ $item->display_unit }}</span></p>
-                                            </div>
-                                            <div>
-                                                <p class="text-[9px] font-bold text-rose-500 uppercase tracking-widest mb-1">Nilai</p>
-                                                <p class="font-black text-rose-600 dark:text-rose-400 text-xs tabular-nums">
-                                                    @if($itemValue > 0)
-                                                        <span class="text-[8px] font-bold mr-0.5">Rp</span>{{ number_format($itemValue, 0, ',', '.') }}
-                                                    @else
-                                                        <span class="text-slate-300 dark:text-slate-600">—</span>
-                                                    @endif
-                                                </p>
+                                            <div class="flex-1 bg-blue-50/50 dark:bg-blue-900/10 rounded-r-lg -my-2.5 py-2.5">
+                                                <p class="text-[8px] font-bold text-blue-500 uppercase tracking-widest mb-1">Pakai</p>
+                                                <p class="font-black text-blue-600 dark:text-blue-400 text-[12px] tabular-nums">{{ rtrim(rtrim(number_format((float) $item->used_display, 2, '.', ''), '0'), '.') }} <span class="text-[8px] font-bold uppercase">{{ $item->display_unit }}</span></p>
                                             </div>
                                         </div>
                                     </div>

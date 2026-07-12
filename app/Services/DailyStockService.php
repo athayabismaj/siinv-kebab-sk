@@ -67,13 +67,14 @@ class DailyStockService
         Carbon|string $sessionDate,
         int $cashierId,
         int $openedBy,
-        ?string $notes = null
+        ?string $notes = null,
+        ?int $branchId = null
     ): DailyStockSession {
-        $session = DB::transaction(function () use ($sessionDate, $cashierId, $openedBy, $notes) {
+        $session = DB::transaction(function () use ($sessionDate, $cashierId, $openedBy, $notes, $branchId) {
             $date = $sessionDate instanceof Carbon
                 ? $sessionDate->copy()->startOfDay()->toDateString()
                 : Carbon::parse((string) $sessionDate)->startOfDay()->toDateString();
-            $branchId = BranchScope::userBranchId(User::query()->with('role')->find($cashierId));
+            $branchId = $branchId ?: BranchScope::userBranchId(User::query()->with('role')->find($cashierId));
 
             $session = DailyStockSession::query()
                 ->where('session_date', $date)
