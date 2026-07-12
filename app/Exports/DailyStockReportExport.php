@@ -8,9 +8,10 @@ use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class DailyStockReportExport implements FromView, WithDrawings, WithStyles
+class DailyStockReportExport implements FromView, WithDrawings, WithStyles, ShouldAutoSize
 {
     use HasReportLogoDrawing;
 
@@ -44,15 +45,6 @@ class DailyStockReportExport implements FromView, WithDrawings, WithStyles
     public function styles(Worksheet $sheet)
     {
         $sheet->getRowDimension(1)->setRowHeight(48);
-        $sheet->getColumnDimension('A')->setWidth(13);
-        $sheet->getColumnDimension('B')->setWidth(24);
-        $sheet->getColumnDimension('C')->setWidth(14);
-        $sheet->getColumnDimension('D')->setWidth(16);
-        $sheet->getColumnDimension('E')->setWidth(14);
-        $sheet->getColumnDimension('F')->setWidth(14);
-        $sheet->getColumnDimension('G')->setWidth(14);
-        $sheet->getColumnDimension('H')->setWidth(18);
-        $sheet->getColumnDimension('I')->setWidth(18);
 
         return [
             1 => ['font' => ['bold' => true, 'size' => 16]],

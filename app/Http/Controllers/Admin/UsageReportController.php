@@ -150,16 +150,28 @@ class UsageReportController extends Controller
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
+        $branchName = 'Semua Cabang';
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch) {
+                $branchName = $branch->name;
+            }
+        }
+
         $viewData = [
             'items' => $rows,
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
+            'branchName' => $branchName,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
 
-        $fileName = 'laporan-pemakaian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString();
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Pemakaian_Bahan_' . $dateSuffix;
 
         return $this->exportByFormat(
             $format,

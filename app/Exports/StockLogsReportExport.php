@@ -7,10 +7,11 @@ use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class StockLogsReportExport implements FromView, WithDrawings, WithStyles
+class StockLogsReportExport implements FromView, WithDrawings, WithStyles, ShouldAutoSize
 {
     private $logs;
     private array $summary;
@@ -70,13 +71,6 @@ class StockLogsReportExport implements FromView, WithDrawings, WithStyles
     public function styles(Worksheet $sheet)
     {
         $sheet->getRowDimension(1)->setRowHeight(48);
-        $sheet->getColumnDimension('A')->setWidth(13);
-        $sheet->getColumnDimension('B')->setWidth(18);
-        $sheet->getColumnDimension('C')->setWidth(24);
-        $sheet->getColumnDimension('D')->setWidth(18);
-        $sheet->getColumnDimension('E')->setWidth(18);
-        $sheet->getColumnDimension('F')->setWidth(18);
-        $sheet->getColumnDimension('G')->setWidth(28);
 
         return [
             1 => ['font' => ['bold' => true, 'size' => 16]],

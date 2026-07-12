@@ -428,7 +428,10 @@ class StockController extends Controller
 
         $dateDisplay = StockLogView::dateDisplay($period, $selectedDate, $rangeStart, $rangeEnd);
         $typeLabel = StockLogTypeMap::tabLabel($typeFilter);
-        $fileName = 'riwayat-stok-' . $period . '-' . $rangeStart->toDateString() . '_sd_' . $rangeEnd->toDateString();
+        $dateSuffix = $rangeStart->isSameDay($rangeEnd)
+            ? $rangeStart->format('dMY')
+            : $rangeStart->format('dM') . '-' . $rangeEnd->format('dMY');
+        $fileName = 'Riwayat_Stok_' . $dateSuffix;
 
         $periodLabels = [
             'daily' => 'HARIAN',
@@ -437,12 +440,22 @@ class StockController extends Controller
         ];
         $periodLabel = $periodLabels[$period] ?? strtoupper($period);
 
+        $branchId = BranchScope::scopedBranchIdFor(auth()->user());
+        $branchName = 'Semua Cabang';
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch) {
+                $branchName = $branch->name;
+            }
+        }
+
         $viewData = [
             'logs' => $logs,
             'summary' => $summary,
             'periode' => $dateDisplay,
             'periodLabel' => $periodLabel,
             'typeLabel' => $typeLabel,
+            'branchName' => $branchName,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];

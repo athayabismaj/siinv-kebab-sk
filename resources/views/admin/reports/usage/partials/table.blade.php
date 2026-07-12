@@ -14,7 +14,7 @@
                 <tr>
                     <th class="px-6 py-3.5">Bahan Baku</th>
                     <th class="px-6 py-3.5 text-right">Total Pemakaian</th>
-                    <th class="px-6 py-3.5 text-center">Frekuensi</th>
+                    <th class="px-6 py-3.5 text-center">Jumlah Pemakaian</th>
                     <th class="px-6 py-3.5 text-right">Terakhir Dipakai</th>
                 </tr>
             </thead>

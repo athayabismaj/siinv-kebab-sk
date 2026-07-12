@@ -19,10 +19,10 @@
         <div class="absolute bottom-0 left-0 h-0.5 w-full bg-slate-200 dark:bg-slate-700"></div>
     </div>
 
-    {{-- Frekuensi Pemakaian --}}
+    {{-- Jumlah Pemakaian --}}
     <div class="relative overflow-hidden p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition group">
         <div class="flex items-start justify-between mb-3">
-            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Frekuensi</p>
+            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Jumlah Pemakaian</p>
             <div class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
             </div>

@@ -118,7 +118,10 @@ class DailyStockReportController extends Controller
             'isExcel' => $format === 'excel',
         ];
 
-        $fileName = 'laporan-stok-harian-' . $dateFrom->toDateString() . '_sd_' . $dateTo->toDateString();
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Stok_Harian_' . $dateSuffix;
 
         return $this->exportByFormat(
             $format,
