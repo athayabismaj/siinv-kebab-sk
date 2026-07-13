@@ -15,6 +15,7 @@ use App\Models\Role;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
 use App\Models\User;
+use App\Services\Analytics\DailySalesSummaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -142,6 +143,24 @@ class SecurityBatchTwoTest extends TestCase
         $this->assertSame('SUCCESS', $transaction->fresh()->status);
     }
 
+    public function test_void_validation_rejects_invalid_request_without_side_effects(): void
+    {
+        [$cashier, $token] = $this->createUserWithToken('kasir');
+        [$transaction] = $this->createVoidableTransaction($cashier);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/transactions/' . $transaction->id . '/void', [])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Data yang dikirim tidak valid.')
+            ->assertJsonPath('data.errors.current_session_id.0', 'ID sesi kasir aktif wajib dikirim.')
+            ->assertJsonPath('data.errors.reason.0', 'Alasan pembatalan (reason) wajib diisi.');
+
+        $this->assertSame('SUCCESS', $transaction->fresh()->status);
+        $this->assertDatabaseCount('cashflow_entries', 0);
+        $this->assertDatabaseCount('stock_logs', 0);
+    }
+
     public function test_cashier_cannot_void_transaction_with_wrong_session_id(): void
     {
         [$cashier, $token] = $this->createUserWithToken('kasir');
@@ -207,6 +226,42 @@ class SecurityBatchTwoTest extends TestCase
             'ingredient_id' => $ingredient->id,
             'remaining_qty' => 10,
             'used_qty' => 0,
+        ]);
+    }
+
+    public function test_void_rebuilds_the_summary_for_the_transaction_branch(): void
+    {
+        [$cashier, $token] = $this->createUserWithToken('kasir');
+        [$transaction, $session] = $this->createVoidableTransaction($cashier);
+        $branch = Branch::query()->findOrFail($session->branch_id);
+        $summaryService = app(DailySalesSummaryService::class);
+
+        $summaryService->rebuildForDate($branch, now('Asia/Jakarta'));
+        $this->assertDatabaseHas('daily_sales_summaries', [
+            'branch_id' => $branch->id,
+            'sale_date' => now('Asia/Jakarta')->toDateString(),
+            'total_transactions' => 1,
+            'total_revenue' => 50000,
+            'total_items_sold' => 2,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->withHeader('X-Idempotency-Key', 'void-rebuild-summary')
+            ->postJson('/api/transactions/' . $transaction->id . '/void', [
+                'current_session_id' => $session->id,
+                'reason' => 'restock',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Transaksi berhasil dibatalkan.')
+            ->assertJsonPath('data.new_drawer_balance', 0);
+
+        $this->assertDatabaseHas('daily_sales_summaries', [
+            'branch_id' => $branch->id,
+            'sale_date' => now('Asia/Jakarta')->toDateString(),
+            'total_transactions' => 0,
+            'total_revenue' => 0,
+            'total_items_sold' => 0,
         ]);
     }
 

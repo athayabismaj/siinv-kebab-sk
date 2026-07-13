@@ -2,36 +2,27 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Contracts\Services\VoidTransactionServiceInterface;
 use App\DTOs\VoidTransactionRequestDto;
 use App\Enums\VoidInventoryActionEnum;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\API\VoidTransactionRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class VoidTransactionController extends Controller
 {
     public function __construct(
-        private readonly VoidTransactionServiceInterface $voidService
-    ) {}
+        private readonly VoidTransactionServiceInterface $voidService,
+    ) {
+    }
 
-    public function voidTransaction(Request $request, $transactionId): JsonResponse
+    public function voidTransaction(VoidTransactionRequest $request, $transactionId): JsonResponse
     {
-        // Fail-Fast Validation — eksplisit menerima JSON dari Android
-        $validated = $request->validate([
-            'current_session_id' => 'required|integer',
-            'reason' => 'required|string|in:restock,waste',
-        ], [
-            'reason.required' => 'Alasan pembatalan (reason) wajib diisi.',
-            'reason.in' => 'Alasan pembatalan harus berupa "restock" atau "waste".',
-            'current_session_id.required' => 'ID sesi kasir aktif wajib dikirim.',
-            'current_session_id.integer' => 'ID sesi kasir harus berupa angka.',
-        ]);
-
-        // Validasi Idempotency Key
+        $validated = $request->validated();
         $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
-        if (!$idempotencyKey) {
+
+        if (! $idempotencyKey) {
             return response()->json([
                 'success' => false,
                 'message' => 'Idempotency Key wajib dikirim melalui header X-Idempotency-Key atau body idempotency_key.',
@@ -44,7 +35,7 @@ class VoidTransactionController extends Controller
                 currentSessionId: (int) $validated['current_session_id'],
                 actor: $request->user(),
                 idempotencyKey: $idempotencyKey,
-                inventoryAction: VoidInventoryActionEnum::from($validated['reason'])
+                inventoryAction: VoidInventoryActionEnum::from($validated['reason']),
             );
 
             $newDrawerBalance = $this->voidService->voidTransaction($dto);
@@ -56,23 +47,22 @@ class VoidTransactionController extends Controller
                     'new_drawer_balance' => $newDrawerBalance,
                 ],
             ], 200);
-
-        } catch (\Throwable $e) {
-            if (str_contains($e->getMessage(), 'Idempotency conflict')) {
+        } catch (\Throwable $exception) {
+            if (str_contains($exception->getMessage(), 'Idempotency conflict')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Permintaan sedang diproses, harap tunggu.',
                 ], 409);
             }
 
-            if (str_contains($e->getMessage(), 'sudah dibatalkan sebelumnya')) {
+            if (str_contains($exception->getMessage(), 'sudah dibatalkan sebelumnya')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Transaksi sudah dibatalkan sebelumnya.',
                 ], 409);
             }
 
-            if (str_contains($e->getMessage(), 'Unauthorized')) {
+            if (str_contains($exception->getMessage(), 'Unauthorized')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Akses tidak diizinkan.',
@@ -82,8 +72,8 @@ class VoidTransactionController extends Controller
             Log::error('Gagal membatalkan transaksi via API.', [
                 'transaction_id' => (int) $transactionId,
                 'actor_id' => optional($request->user())->id,
-                'exception' => get_class($e),
-                'error' => $e->getMessage(),
+                'exception' => get_class($exception),
+                'error' => $exception->getMessage(),
             ]);
 
             return response()->json([
