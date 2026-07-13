@@ -9,55 +9,36 @@
 @section('content')
 <div class="space-y-8 max-w-full overflow-x-hidden">
 
-    <div class="mb-8">
+    <x-page-header 
+        title="Arsip Pengguna" 
+        subtitle="Daftar seluruh akun pengguna dan kasir yang telah dinonaktifkan dari sistem. Anda dapat memulihkan (mengaktifkan kembali) akun di bawah ini jika diperlukan." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Arsip Pengguna">
         
-        {{-- Breadcrumb --}}
-        <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-            <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <a href="{{ route('owner.users.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Pengguna</a>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Arsip</span>
-        </nav>
-
-        {{-- Judul & Tombol Aksi Utama --}}
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Arsip Pengguna
-            </h1>
-
+        <div class="flex flex-col gap-2">
             <a href="{{ route('owner.users.index') }}"
                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[13px] font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-sm shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Kembali ke Daftar
             </a>
-        </div>
 
-        {{-- Deskripsi Halaman --}}
-        <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
-            Daftar seluruh akun pengguna dan kasir yang telah dinonaktifkan dari sistem.<br class="hidden sm:block mt-1">
-            Anda dapat memulihkan (mengaktifkan kembali) akun di bawah ini jika diperlukan.
-        </p>
-
-        {{-- Indikator Total (FIX Kontras Dark Mode) --}}
-        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-red-50 dark:bg-red-900 dark:bg-opacity-30 border border-red-200 dark:border-red-800/50 rounded-lg shadow-sm">
-            <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            <span class="text-[11px] sm:text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
-                Total Arsip:
-                <span class="text-slate-900 dark:text-red-100 normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun Nonaktif</span>
-            </span>
+            {{-- Indikator Total (FIX Kontras Dark Mode) --}}
+            <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-red-50 dark:bg-red-900 dark:bg-opacity-30 border border-red-200 dark:border-red-800/50 rounded-lg shadow-sm w-fit self-end">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span class="text-[11px] sm:text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+                    Total Arsip:
+                    <span class="text-slate-900 dark:text-red-100 normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun Nonaktif</span>
+                </span>
+            </div>
         </div>
-        
-    </div>
+    </x-page-header>
 
     <div class="grid grid-cols-1 gap-4 sm:hidden">
         @forelse($users as $user)
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm relative overflow-hidden flex flex-col">
-                
-                {{-- Decorative Line (Selalu Merah karena Nonaktif) --}}
+            <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
                 <div class="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
 
                 {{-- Card Content --}}
