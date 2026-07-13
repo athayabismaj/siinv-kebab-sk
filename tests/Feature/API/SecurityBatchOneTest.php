@@ -68,6 +68,133 @@ class SecurityBatchOneTest extends TestCase
         ]);
     }
 
+    public function test_checkout_keeps_its_response_contract_and_rebuilds_branch_summary(): void
+    {
+        [$user, $token] = $this->createUserWithToken('kasir');
+        $variant = $this->createSellableVariant(price: 12500, requiredQty: 1);
+        $session = $this->openSession($user->id);
+        $payment = PaymentMethod::query()->create(['name' => 'Cash']);
+        $ingredientId = (int) DB::table('menu_variant_ingredients')
+            ->where('menu_variant_id', $variant->id)
+            ->value('ingredient_id');
+
+        DailyStockItem::query()->create([
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => $ingredientId,
+            'opening_qty' => 10,
+            'remaining_qty' => 10,
+            'used_qty' => 0,
+            'returned_qty' => 0,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/transactions', [
+                'payment_method_id' => $payment->id,
+                'paid_amount' => 30000,
+                'items' => [
+                    ['variant_id' => $variant->id, 'qty' => 2],
+                ],
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Transaksi berhasil')
+            ->assertJsonPath('data.payment_method.id', $payment->id)
+            ->assertJsonPath('data.items.0.variant_id', $variant->id)
+            ->assertJsonPath('data.items.0.qty', 2)
+            ->assertJsonPath('data.total_amount', 25000)
+            ->assertJsonPath('data.paid_amount', 30000)
+            ->assertJsonPath('data.change_amount', 5000);
+
+        $transactionId = (int) $response->json('data.transaction_id');
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $transactionId,
+            'branch_id' => $this->testBranch()->id,
+            'user_id' => $user->id,
+            'status' => 'SUCCESS',
+            'daily_stock_session_id' => $session->id,
+        ]);
+        $this->assertDatabaseHas('transaction_details', [
+            'transaction_id' => $transactionId,
+            'menu_variant_id' => $variant->id,
+            'quantity' => 2,
+            'subtotal' => 25000,
+        ]);
+        $this->assertDatabaseHas('stock_logs', [
+            'branch_id' => $this->testBranch()->id,
+            'ingredient_id' => $ingredientId,
+            'type' => 'daily_usage',
+            'reference_id' => $transactionId,
+            'quantity' => -2,
+        ]);
+        $this->assertDatabaseHas('daily_stock_items', [
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => $ingredientId,
+            'remaining_qty' => 8,
+            'used_qty' => 2,
+        ]);
+        $this->assertDatabaseHas('daily_sales_summaries', [
+            'branch_id' => $this->testBranch()->id,
+            'sale_date' => now('Asia/Jakarta')->toDateString(),
+            'total_transactions' => 1,
+            'total_revenue' => 25000,
+            'total_items_sold' => 2,
+        ]);
+    }
+
+    public function test_checkout_rolls_back_when_only_another_branch_has_usable_stock(): void
+    {
+        [$user, $token] = $this->createUserWithToken('kasir');
+        $variant = $this->createSellableVariant(price: 10000, requiredQty: 1);
+        $payment = PaymentMethod::query()->create(['name' => 'Cash']);
+        $ingredientId = (int) DB::table('menu_variant_ingredients')
+            ->where('menu_variant_id', $variant->id)
+            ->value('ingredient_id');
+        $otherBranch = Branch::query()->create([
+            'name' => 'Kebab SK Jepara',
+            'code' => 'jpr',
+            'is_active' => true,
+        ]);
+        $otherBranchSession = DailyStockSession::query()->create([
+            'session_date' => now('Asia/Jakarta')->toDateString(),
+            'cashier_id' => $user->id,
+            'opened_by' => $user->id,
+            'branch_id' => $otherBranch->id,
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+
+        DailyStockItem::query()->create([
+            'daily_stock_session_id' => $otherBranchSession->id,
+            'ingredient_id' => $ingredientId,
+            'opening_qty' => 10,
+            'remaining_qty' => 10,
+            'used_qty' => 0,
+            'returned_qty' => 0,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/transactions', [
+                'payment_method_id' => $payment->id,
+                'paid_amount' => 10000,
+                'items' => [['variant_id' => $variant->id, 'qty' => 1]],
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Transaksi gagal diproses. Periksa stok harian dan data transaksi lalu coba lagi.');
+
+        $this->assertDatabaseCount('transactions', 0);
+        $this->assertDatabaseCount('transaction_details', 0);
+        $this->assertDatabaseCount('stock_logs', 0);
+        $this->assertDatabaseCount('daily_sales_summaries', 0);
+        $this->assertDatabaseHas('daily_stock_items', [
+            'daily_stock_session_id' => $otherBranchSession->id,
+            'ingredient_id' => $ingredientId,
+            'remaining_qty' => 10,
+            'used_qty' => 0,
+        ]);
+    }
+
     public function test_write_api_rejects_non_kasir_role_with_consistent_forbidden_response(): void
     {
         [, $token] = $this->createUserWithToken('admin');

@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Actions\Sales\CheckoutTransactionAction;
 use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
-use App\Models\Branch;
-use App\Models\PaymentMethod;
-use App\Models\Transaction;
-use App\Services\Analytics\DailySalesSummaryService;
 use App\Services\ApiTransactionService;
 use App\Support\AdminCache;
 use Carbon\Carbon;
@@ -25,7 +22,7 @@ class TransactionController extends Controller
 
     public function __construct(
         private readonly ApiTransactionService $transactionService,
-        private readonly DailySalesSummaryService $dailySalesSummaryService
+        private readonly CheckoutTransactionAction $checkoutTransactionAction,
     ) {
     }
 
@@ -114,39 +111,23 @@ class TransactionController extends Controller
         }
 
         try {
-            if (! PaymentMethod::query()->whereNull('deleted_at')->exists()) {
-                return $this->errorResponse('Metode pembayaran belum tersedia.', [
-                    'payment_method_id' => $request->input('payment_method_id'),
-                ], 422);
-            }
-
             $validated = $request->validated();
-
-            $draft = $this->transactionService->buildCheckoutDraft($validated, $userId);
-            if (! $draft['ok']) {
+            $checkout = $this->checkoutTransactionAction->execute($validated, $userId);
+            if (! $checkout['ok']) {
                 return $this->errorResponse(
-                    $draft['message'],
-                    $draft['data'] ?? null,
-                    $draft['status']
+                    $checkout['message'],
+                    $checkout['data'] ?? null,
+                    $checkout['status']
                 );
             }
 
-            $result = $this->transactionService->createCheckoutTransaction(
-                $userId,
-                $draft,
-                $validated['note'] ?? null
-            );
+            $result = $checkout['result'];
 
             AdminCache::bumpDashboard();
             AdminCache::bumpCashflow();
             AdminCache::bumpUsage();
             AdminCache::bumpDailyStock();
             AdminCache::bumpTransactions();
-            $branchId = (int) Transaction::query()
-                ->whereKey($result['transaction_id'])
-                ->value('branch_id');
-            $branch = Branch::query()->findOrFail($branchId);
-            $this->dailySalesSummaryService->rebuildForDate($branch, now());
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {
