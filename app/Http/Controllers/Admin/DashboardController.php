@@ -20,6 +20,14 @@ class DashboardController extends Controller
     public function index()
     {
         [$todayStart, $todayEnd, $todayKey] = $this->todayBounds();
+        $branchId = $this->scopedBranchId();
+        $branchOptions = BranchScope::optionsFor(auth()->user());
+        $selectedBranch = $branchId ? $branchOptions->firstWhere('id', $branchId) : null;
+        $branchScopeLabel = $selectedBranch->name ?? 'Semua Cabang';
+        $branchScopeDescription = $selectedBranch
+            ? 'Data operasional mengikuti cabang aktif yang dipilih.'
+            : 'Data operasional menampilkan gabungan cabang yang dapat diakses.';
+        $activeBranchCount = $branchOptions->count();
 
         $totalActiveMenus = $this->getTotalActiveMenus();
         $totalIngredients = $this->getTotalIngredients();
@@ -42,7 +50,13 @@ class DashboardController extends Controller
             'topMenusToday',
             'salesLast7Days',
             'expenseToday',
-            'dailyStockStatus'
+            'dailyStockStatus',
+            'branchId',
+            'branchOptions',
+            'selectedBranch',
+            'branchScopeLabel',
+            'branchScopeDescription',
+            'activeBranchCount'
         ));
     }
 

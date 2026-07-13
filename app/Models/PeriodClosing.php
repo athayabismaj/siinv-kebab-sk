@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PeriodClosing extends Model
 {
     protected $fillable = [
+        'branch_id',
         'period_type',
         'period_date',
         'total_revenue',
@@ -25,5 +26,10 @@ class PeriodClosing extends Model
     public function closedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by_user_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

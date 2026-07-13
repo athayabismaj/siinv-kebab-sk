@@ -146,6 +146,7 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
             // Tutup Buku (Closing)
             Route::get('/closing', [SalesReportController::class, 'closingIndex'])->name('closing.index');
             Route::post('/closing', [SalesReportController::class, 'closePeriod'])->name('closing.store');
+            Route::delete('/closing/{closing}', [SalesReportController::class, 'cancelClosing'])->name('closing.cancel');
 
             Route::get('/usage', [UsageReportController::class, 'index'])->name('usage');
             Route::get('/usage/export', [UsageReportController::class, 'export'])

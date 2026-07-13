@@ -55,15 +55,15 @@ class SalesReportQueryService
         return $bypassCache ? $resolver() : $this->remember('weekly_summary_success:' . $key . ':branch:' . ($branchId ?: 'all'), $resolver);
     }
 
-    public function buildYearlySummary(int $year, bool $bypassCache = false): array
+    public function buildYearlySummary(int $year, bool $bypassCache = false, ?int $branchId = null): array
     {
-        $resolver = function () use ($year) {
+        $resolver = function () use ($year, $branchId) {
             $start = Carbon::create($year, 1, 1)->startOfMonth();
             $end = Carbon::create($year, 12, 31)->endOfMonth();
 
-            $summary = $this->buildSuccessfulSummary($start, $end);
+            $summary = $this->buildSuccessfulSummary($start, $end, $branchId);
 
-            $monthlyBreakdown = $this->buildSuccessfulDailyBreakdown($start, $end)
+            $monthlyBreakdown = $this->buildSuccessfulDailyBreakdown($start, $end, $branchId)
                 ->groupBy(function ($row) {
                     return (int) Carbon::parse($row->date)->month;
                 })
@@ -85,7 +85,7 @@ class SalesReportQueryService
             ];
         };
 
-        return $bypassCache ? $resolver() : $this->remember('yearly_summary_success:' . $year, $resolver);
+        return $bypassCache ? $resolver() : $this->remember('yearly_summary_success:' . $year . ':branch:' . ($branchId ?: 'all'), $resolver);
     }
 
     public function buildPeriodMenuAnalytics(Carbon $start, Carbon $end, bool $limitTopTen = true, ?int $branchId = null): array

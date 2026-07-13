@@ -8,6 +8,7 @@ use App\Models\DailyStockSession;
 use App\Models\DailyTarget;
 use App\Models\Transaction;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -17,15 +18,18 @@ class DashboardQueryService
     public function buildDashboardData(): array
     {
         $todayKey = now()->toDateString();
+        $branchOptions = BranchScope::options();
+        $branchId = BranchScope::ownerBranchId();
+        $selectedBranch = $branchId ? $branchOptions->firstWhere('id', $branchId) : null;
 
         return Cache::remember(
-            AdminCache::key('dashboard', 'owner:dashboard:' . $todayKey),
+            AdminCache::key('dashboard', 'owner:dashboard:' . $todayKey . ':branch:' . ($branchId ?: 'all')),
             now()->addSeconds(90),
-            fn () => $this->buildFreshDashboardData()
+            fn () => $this->buildFreshDashboardData($branchId, $branchOptions, $selectedBranch)
         );
     }
 
-    private function buildFreshDashboardData(): array
+    private function buildFreshDashboardData(?int $branchId, $branchOptions, $selectedBranch): array
     {
         $todayStart = now()->startOfDay();
         $todayEnd = now()->endOfDay();
@@ -34,8 +38,9 @@ class DashboardQueryService
 
         $todayAggregate = Transaction::query()
             ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_revenue, COUNT(*) as total_transactions')
-            ->first();
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_revenue, COUNT(*) as total_transactions');
+        $this->applyBranch($todayAggregate, $branchId, 'branch_id');
+        $todayAggregate = $todayAggregate->first();
         $todayRevenue = (float) ($todayAggregate->total_revenue ?? 0);
         $todayTransactionsCount = (int) ($todayAggregate->total_transactions ?? 0);
 
@@ -51,25 +56,29 @@ class DashboardQueryService
         $targetGap = max(0, $targetRevenue - $todayRevenue);
 
         $expenseAggregate = Schema::hasTable('cashflow_entries')
-            ? CashflowEntry::query()
-                ->whereDate('entry_date', $todayKey)
-                ->where('type', 'expense')
-                ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count')
-                ->first()
+            ? tap(
+                CashflowEntry::query()
+                    ->whereDate('entry_date', $todayKey)
+                    ->where('type', 'expense')
+                    ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count'),
+                fn ($query) => $this->applyBranch($query, $branchId, 'branch_id')
+            )->first()
             : null;
         $todayExpenseTotal = (float) ($expenseAggregate->expense_total ?? 0);
         $todayExpenseCount = (int) ($expenseAggregate->expense_count ?? 0);
         $todayNetProfit = $todayRevenue - $todayExpenseTotal;
 
         $sessionAggregate = Schema::hasTable('daily_stock_sessions')
-            ? DailyStockSession::query()
-                ->whereDate('session_date', $todayKey)
-                ->selectRaw(
-                    "COUNT(*) as total_sessions,
+            ? tap(
+                DailyStockSession::query()
+                    ->whereDate('session_date', $todayKey)
+                    ->selectRaw(
+                        "COUNT(*) as total_sessions,
                     SUM(CASE WHEN LOWER(TRIM(status)) = 'open' THEN 1 ELSE 0 END) as open_sessions,
                     SUM(CASE WHEN LOWER(TRIM(status)) = 'closed' THEN 1 ELSE 0 END) as closed_sessions"
-                )
-                ->first()
+                    ),
+                fn ($query) => $this->applyBranch($query, $branchId, 'branch_id')
+            )->first()
             : null;
         $sessionTotal = (int) ($sessionAggregate->total_sessions ?? 0);
         $openSessions = (int) ($sessionAggregate->open_sessions ?? 0);
@@ -102,8 +111,9 @@ class DashboardQueryService
             ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('sold_qty')
-            ->limit(5)
-            ->get();
+            ->limit(5);
+        $this->applyBranch($topMenusToday, $branchId, 'transactions.branch_id');
+        $topMenusToday = $topMenusToday->get();
 
         $bestSeller = $topMenusToday->first();
 
@@ -130,15 +140,17 @@ class DashboardQueryService
             ->select('id', 'transaction_code', 'total_amount', 'created_at')
             ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
             ->latest()
-            ->limit(10)
-            ->get();
+            ->limit(10);
+        $this->applyBranch($latestTransactions, $branchId, 'branch_id');
+        $latestTransactions = $latestTransactions->get();
 
         $dailySalesRaw = Transaction::query()
             ->selectRaw('DATE(created_at) as sale_date, COALESCE(SUM(total_amount), 0) as omzet')
             ->whereBetween('created_at', [$last7Start->toDateTimeString(), $todayEnd->toDateTimeString()])
             ->groupByRaw('DATE(created_at)')
-            ->orderByRaw('DATE(created_at) asc')
-            ->get()
+            ->orderByRaw('DATE(created_at) asc');
+        $this->applyBranch($dailySalesRaw, $branchId, 'branch_id');
+        $dailySalesRaw = $dailySalesRaw->get()
             ->keyBy('sale_date');
 
         $salesLast7Days = collect(range(6, 0))
@@ -163,6 +175,14 @@ class DashboardQueryService
         });
 
         return [
+            'branchId' => $branchId,
+            'branchOptions' => $branchOptions,
+            'selectedBranch' => $selectedBranch,
+            'branchScopeLabel' => $selectedBranch->name ?? 'Semua Cabang',
+            'branchScopeDescription' => $selectedBranch
+                ? 'Data dashboard mengikuti cabang aktif yang dipilih.'
+                : 'Data dashboard menampilkan gabungan semua cabang aktif.',
+            'activeBranchCount' => $branchOptions->count(),
             'todayRevenue' => $todayRevenue,
             'todayTransactionsCount' => $todayTransactionsCount,
             'target' => $target,
@@ -212,6 +232,22 @@ class DashboardQueryService
         }
 
         return trim($formatted . ' ' . $displayUnit);
+    }
+
+    private function applyBranch($query, ?int $branchId, string $column): void
+    {
+        if (($branchId ?? 0) <= 0) {
+            return;
+        }
+
+        $table = str_contains($column, '.') ? explode('.', $column, 2)[0] : null;
+        $columnName = str_contains($column, '.') ? explode('.', $column, 2)[1] : $column;
+
+        if ($table && ! Schema::hasColumn($table, $columnName)) {
+            return;
+        }
+
+        BranchScope::apply($query, $branchId, $column);
     }
 }
 
