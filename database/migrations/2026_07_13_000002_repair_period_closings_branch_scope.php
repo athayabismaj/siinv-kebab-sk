@@ -69,6 +69,11 @@ return new class extends Migration {
                 ->exists();
         }
 
+        if ($driver === 'sqlite') {
+            return collect(DB::select("PRAGMA index_list('period_closings')"))
+                ->contains(fn ($index) => (string) ($index->name ?? '') === $indexName);
+        }
+
         $database = DB::getDatabaseName();
 
         return (bool) DB::table('information_schema.statistics')
