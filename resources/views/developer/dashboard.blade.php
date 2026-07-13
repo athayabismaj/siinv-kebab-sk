@@ -145,24 +145,17 @@
 @endpush
 
 <div class="developer-dashboard space-y-3">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <nav class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                <span class="text-blue-600 dark:text-blue-400">Super Admin</span>
-                <span>/</span>
-                <span>Ringkasan Sistem</span>
-            </nav>
-            <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white">Dashboard Super Admin</h1>
-            <p class="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                Pantau akun, backup, dan status teknis sistem dari satu tempat.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Dashboard Super Admin" 
+        subtitle="Pantau akun, backup, dan status teknis sistem dari satu tempat." 
+        breadcrumb-parent="Super Admin" 
+        breadcrumb-child="Ringkasan Sistem">
+        
         <div class="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
             <svg class="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M6 21h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             {{ now()->translatedFormat('d F Y') }}
         </div>
-    </header>
+    </x-page-header>
 
     <section class="developer-dashboard-status gap-2.5">
         <article class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">

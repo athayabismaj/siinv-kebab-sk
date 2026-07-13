@@ -211,25 +211,12 @@
 @endpush
 
 <div class="space-y-5 max-w-full overflow-x-hidden">
-    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="min-w-0">
-            <nav class="mb-2 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span>/</span>
-                <span>Kasir</span>
-                <span>/</span>
-                <span class="text-blue-600 dark:text-blue-400">Riwayat Transaksi</span>
-            </nav>
-
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Riwayat Transaksi
-            </h1>
-
-            <p class="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                Pantau transaksi kasir berdasarkan periode, pencarian kode, dan filter kasir.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Riwayat Transaksi" 
+        subtitle="Pantau transaksi kasir berdasarkan periode, pencarian kode, dan filter kasir." 
+        breadcrumb-parent="Kasir" 
+        breadcrumb-child="Riwayat Transaksi">
+        
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 mt-2 lg:mt-0">
             <div class="inline-flex w-full sm:w-auto items-center justify-center sm:justify-start gap-2 rounded-full bg-blue-50 border border-blue-100/50 px-3 py-1.5 dark:bg-blue-500/10 dark:border-blue-800/30 shadow-sm">
                 <span class="relative flex h-2 w-2">
@@ -246,7 +233,7 @@
                 </span>
             </div>
         </div>
-    </header>
+    </x-page-header>
 
     <form method="GET" action="{{ route($routePrefix.'.index') }}" id="filter-form" class="relative z-10">
         <div class="flex flex-col gap-3">

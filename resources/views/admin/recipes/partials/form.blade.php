@@ -1,4 +1,4 @@
-<form method="POST" action="{{ route('admin.recipes.update', $variant->id) }}" class="space-y-6" x-data="{ submitting: false }" @submit="submitting = true">
+<form method="POST" action="{{ route('admin.recipes.update', $variant->id) }}" class="space-y-6" x-data="{ submitting: false, selectedCategory: 'all', openCategory: {{ $firstActiveCategory?->id ?? 'null' }} }" @submit="submitting = true">
     @csrf
     @method('PUT')
 
@@ -19,8 +19,18 @@
         });
     @endphp
 
+    {{-- FILTER KATEGORI (DROPDOWN) --}}
+    <div class="flex flex-col sm:flex-row justify-end mb-4">
+        <select x-model="selectedCategory" class="w-full sm:w-64 h-11 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+            <option value="all">Semua Kategori</option>
+            @foreach($ingredientCategories as $category)
+                <option value="{{ $category->id }}">{{ $category->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
     {{-- ACCORDION KATEGORI BAHAN --}}
-    <div x-data="{ openCategory: {{ $firstActiveCategory?->id ?? 'null' }} }" class="space-y-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
         
         @foreach($ingredientCategories as $category)
             @php
@@ -30,37 +40,38 @@
                 })->count();
             @endphp
 
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all duration-200">
+            <div x-show="selectedCategory == 'all' || selectedCategory == {{ $category->id }}" class="bg-white dark:bg-slate-900 transition-all duration-200">
                 
                 {{-- HEADER KATEGORI --}}
                 <button type="button"
-                        @click="openCategory === {{ $category->id }} ? openCategory = null : openCategory = {{ $category->id }}"
-                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left bg-slate-50/50 hover:bg-slate-100 dark:bg-slate-800/30 dark:hover:bg-slate-800/50 transition-colors group">
+                        @click="openCategory == {{ $category->id }} ? openCategory = null : openCategory = {{ $category->id }}"
+                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
                     
                     <div class="flex items-center gap-3">
-                        <span class="font-bold text-slate-800 dark:text-white text-[15px]">
+                        <span class="text-[12px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">
                             {{ $category->name }}
                         </span>
-                        
+                    </div>
+
+                    <div class="flex items-center gap-4">
                         @if($activeCount > 0)
-                            <span class="px-2.5 py-0.5 rounded-md bg-blue-50 border border-blue-100 dark:bg-blue-900/30 dark:border-blue-800/50 text-[10px] font-bold text-blue-600 dark:text-blue-400 tracking-wider shadow-sm transition-all duration-300"
-                                  :class="openCategory === {{ $category->id }} ? 'scale-105 shadow-md' : ''">
+                            <span class="px-2.5 py-0.5 rounded-md bg-blue-50/50 dark:bg-blue-500/10 text-[10px] font-bold text-blue-700 dark:text-blue-400 tracking-wider transition-all duration-300">
                                 Terpilih: {{ $activeCount }}
                             </span>
                         @endif
-                    </div>
 
-                    <div class="h-6 w-6 flex items-center justify-center rounded-full bg-white border border-slate-200 shadow-sm dark:bg-slate-800 dark:border-slate-700 text-slate-500 shrink-0 group-hover:bg-slate-50 dark:group-hover:bg-slate-700 transition-colors">
-                        <svg :class="openCategory === {{ $category->id }} ? 'rotate-180' : ''"
-                             class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        <div class="h-6 w-6 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 shrink-0 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
+                            <svg :class="openCategory == {{ $category->id }} ? 'rotate-180' : ''"
+                                 class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
                     </div>
                 </button>
 
-                {{-- INPUT BAHAN (GRID) --}}
-                <div x-show="openCategory === {{ $category->id }}" x-collapse x-cloak class="border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <div class="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {{-- INPUT BAHAN (FLEX FILL) --}}
+                <div x-show="openCategory == {{ $category->id }}" x-collapse x-cloak class="border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div class="p-5 sm:p-6 flex flex-wrap gap-4">
 
                         @foreach($category->ingredients as $ingredient)
                             @php
@@ -70,15 +81,15 @@
                             @endphp
                             <input type="hidden" name="visible_ingredients[]" value="{{ $ingredient->id }}">
 
-                            <div class="relative p-4 rounded-xl border transition-all duration-200
+                            <div class="flex-1 basis-[calc(33.333%-1rem)] min-w-[240px] relative p-4 rounded-2xl transition-all duration-200
                                         {{ $quantity > 0 
-                                            ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50 shadow-sm' 
-                                            : ($hasError ? 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-300 dark:border-rose-800/50' : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600') }}">
+                                            ? 'bg-blue-50/40 border border-blue-100/50 dark:bg-blue-900/10 dark:border-blue-800/30 shadow-[0_2px_10px_-3px_rgba(59,130,246,0.1)]' 
+                                            : ($hasError ? 'bg-rose-50/50 border border-rose-200 dark:bg-rose-900/10 dark:border-rose-800/50' : 'bg-slate-50/50 border border-slate-100 hover:bg-slate-50 hover:border-slate-200 dark:bg-slate-800/20 dark:border-slate-700/50 dark:hover:border-slate-700') }}">
                                 
                                 <div class="flex flex-col gap-3">
                                     {{-- Nama Bahan --}}
                                     <div>
-                                        <p class="text-[13px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                                        <p class="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 leading-tight">
                                             {{ $ingredient->name }}
                                         </p>
                                     </div>
@@ -92,10 +103,10 @@
                                                    name="ingredients[{{ $ingredient->id }}]"
                                                    value="{{ old('ingredients.' . $ingredient->id, $quantity > 0 ? (float) $quantity : '') }}"
                                                    placeholder="0.00"
-                                                   class="w-full rounded-lg border {{ $hasError ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10' : 'border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/10' }} bg-white py-2 pl-3 pr-10 text-slate-900 shadow-sm outline-none transition dark:bg-slate-900 dark:text-white sm:text-sm tabular-nums">
+                                                   class="w-full rounded-xl border-0 ring-1 ring-inset {{ $hasError ? 'ring-rose-200 focus:ring-rose-500/20' : 'ring-slate-200 dark:ring-slate-700 focus:ring-blue-500/20' }} bg-white dark:bg-slate-900 py-2.5 pl-3 pr-12 text-slate-900 dark:text-white font-bold shadow-sm outline-none transition focus:ring-2 sm:text-sm tabular-nums">
                                             
                                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">{{ $ingredient->base_unit }}</span>
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ $ingredient->base_unit }}</span>
                                             </div>
                                         </div>
                                     </div>

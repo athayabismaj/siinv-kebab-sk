@@ -30,37 +30,28 @@
     @keydown.escape.window="restoreUploadOpen = false; restoreHistoryOpen = false"
     class="space-y-4">
 
-    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-            <nav class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                <a href="{{ route('developer.panel') }}" class="transition hover:text-blue-600 dark:hover:text-blue-400">Super Admin</a>
-                <span>/</span>
-                <span class="text-blue-600 dark:text-blue-400">Backup Database</span>
-            </nav>
-            <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white">Manajemen Backup</h1>
-            <p class="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                Kelola backup, unduh arsip, dan restore database dengan konfirmasi aman.
-            </p>
-        </div>
+    <x-page-header 
+        title="Manajemen Backup" 
+        subtitle="Kelola backup, unduh arsip, dan restore database dengan konfirmasi aman." 
+        breadcrumb-parent="Super Admin" 
+        breadcrumb-child="Backup Database">
+        
+        <button type="button"
+                @click="restoreUploadOpen = true"
+                class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Restore Manual
+        </button>
 
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <button type="button"
-                    @click="restoreUploadOpen = true"
-                    class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                Restore Manual
+        <form action="{{ route('developer.backups.create') }}" method="POST">
+            @csrf
+            <button type="submit"
+                    class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14"></path></svg>
+                Backup Baru
             </button>
-
-            <form action="{{ route('developer.backups.create') }}" method="POST">
-                @csrf
-                <button type="submit"
-                        class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14"></path></svg>
-                    Backup Baru
-                </button>
-            </form>
-        </div>
-    </header>
+        </form>
+    </x-page-header>
 
     <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         @foreach([

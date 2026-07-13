@@ -9,37 +9,18 @@
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
-    {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex-1 w-full overflow-hidden">
-            
-            {{-- BREADCRUMB --}}
-            <nav class="flex items-center gap-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 overflow-x-auto pb-1">
-                <a href="{{ route('admin.panel') }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">Kasir & Stok</span>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Stok Harian</a>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">Tutup Sesi</span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-                Tutup Sesi Harian Kasir
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Silakan lakukan opname fisik dan masukkan jumlah aktual bahan yang tersisa di outlet sebelum menutup sesi.
-            </p>
-        </div>
-
-        <div class="shrink-0 mt-2 sm:mt-0">
-            <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}"
-               class="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-[13px] font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 transition-all shadow-sm">
-                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                Kembali ke Sesi
-            </a>
-        </div>
-    </div>
+    <x-page-header 
+        title="Tutup Sesi Harian Kasir" 
+        subtitle="Silakan lakukan opname fisik dan masukkan jumlah aktual bahan yang tersisa di outlet sebelum menutup sesi." 
+        breadcrumb-parent="Kasir & Stok" 
+        breadcrumb-child="Tutup Sesi">
+        
+        <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}"
+           class="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-[13px] font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 transition-all shadow-sm">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Kembali ke Sesi
+        </a>
+    </x-page-header>
 
     {{-- ================= INFO SESI (BANNER) ================= --}}
     <div class="flex items-center justify-between p-4 md:p-5 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-2xl shadow-sm">

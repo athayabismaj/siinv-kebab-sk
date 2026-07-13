@@ -159,26 +159,17 @@
 @endphp
 
 <div class="transaction-detail-shell space-y-5 pb-10">
-    <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="min-w-0">
-            <nav class="mb-2 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Beranda</a>
-                <span>/</span>
-                <a href="{{ route($routePrefix.'.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Riwayat Transaksi</a>
-                <span>/</span>
-                <span class="text-blue-600 dark:text-blue-400">Detail Transaksi</span>
-            </nav>
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Detail Transaksi</h1>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                    <span class="h-1.5 w-1.5 rounded-full {{ $isVoid ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
-                    {{ $statusLabel }}
-                </span>
-                <span class="font-mono text-sm font-bold text-slate-500 dark:text-slate-400 break-all">{{ $transaction->transaction_code }}</span>
-            </div>
-        </div>
-
+    <x-page-header 
+        title="Detail Transaksi" 
+        breadcrumb-parent="Riwayat Transaksi" 
+        breadcrumb-child="Detail Transaksi">
+        
         <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                <span class="h-1.5 w-1.5 rounded-full {{ $isVoid ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
+                {{ $statusLabel }}
+            </span>
+            <span class="font-mono text-sm font-bold text-slate-500 dark:text-slate-400 break-all mr-2">{{ $transaction->transaction_code }}</span>
             <button type="button" onclick="window.print()"
                     class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H9v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
@@ -190,7 +181,7 @@
                 Kembali
             </a>
         </div>
-    </header>
+    </x-page-header>
 
     <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <article class="transaction-detail-card tone-blue">

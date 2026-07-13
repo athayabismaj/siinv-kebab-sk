@@ -9,36 +9,12 @@
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
-    {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="flex-1 w-full overflow-hidden">
-            
-            {{-- BREADCRUMB (Anti Pecah di Mobile) --}}
-            <nav class="flex items-center gap-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 overflow-x-auto pb-1">
-                <a href="{{ route('admin.panel') }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    Beranda
-                </a>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                
-                <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">
-                    Kasir & Stok
-                </span>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                
-                <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">
-                    Stok Harian Kasir
-                </span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-                Stok Harian Kasir
-            </h1>
-
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Kelola sesi harian operasional kasir. Buka sesi baru, transfer stok dari gudang utama, dan tutup sesi dengan memasukkan sisa akhir bahan baku.
-            </p>
-        </div>
-    </div>
+    <x-page-header 
+        title="Stok Harian Kasir" 
+        subtitle="Kelola sesi harian operasional kasir. Buka sesi baru, transfer stok dari gudang utama, dan tutup sesi dengan memasukkan sisa akhir bahan baku." 
+        breadcrumb-parent="Kasir & Stok" 
+        breadcrumb-child="Stok Harian Kasir">
+    </x-page-header>
 
     @php
         $todayDate = now()->startOfDay();

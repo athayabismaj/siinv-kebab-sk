@@ -211,25 +211,12 @@
 @endpush
 
 <div class="space-y-5 max-w-full overflow-x-hidden">
-    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="min-w-0">
-            <nav class="mb-2 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span>/</span>
-                <span>Riwayat</span>
-                <span>/</span>
-                <span class="text-blue-600 dark:text-blue-400">Riwayat Transaksi</span>
-            </nav>
-
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Riwayat Transaksi
-            </h1>
-
-            <p class="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                Pantau transaksi berdasarkan periode, pencarian kode, dan filter kasir.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Riwayat Transaksi" 
+        subtitle="Pantau transaksi berdasarkan periode, pencarian kode, dan filter kasir." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Riwayat Transaksi">
+        
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 mt-2 lg:mt-0">
             <div class="inline-flex w-full sm:w-auto items-center justify-center sm:justify-start gap-2 rounded-full bg-blue-50 border border-blue-100/50 px-3 py-1.5 dark:bg-blue-500/10 dark:border-blue-800/30 shadow-sm">
                 <span class="relative flex h-2 w-2">
@@ -246,7 +233,7 @@
                 </span>
             </div>
         </div>
-    </header>
+    </x-page-header>
 
     <form method="GET" action="{{ route($routePrefix.'.index') }}" id="filter-form" class="relative z-10">
         <div class="flex flex-col gap-3">
@@ -350,58 +337,70 @@
         </div>
     </form>
 
-    <div class="transaction-monitor-summary">
-        <article class="transaction-monitor-card tone-blue">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Jumlah Transaksi</p>
-                    <p class="transaction-monitor-value">{{ number_format($totalTransactions, 0, ',', '.') }}</p>
-                    <p class="transaction-monitor-note">transaksi tercatat</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {{-- Jumlah Transaksi --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Jumlah Transaksi</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ number_format($totalTransactions, 0, ',', '.') }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5h6M9 12h6m-6 7h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5h6M9 12h6m-6 7h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>transaksi tercatat</span>
+            </div>
+        </div>
 
-        <article class="transaction-monitor-card tone-emerald">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Omzet</p>
-                    <p class="transaction-monitor-value">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
-                    <p class="transaction-monitor-note">total penjualan</p>
+        {{-- Omzet --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Omzet</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ number_format($totalRevenue, 0, ',', '.') }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 10v-1m9-4a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-emerald-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 10v-1m9-4a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>Rp - total penjualan</span>
+            </div>
+        </div>
 
-        <article class="transaction-monitor-card tone-violet">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Rata-rata Transaksi</p>
-                    <p class="transaction-monitor-value">Rp {{ number_format($avgTransaction, 0, ',', '.') }}</p>
-                    <p class="transaction-monitor-note">nilai rata-rata</p>
+        {{-- Rata-rata Transaksi --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Rata-rata Transaksi</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ number_format($avgTransaction, 0, ',', '.') }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19V5m4 14v-7m4 7V9m4 10v-4m4 4H3"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-violet-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19V5m4 14v-7m4 7V9m4 10v-4m4 4H3"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>Rp - nilai rata-rata</span>
+            </div>
+        </div>
 
-        <article class="transaction-monitor-card tone-amber">
-            <div class="relative z-10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p class="transaction-monitor-label">Kasir Teraktif</p>
-                    <p class="transaction-monitor-value truncate">{{ $topCashierName }}</p>
-                    <p class="transaction-monitor-note">paling banyak transaksi</p>
+        {{-- Kasir Teraktif --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
+                <div class="min-w-0 pr-2">
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Kasir Teraktif</p>
+                    <p class="mt-2 text-[26px] leading-none font-black text-slate-900 tabular-nums truncate dark:text-white">{{ $topCashierName }}</p>
                 </div>
-                <span class="transaction-monitor-icon">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-amber-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </span>
             </div>
-        </article>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>paling banyak transaksi</span>
+            </div>
+        </div>
     </div>
 
     @forelse($groupedTransactions as $date => $items)

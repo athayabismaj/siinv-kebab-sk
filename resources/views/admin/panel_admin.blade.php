@@ -141,24 +141,41 @@
 @endpush
 
 <div class="admin-dashboard space-y-3">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <nav class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                <span class="text-blue-600 dark:text-blue-400">Admin</span>
-                <span>/</span>
-                <span>Ringkasan Operasional</span>
-            </nav>
-            <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white">Dashboard Admin</h1>
-            <p class="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                Pantau penjualan, stok, dan sesi kasir dari satu tempat.
-            </p>
+    <x-page-header 
+        title="Dashboard Admin" 
+        subtitle="Pantau penjualan, stok, dan sesi kasir dari satu tempat." 
+        breadcrumb-parent="Admin" 
+        breadcrumb-child="Ringkasan Operasional">
+        
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                <svg class="h-4 w-4 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M6 21V7l6-4 6 4v14M9 21v-6h6v6"></path></svg>
+                {{ $branchScopeLabel ?? 'Semua Cabang' }}
+            </div>
+            <div class="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                <svg class="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M6 21h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                {{ now()->translatedFormat('d F Y') }}
+            </div>
         </div>
+    </x-page-header>
 
-        <div class="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-            <svg class="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M6 21h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            {{ now()->translatedFormat('d F Y') }}
+    <section class="rounded-lg border border-blue-100 bg-blue-50/70 px-4 py-3 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex min-w-0 items-start gap-3">
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-600 dark:border-blue-900/70 dark:bg-slate-900 dark:text-blue-300">
+                    <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M6 21V7l6-4 6 4v14M9 21v-6h6v6"></path></svg>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">Cabang Aktif</p>
+                    <p class="mt-0.5 truncate text-sm font-black text-slate-900 dark:text-white">{{ $branchScopeLabel ?? 'Semua Cabang' }}</p>
+                    <p class="mt-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">{{ $branchScopeDescription ?? 'Data operasional mengikuti cabang aktif.' }}</p>
+                </div>
+            </div>
+            <span class="inline-flex w-fit items-center rounded-md border border-blue-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:border-blue-900/70 dark:bg-slate-900 dark:text-blue-300">
+                {{ number_format($activeBranchCount ?? 0) }} Cabang Akses
+            </span>
         </div>
-    </header>
+    </section>
 
     <section class="admin-dashboard-kpis gap-2.5">
         @foreach([

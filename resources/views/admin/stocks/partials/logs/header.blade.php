@@ -9,38 +9,12 @@
     $description = $description ?? 'Jejak perubahan stok dari restok, pemakaian bahan, pengembalian stok, dan penyesuaian manual.';
 @endphp
 
-<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-2">
-    <div class="flex-1 w-full overflow-hidden">
-        <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px] hide-scrollbar">
-            <a href="{{ $homeRoute }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                {{ $homeLabel }}
-            </a>
-            <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-
-            <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">
-                {{ $sectionLabel }}
-            </span>
-            <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-
-            <a href="{{ $parentRoute }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                {{ $parentLabel }}
-            </a>
-            <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-
-            <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">
-                {{ $currentLabel }}
-            </span>
-        </nav>
-
-        <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-            {{ $title }}
-        </h1>
-
-        <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">
-            {{ $description }}
-        </p>
-    </div>
-
+<x-page-header 
+    title="{{ $title }}" 
+    subtitle="{{ $description }}" 
+    breadcrumb-parent="{{ $parentLabel }}" 
+    breadcrumb-child="{{ $currentLabel }}">
+    
     <div class="shrink-0 mt-1 lg:mt-8">
         <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 dark:bg-blue-500/10 border border-blue-100/50 dark:border-blue-800/30 shadow-sm">
             <span class="relative flex h-2 w-2">
@@ -53,4 +27,4 @@
             </span>
         </div>
     </div>
-</div>
+</x-page-header>

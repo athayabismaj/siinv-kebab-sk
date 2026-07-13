@@ -9,36 +9,12 @@
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
-    {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="flex-1 w-full overflow-hidden">
-            
-            {{-- BREADCRUMB (Anti Pecah di Mobile) --}}
-            <nav class="flex items-center gap-2.5 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 overflow-x-auto hide-scrollbar pb-1">
-                <a href="{{ route('admin.panel') }}" class="whitespace-nowrap hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    Beranda
-                </a>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                
-                <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">
-                    Pelaporan
-                </span>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                
-                <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">
-                    Laporan Stok Harian
-                </span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-                Laporan Stok Harian
-            </h1>
-
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Ringkasan akumulasi bahan baku yang dibawa, sisa di akhir sesi, total yang terpakai, serta estimasi nilai pemakaian per sesi kasir.
-            </p>
-        </div>
-    </div>
+    <x-page-header 
+        title="Laporan Stok Harian" 
+        subtitle="Ringkasan akumulasi bahan baku yang dibawa, sisa di akhir sesi, total yang terpakai, serta estimasi nilai pemakaian per sesi kasir." 
+        breadcrumb-parent="Pelaporan" 
+        breadcrumb-child="Laporan Stok Harian">
+    </x-page-header>
 
     {{-- ALERTS --}}
     @if(!empty($runtimeError))

@@ -6,31 +6,18 @@
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
     {{-- HEADER + BREADCRUMB --}}
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-2">
-        <div class="flex-1">
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                <a href="{{ route('developer.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Developer</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <a href="{{ route('developer.owners.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Manajemen Owner</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Tambah</span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">Tambah Akun Owner</h1>
-
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Buat akun baru dengan role <strong>Owner</strong> untuk mengakses panel owner.
-            </p>
-        </div>
-
-        <div class="shrink-0 w-full lg:w-auto mt-2 lg:mt-0">
-            <a href="{{ route('developer.owners.index') }}"
-               class="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-300 shadow-sm">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                Kembali
-            </a>
-        </div>
-    </div>
+    <x-page-header 
+        title="Tambah Akun Owner" 
+        subtitle="Buat akun baru dengan role Owner untuk mengakses panel owner." 
+        breadcrumb-parent="Developer" 
+        breadcrumb-child="Tambah Akun Owner">
+        
+        <a href="{{ route('developer.owners.index') }}"
+           class="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-300 shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Kembali
+        </a>
+    </x-page-header>
 
     {{-- VALIDATION ERRORS --}}
     @if ($errors->any())

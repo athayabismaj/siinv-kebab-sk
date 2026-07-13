@@ -67,25 +67,14 @@
 
 @section('content')
 <div class="transfer-stock-page w-full space-y-5 overflow-x-hidden pb-10">
-    {{-- ================= HEADER & SESSION SUMMARY ================= --}}
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-                <a href="{{ route('admin.panel') }}" class="whitespace-nowrap transition-colors hover:text-blue-600 dark:hover:text-blue-400">Beranda</a>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}" class="whitespace-nowrap transition-colors hover:text-blue-600 dark:hover:text-blue-400">Stok Harian</a>
-                <span class="shrink-0 text-slate-300 dark:text-slate-600">/</span>
-                <span class="whitespace-nowrap text-blue-600 dark:text-blue-400">Transfer Bahan</span>
-            </nav>
-
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white md:text-3xl">
-                Input Bahan Dibawa
-            </h1>
-            <p class="mt-2 max-w-3xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                Transfer stok dari gudang utama ke sesi kasir. Isi hanya bahan yang benar-benar dibawa untuk operasional hari ini.
-            </p>
-
-            <div class="mt-4 flex flex-wrap items-center gap-2">
+    <x-page-header 
+        title="Input Bahan Dibawa" 
+        subtitle="Transfer stok dari gudang utama ke sesi kasir. Isi hanya bahan yang benar-benar dibawa untuk operasional hari ini." 
+        breadcrumb-parent="Stok Harian" 
+        breadcrumb-child="Transfer Bahan">
+        
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
                     <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
                         <span class="block translate-x-px translate-y-[0.5px] text-[10px] font-black leading-none">
@@ -102,14 +91,14 @@
                     Sesi #{{ $session->id }} Buka
                 </span>
             </div>
-        </div>
 
-        <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}"
-           class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-            <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Kembali ke Sesi
-        </a>
-    </div>
+            <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}"
+               class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Kembali ke Sesi
+            </a>
+        </div>
+    </x-page-header>
 
     {{-- ================= ALERTS ================= --}}
     @include('partials.flash_alerts', ['class' => 'w-full space-y-2'])

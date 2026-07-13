@@ -36,24 +36,12 @@
 @endphp
 
 <div class="space-y-8 max-w-full overflow-x-hidden">
-    {{-- HEADER --}}
-    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between mb-2">
-        <div class="flex-1">
-            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Analisis Menu</span>
-            </nav>
-
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-                Analisis Menu
-            </h1>
-
-            <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">
-                Pantau performa penjualan menu berdasarkan periode harian, mingguan, atau bulanan.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Analisis Menu" 
+        subtitle="Pantau performa penjualan menu berdasarkan periode harian, mingguan, atau bulanan." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Analisis Menu">
+        
         {{-- PERIODE BADGE (kanan atas) --}}
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 mt-2 lg:mt-0">
             <div class="inline-flex w-full sm:w-auto items-center justify-center sm:justify-start gap-2 rounded-full bg-blue-50 border border-blue-100/50 px-3 py-1.5 dark:bg-blue-500/10 dark:border-blue-800/30 shadow-sm">
@@ -67,7 +55,7 @@
                 </span>
             </div>
         </div>
-    </div>
+    </x-page-header>
 
     {{-- FILTER SECTION --}}
     <div class="relative z-10 py-2 mb-6">
@@ -129,55 +117,67 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div class="relative p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl group hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
-            <div class="relative flex items-start justify-between">
+        {{-- Menu Terlaris --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3">Menu Terlaris</p>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Menu Terlaris</p>
                     @if($topMenu)
-                        <p class="text-xl font-black text-slate-900 dark:text-white leading-tight mb-1">{{ $topMenu->menu_name }}</p>
-                        <p class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ number_format($topMenu->total_qty, 0, ',', '.') }} terjual</p>
+                        <p class="mt-2 text-[22px] leading-tight font-black text-slate-900 dark:text-white">{{ $topMenu->menu_name }}</p>
                     @else
-                        <p class="text-sm font-medium text-slate-400 italic">Belum ada data</p>
+                        <p class="mt-2 text-[22px] leading-tight font-black text-slate-400 italic">Belum ada data</p>
                     @endif
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7"></path></svg>
-                </div>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-emerald-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7"></path></svg>
+                </span>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                @if($topMenu)
+                    <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ number_format($topMenu->total_qty, 0, ',', '.') }} terjual</span>
+                @else
+                    <span>-</span>
+                @endif
             </div>
         </div>
 
-        <div class="relative p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl group hover:border-amber-500/30 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-500 overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 dark:bg-amber-400/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
-            <div class="relative flex items-start justify-between">
+        {{-- Menu Kurang Laris --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3">Menu Kurang Laris</p>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Menu Kurang Laris</p>
                     @if($leastMenu)
-                        <p class="text-xl font-black text-slate-900 dark:text-white leading-tight mb-1">{{ $leastMenu->menu_name }}</p>
-                        <p class="text-sm font-bold text-amber-600 dark:text-amber-400">{{ number_format($leastMenu->total_qty, 0, ',', '.') }} terjual</p>
+                        <p class="mt-2 text-[22px] leading-tight font-black text-slate-900 dark:text-white">{{ $leastMenu->menu_name }}</p>
                     @else
-                        <p class="text-sm font-medium text-slate-400 italic">Belum ada data</p>
+                        <p class="mt-2 text-[22px] leading-tight font-black text-slate-400 italic">Belum ada data</p>
                     @endif
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-8l-7 7-7-7"></path></svg>
-                </div>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-amber-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-8l-7 7-7-7"></path></svg>
+                </span>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                @if($leastMenu)
+                    <span class="text-amber-600 dark:text-amber-400 font-bold">{{ number_format($leastMenu->total_qty, 0, ',', '.') }} terjual</span>
+                @else
+                    <span>-</span>
+                @endif
             </div>
         </div>
 
-        <div class="relative p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl group hover:border-violet-500/30 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500 overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-violet-500/5 dark:bg-violet-400/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
-            <div class="relative flex items-start justify-between">
+        {{-- Total Item Terjual --}}
+        <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3">Total Item Terjual</p>
-                    <div class="flex items-baseline gap-1">
-                        <p class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{{ number_format($totalMenuSold, 0, ',', '.') }}</p>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-0.5">item</span>
-                    </div>
+                    <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Total Item Terjual</p>
+                    <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ number_format($totalMenuSold, 0, ',', '.') }}</p>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <svg class="w-6 h-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </div>
+                <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-violet-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </span>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                <span>seluruh item dari semua kategori</span>
             </div>
         </div>
     </div>

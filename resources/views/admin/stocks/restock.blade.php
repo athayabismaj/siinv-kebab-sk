@@ -8,46 +8,39 @@
     $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
     $currentStockPcs = (float) $ingredient->stock;
     $currentDisplayStock = $isPackMode ? ($currentStockPcs / $packSize) : (float) $ingredient->converted_stock;
+@extends('layouts.app')
+
+@section('title', 'Restok Bahan')
+
+@section('content')
+@php
+    $isPackMode = ($ingredient->display_unit ?? '') === 'pcs' && (int) ($ingredient->pack_size ?? 1) > 1;
+    $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
+    $currentStockPcs = (float) $ingredient->stock;
+    $currentDisplayStock = $isPackMode ? ($currentStockPcs / $packSize) : (float) $ingredient->converted_stock;
     $displayUnit = $isPackMode ? 'pack' : $ingredient->display_unit;
     $selectedInputUnit = old('input_unit', $isPackMode ? 'pack' : $displayUnit);
 @endphp
 
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
-    {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-6 flex items-start justify-between">
-        <div>
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-slate-500 dark:text-slate-400">Inventori</span>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <a href="{{ route('admin.stocks.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Restok & Penyesuaian</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Restok</span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-                Restok Bahan
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Tambahkan jumlah stok bahan baku baru ke dalam sistem inventaris.
-            </p>
-        </div>
-
-        {{-- Optional: Tombol Back Kanan Atas (Konsistensi dengan halaman Penyesuaian) --}}
+    <x-page-header 
+        title="Restok Bahan" 
+        subtitle="Tambahkan jumlah stok bahan baku baru ke dalam sistem inventaris." 
+        breadcrumb-parent="Restok & Penyesuaian" 
+        breadcrumb-child="Restok">
+        
         <a href="{{ route('admin.stocks.index') }}" class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition shadow-sm">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
         </a>
-    </div>
+    </x-page-header>
 
     {{-- ================= CARD MAIN ================= --}}
     <div class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
 
         <style>
-            /* Custom thin scrollbar for dark mode immersion */
             ::-webkit-scrollbar { width: 6px; height: 6px; }
             ::-webkit-scrollbar-track { background: transparent; }
             ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }

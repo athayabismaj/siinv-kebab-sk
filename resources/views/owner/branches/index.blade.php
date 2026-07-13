@@ -8,28 +8,20 @@
 
 @section('content')
 <div class="space-y-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Beranda</a>
-                <span class="text-slate-200 dark:text-slate-700">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Cabang Operasional</span>
-            </nav>
-
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Manajemen Cabang</h1>
-            <p class="mt-2 max-w-3xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                Kelola daftar cabang yang digunakan untuk memetakan admin, kasir, transaksi, sesi stok harian, dan laporan operasional.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Manajemen Cabang" 
+        subtitle="Kelola daftar cabang yang digunakan untuk memetakan admin, kasir, transaksi, sesi stok harian, dan laporan operasional." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Cabang">
+        
         @if(!($migrationMissing ?? false))
             <a href="{{ route('owner.branches.create') }}"
-               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
+               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 shrink-0">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                 Tambah Cabang
             </a>
         @endif
-    </div>
+    </x-page-header>
 
     @if($migrationMissing ?? false)
         <div class="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-5 dark:border-amber-500/30 dark:bg-amber-500/10">
@@ -40,17 +32,52 @@
         </div>
     @else
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-400">Total Cabang</p>
-                <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white">{{ $summary['total'] ?? $branches->total() }}</p>
+            {{-- Total Cabang --}}
+            <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Total Cabang</p>
+                        <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ $summary['total'] ?? $branches->total() }}</p>
+                    </div>
+                    <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </span>
+                </div>
+                <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                    <span>seluruh cabang terdaftar</span>
+                </div>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-400">Cabang Aktif</p>
-                <p class="mt-2 text-3xl font-black text-emerald-600 dark:text-emerald-400">{{ $summary['active'] ?? 0 }}</p>
+
+            {{-- Cabang Aktif --}}
+            <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Cabang Aktif</p>
+                        <p class="mt-2 text-[28px] leading-none font-black text-emerald-600 tabular-nums dark:text-emerald-400">{{ $summary['active'] ?? 0 }}</p>
+                    </div>
+                    <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-emerald-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </span>
+                </div>
+                <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                    <span>cabang beroperasi normal</span>
+                </div>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-400">Cabang Nonaktif</p>
-                <p class="mt-2 text-3xl font-black text-slate-500 dark:text-slate-400">{{ $summary['inactive'] ?? 0 }}</p>
+
+            {{-- Cabang Nonaktif --}}
+            <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Cabang Nonaktif</p>
+                        <p class="mt-2 text-[28px] leading-none font-black text-slate-600 tabular-nums dark:text-slate-400">{{ $summary['inactive'] ?? 0 }}</p>
+                    </div>
+                    <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </span>
+                </div>
+                <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
+                    <span>cabang sedang tidak beroperasi</span>
+                </div>
             </div>
         </div>
 

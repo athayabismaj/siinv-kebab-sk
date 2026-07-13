@@ -2,19 +2,13 @@
 
 @section('content')
 <div class="space-y-6 pb-10">
-    <!-- Header & Date Filter -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <div class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Target Harian</span>
-            </div>
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Target Harian</h1>
-            <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl">Pantau performa dan tetapkan target pencapaian harian.</p>
-        </div>
+    <x-page-header 
+        title="Target Harian" 
+        subtitle="Pantau performa dan tetapkan target pencapaian harian." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Target Harian">
         
-        <div class="flex items-center gap-1.5 sm:gap-2" x-data x-ref="filterFormWrapper">
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0" x-data x-ref="filterFormWrapper">
             <a href="{{ route('owner.targets.index', ['date' => $selectedDate->copy()->subDay()->toDateString()]) }}" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none flex items-center justify-center">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
             </a>
@@ -29,7 +23,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
             </a>
         </div>
-    </div>
+    </x-page-header>
 
     <!-- Alerts -->
     @if($errors->any())

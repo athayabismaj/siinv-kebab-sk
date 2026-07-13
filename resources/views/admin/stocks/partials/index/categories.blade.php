@@ -1,4 +1,4 @@
-<div x-data="{ openCategory: null }" class="space-y-4">
+<div x-data="{ openCategory: null }" class="max-w-6xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
     @forelse($categories as $category)
         @if($category->ingredients->count())
             @php
@@ -6,13 +6,16 @@
                 $outCount = (int) ($summary['out'] ?? 0);
                 $lowCount = (int) ($summary['low'] ?? 0);
             @endphp
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all duration-200">
+            <div class="transition-colors duration-200" :class="openCategory === {{ $category->id }} ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''">
                 <button @click="openCategory === {{ $category->id }} ? openCategory = null : openCategory = {{ $category->id }}"
-                        class="w-full px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left bg-slate-50/50 hover:bg-slate-100 dark:bg-slate-800/30 dark:hover:bg-slate-800/50 transition-colors">
-
+                        class="w-full px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    
                     <div class="flex items-center gap-3">
+                        <div class="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        </div>
                         <span class="font-bold text-slate-800 dark:text-white text-[15px]">{{ $category->name }}</span>
-                        <span class="px-2.5 py-0.5 rounded-full bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 shadow-sm">
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-bold shadow-sm">
                             {{ $category->ingredients->count() }} Item
                         </span>
                     </div>
@@ -35,57 +38,67 @@
                     </div>
                 </button>
 
-                <div x-show="openCategory === {{ $category->id }}" x-collapse x-cloak class="border-t border-slate-200 dark:border-slate-800">
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 bg-slate-50/20 dark:bg-slate-900/20">
+                <div x-show="openCategory === {{ $category->id }}" x-collapse x-cloak class="border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/50 shadow-[inset_0_4px_6px_-4px_rgba(0,0,0,0.03)]">
+                    <div class="p-6 flex flex-wrap gap-5">
                         @foreach($category->ingredients as $item)
                             @php
                                 $meta = $item->stock_meta ?? [];
-                                $progress = (float) ($meta['progress_percent'] ?? 0);
                                 $isOut = (bool) ($meta['is_out'] ?? false);
                                 $isLow = (bool) ($meta['is_low'] ?? false);
                             @endphp
 
-                            <div class="flex flex-col bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
-                                <div class="absolute top-0 left-0 w-full h-1 {{ $isOut ? 'bg-red-500' : ($isLow ? 'bg-amber-500' : 'bg-emerald-500') }}"></div>
-
-                                <div class="flex justify-between items-start mb-4 mt-1">
-                                    <div class="pr-3">
-                                        <h3 class="font-bold text-slate-800 dark:text-white text-[15px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">{{ $item->name }}</h3>
-                                        <p class="text-[11px] font-semibold text-slate-400 mt-1">Min: {{ $meta['minimum_text'] ?? '0' }} {{ $meta['unit'] ?? '-' }}</p>
+                            <div class="flex-1 basis-[calc(100%)] md:basis-[calc(50%-1rem)] xl:basis-[calc(33.333%-1rem)] min-w-[280px] flex flex-col bg-white dark:bg-slate-900 p-0 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 relative overflow-hidden group">
+                                <div class="p-5 flex justify-between items-start">
+                                    {{-- Left Info --}}
+                                    <div class="pr-3 flex-1 min-w-0">
+                                        <h3 class="font-bold text-slate-800 dark:text-white text-[15px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight truncate">{{ $item->name }}</h3>
                                         
-                                        @if ($item->selling_price > 0)
-                                            @php
-                                                $priceUnit = match($item->display_unit ?? '') {
-                                                    'kg'  => '/kg',
-                                                    'l'   => '/liter',
-                                                    'g'   => '/gram',
-                                                    'ml'  => '/ml',
-                                                    'pcs' => '/pack',
-                                                    default => '',
-                                                };
-                                            @endphp
-                                            <div class="mt-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                                                Rp {{ number_format($item->selling_price, 0, ',', '.') }}<span class="text-[9px] font-normal text-emerald-500/80">{{ $priceUnit }}</span>
-                                            </div>
-                                        @endif
+                                        <div class="flex items-center flex-wrap gap-2 mt-2">
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                Min: {{ $meta['minimum_text'] ?? '0' }} {{ $meta['unit'] ?? '-' }}
+                                            </span>
+                                            
+                                            @if ($item->selling_price > 0)
+                                                @php
+                                                    $priceUnit = match($item->display_unit ?? '') {
+                                                        'kg'  => '/kg',
+                                                        'l'   => '/liter',
+                                                        'g'   => '/gram',
+                                                        'ml'  => '/ml',
+                                                        'pcs' => '/pack',
+                                                        default => '',
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                                                    Rp {{ number_format($item->selling_price, 0, ',', '.') }}{{ $priceUnit }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
+                                        {{-- Status indicator dot --}}
+                                        <div class="flex items-center gap-1.5 mt-3">
+                                            <span class="h-2 w-2 rounded-full {{ $isOut ? 'bg-red-500' : ($isLow ? 'bg-amber-500' : 'bg-emerald-500') }}"></span>
+                                            <span class="text-[10px] font-bold {{ $isOut ? 'text-red-500' : ($isLow ? 'text-amber-500' : 'text-emerald-500') }} uppercase tracking-wider">
+                                                {{ $isOut ? 'Habis' : ($isLow ? 'Menipis' : 'Aman') }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="text-right flex flex-col items-end">
-                                        <span class="block text-[22px] font-black {{ $isOut ? 'text-red-600 dark:text-red-400' : ($isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white') }} tabular-nums leading-none">{{ $meta['stock_text'] ?? '0' }}</span>
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ $meta['unit'] ?? '-' }}</span>
+
+                                    {{-- Right Stock --}}
+                                    <div class="text-right flex flex-col items-end shrink-0 pl-3">
+                                        <span class="block text-[32px] font-black {{ $isOut ? 'text-red-600 dark:text-red-400' : ($isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white') }} tabular-nums leading-none tracking-tight">{{ $meta['stock_text'] ?? '0' }}</span>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{{ $meta['unit'] ?? '-' }}</span>
                                     </div>
                                 </div>
 
-                                <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 mb-5 overflow-hidden">
-                                    <div class="h-full rounded-full transition-all duration-500 {{ $isOut ? 'bg-red-500' : ($isLow ? 'bg-amber-500' : 'bg-emerald-500') }}" style="width: {{ $progress }}%"></div>
-                                </div>
-
-                                <div class="mt-auto flex gap-2.5 pt-1">
-                                    <a href="{{ route('admin.stocks.restock.form', $item->id) }}" class="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60 transition-all dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20">
+                                {{-- Footer Actions --}}
+                                <div class="mt-auto border-t border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 p-3 flex gap-2">
+                                    <a href="{{ route('admin.stocks.restock.form', $item->id) }}" class="flex-1 flex justify-center items-center gap-1.5 px-3 py-2 text-[11px] font-bold rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition-all dark:bg-blue-600 dark:hover:bg-blue-500 dark:text-white">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                                         Restok
                                     </a>
 
-                                    <a href="{{ route('admin.stocks.adjust.form', $item->id) }}" class="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 text-xs font-bold rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60 transition-all dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 dark:hover:bg-amber-500/20">
+                                    <a href="{{ route('admin.stocks.adjust.form', $item->id) }}" class="flex-1 flex justify-center items-center gap-1.5 px-3 py-2 text-[11px] font-bold rounded-xl bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 shadow-sm transition-all dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                         Sesuaikan
                                     </a>

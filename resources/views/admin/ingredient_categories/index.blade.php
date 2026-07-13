@@ -9,23 +9,12 @@
 @section('content')
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
-    {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Kategori Bahan</span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Kategori Bahan
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Kelola kategori bahan untuk pengelompokan dan organisasi inventory bahan baku.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Kategori Bahan" 
+        subtitle="Kelola kategori bahan untuk pengelompokan dan organisasi inventory bahan baku." 
+        breadcrumb-parent="Inventori" 
+        breadcrumb-child="Kategori Bahan">
+        
         <a href="{{ route('admin.ingredient-categories.create') }}"
            class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,7 +22,7 @@
             </svg>
             Tambah Kategori
         </a>
-    </div>
+    </x-page-header>
 
     @if($errors->any())
         <div class="flex items-start gap-3 rounded-2xl border border-rose-200 bg-white px-4 py-3 shadow-sm dark:border-rose-900/60 dark:bg-slate-900">

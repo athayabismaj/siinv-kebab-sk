@@ -148,33 +148,22 @@
     @keydown.escape.window="createOwnerOpen = false"
     class="w-full space-y-4 overflow-x-hidden pb-10">
 
-    <header class="owner-management-hero rounded-xl p-4 sm:p-5">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="min-w-0">
-                <nav class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                    <a href="{{ route('developer.panel') }}" class="transition hover:text-blue-600 dark:hover:text-blue-400">Super Admin</a>
-                    <span>/</span>
-                    <span class="text-blue-600 dark:text-blue-400">Manajemen Owner</span>
-                </nav>
-                <h1 class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-white">Manajemen Owner</h1>
-                <p class="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                    Kelola akun pemilik usaha, akses panel owner, dan status pembuatan akun dari satu halaman.
-                </p>
-            </div>
-
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <span class="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    {{ number_format($totalOwners) }} Owner
-                </span>
-                <button type="button"
-                        @click="createOwnerOpen = true"
-                        class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path></svg>
-                    Tambah Owner
-                </button>
-            </div>
-        </div>
-    </header>
+    <x-page-header 
+        title="Manajemen Owner" 
+        subtitle="Kelola akun pemilik usaha, akses panel owner, dan status pembuatan akun dari satu halaman." 
+        breadcrumb-parent="Super Admin" 
+        breadcrumb-child="Manajemen Owner">
+        
+        <span class="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            {{ number_format($totalOwners) }} Owner
+        </span>
+        <button type="button"
+                @click="createOwnerOpen = true"
+                class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/15 sm:w-auto">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path></svg>
+            Tambah Owner
+        </button>
+    </x-page-header>
 
     <section class="owner-management-stats">
         <article class="owner-management-stat">

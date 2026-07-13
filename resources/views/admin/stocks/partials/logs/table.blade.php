@@ -1,9 +1,9 @@
 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-    <div class="border-b border-slate-200 overflow-x-auto hide-scrollbar dark:border-slate-800 px-2 sm:px-6">
+    <div class="border-b border-slate-200 overflow-x-auto hide-scrollbar dark:border-slate-800 px-2 sm:px-6 bg-slate-50/30 dark:bg-slate-900">
         <nav class="flex flex-nowrap space-x-6" aria-label="Tabs">
             @foreach($typeTabs as $tab)
                 <a href="{{ $tab['href'] }}"
-                   class="{{ $tab['active'] ? $tab['active_class'] : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300' }} whitespace-nowrap border-b-2 py-4 px-1 text-[13px] font-bold transition-colors {{ $tab['dot_class'] ? 'flex items-center gap-2' : '' }}">
+                   class="{{ $tab['active'] ? 'border-slate-800 text-slate-900 dark:border-white dark:text-white' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300' }} whitespace-nowrap border-b-2 py-4 px-1 text-[13px] font-bold transition-colors {{ $tab['dot_class'] ? 'flex items-center gap-2' : '' }}">
                     @if($tab['dot_class'])
                         <span class="h-2 w-2 rounded-full {{ $tab['dot_class'] }}"></span>
                     @endif
@@ -15,48 +15,48 @@
 
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
-            <thead class="hidden md:table-header-group text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-800/30">
+            <thead class="hidden md:table-header-group text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                 <tr>
-                    <th class="px-6 py-4">Waktu</th>
-                    <th class="px-6 py-4">Bahan Baku</th>
-                    <th class="px-6 py-4 text-center">Tipe</th>
-                    <th class="px-6 py-4 text-right">Jumlah</th>
-                    <th class="px-6 py-4">Sumber / Catatan</th>
+                    <th class="px-6 py-4 font-black">Waktu</th>
+                    <th class="px-6 py-4 font-black">Bahan Baku</th>
+                    <th class="px-6 py-4 font-black text-center">Tipe</th>
+                    <th class="px-6 py-4 font-black text-right">Jumlah</th>
+                    <th class="px-6 py-4 font-black">Sumber / Catatan</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                 @forelse($groupedLogs as $group)
-                    <tr class="bg-slate-50/70 dark:bg-slate-800/30">
-                        <td colspan="5" class="px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    <tr class="bg-slate-50/50 dark:bg-slate-800/20">
+                        <td colspan="5" class="px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 border-y border-slate-100 dark:border-slate-800/60">
                             {{ $group['label'] }}
                         </td>
                     </tr>
 
                     @foreach($group['items'] as $log)
                         <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500 dark:text-slate-400">
                                 {{ $log->created_at->format('H:i') }}
                             </td>
                             <td class="px-6 py-4">
-                                <div class="font-bold text-slate-900 dark:text-white text-[13px]">{{ $log->ingredient->name ?? '-' }}</div>
+                                <div class="font-bold text-slate-800 dark:text-slate-200 text-[14px]">{{ $log->ingredient->name ?? '-' }}</div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider border {{ $log->display_type_badge_class }}">
+                                <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider {{ $log->display_type_badge_class }}">
                                     <span class="h-1.5 w-1.5 rounded-full {{ $log->display_type_dot_class }}"></span>
                                     {{ $log->display_type_label }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="font-black text-sm tabular-nums leading-none {{ $log->display_qty_text_class }}">
-                                    {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold ml-0.5">{{ $log->display_unit }}</span>
+                                <div class="font-black text-[15px] tabular-nums leading-none {{ $log->display_qty_text_class }}">
+                                    {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold ml-0.5 text-slate-400 dark:text-slate-500">{{ strtoupper($log->display_unit) }}</span>
                                 </div>
                                 @if($log->display_pack_text)
-                                    <div class="text-[10px] font-semibold text-slate-400 mt-1">({{ $log->display_pack_text }})</div>
+                                    <div class="text-[10px] font-bold text-slate-400 mt-1.5">({{ $log->display_pack_text }})</div>
                                 @endif
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ $log->display_source }}</div>
-                                <div class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{{ $log->display_note ?: '-' }}</div>
+                                <div class="text-[12px] font-bold text-slate-700 dark:text-slate-300">{{ $log->display_source }}</div>
+                                <div class="text-[11px] font-medium text-slate-400 mt-0.5 line-clamp-1">{{ $log->display_note ?: '-' }}</div>
                             </td>
                         </tr>
 
@@ -74,16 +74,17 @@
                                             </div>
                                         </div>
                                         <div class="text-right flex flex-col items-end">
-                                            <span class="font-black text-sm tabular-nums leading-none {{ $log->display_qty_text_class }}">
-                                                {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold ml-0.5">{{ $log->display_unit }}</span>
+                                            <span class="font-black text-[15px] tabular-nums leading-none {{ $log->display_qty_text_class }}">
+                                                {{ $log->display_qty_prefix }}{{ $log->display_qty }} <span class="text-[10px] font-bold ml-0.5 text-slate-400 dark:text-slate-500">{{ strtoupper($log->display_unit) }}</span>
                                             </span>
                                             @if($log->display_pack_text)
-                                                <div class="text-[10px] font-semibold text-slate-400 mt-1">({{ $log->display_pack_text }})</div>
+                                                <div class="text-[10px] font-bold text-slate-400 mt-1.5">({{ $log->display_pack_text }})</div>
                                             @endif
                                         </div>
                                     </div>
                                     <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/50">
-                                        <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border {{ $log->display_type_badge_class }}">
+                                        <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider {{ $log->display_type_badge_class }}">
+                                            <span class="h-1.5 w-1.5 rounded-full {{ $log->display_type_dot_class }}"></span>
                                             {{ $log->display_type_label }}
                                         </span>
                                         <span class="text-[11px] text-slate-500 italic line-clamp-1 text-right">{{ $log->display_note ?: 'Tanpa catatan' }}</span>

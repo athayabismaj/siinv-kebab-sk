@@ -38,26 +38,14 @@
 
 <div class="w-full space-y-8">
 
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 transition-colors">Beranda</a>
-                <span class="text-slate-200 dark:text-slate-800">/</span>
-                <a href="{{ route($routePrefix.'.index') }}" class="hover:text-blue-600 transition-colors">Riwayat</a>
-                <span class="text-slate-200 dark:text-slate-800">/</span>
-                <span class="text-slate-600 dark:text-slate-400">Detail Transaksi</span>
-            </nav>
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Detail Transaksi</h1>
-            <p class="text-slate-400 dark:text-slate-500 text-sm mt-3 flex items-center gap-2 flex-wrap">
-                <span class="w-1.5 h-1.5 rounded-full {{ $isVoid ? 'bg-amber-500' : 'bg-blue-500' }}"></span>
-                <span class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{{ $statusLabel }}</span>
-                <span class="font-mono font-bold text-slate-700 dark:text-slate-300 break-all">{{ $transaction->transaction_code }}</span>
-                <span class="text-slate-300 dark:text-slate-700">/</span>
-                <span>{{ $transaction->created_at->translatedFormat('d F Y, H:i') }}</span>
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Detail Transaksi" 
+        subtitle="Transaksi {{ $transaction->transaction_code }} pada {{ $transaction->created_at->translatedFormat('d F Y, H:i') }}" 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Detail Transaksi">
+        
         <div class="flex items-center gap-2">
+            <span class="hidden sm:inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{{ $statusLabel }}</span>
             <button onclick="window.print()"
                     class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
@@ -69,7 +57,7 @@
                 Kembali
             </a>
         </div>
-    </div>
+    </x-page-header>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {{-- Status Transaksi --}}

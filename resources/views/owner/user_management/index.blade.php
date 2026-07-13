@@ -9,38 +9,21 @@
 @section('content')
 <div class="space-y-8 max-w-full overflow-x-hidden">
 
-    <div class="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0 flex-1">
-            {{-- Breadcrumb --}}
-            <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-                <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="text-slate-200 dark:text-slate-700">/</span>
-                <span class="text-slate-600 dark:text-slate-300">Pengguna</span>
-            </nav>
-
-            {{-- Judul --}}
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-                Manajemen Pengguna
-            </h1>
-
-            {{-- Deskripsi Halaman --}}
-            <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
-                Kelola hak akses pengguna, tambahkan kasir baru, atau nonaktifkan akun yang sudah tidak bertugas.<br class="hidden sm:block mt-1">
-                Pastikan setiap pengguna memiliki akses (role) yang sesuai dengan tanggung jawabnya.
-            </p>
-
-            {{-- Indikator Total --}}
-            <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-lg shadow-sm">
-                <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    Total Terdaftar:
-                    <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun</span>
-                </span>
-            </div>
+    <x-page-header 
+        title="Manajemen Pengguna" 
+        subtitle="Kelola hak akses pengguna, tambahkan kasir baru, atau nonaktifkan akun yang sudah tidak bertugas. Pastikan setiap pengguna memiliki akses (role) yang sesuai dengan tanggung jawabnya." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Pengguna">
+        
+        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-lg shadow-sm">
+            <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                Total Terdaftar:
+                <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun</span>
+            </span>
         </div>
-
-        {{-- Tombol Aksi --}}
-        <div class="flex w-full flex-col gap-3 sm:flex-row lg:mt-10 lg:w-auto lg:justify-end">
+        
+        <div class="flex w-full flex-col gap-3 sm:flex-row sm:w-auto">
             <a href="{{ route('owner.branches.index') }}"
                class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1m-1 4h1m-1 4h1m5-4h1m-1 4h1"></path></svg>
@@ -52,7 +35,7 @@
                 Tambah Pengguna
             </a>
         </div>
-    </div>
+    </x-page-header>
 
     <div class="grid grid-cols-1 gap-4 sm:hidden">
         @forelse($users as $user)

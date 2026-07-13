@@ -23,43 +23,27 @@
 
 <div class="space-y-8">
 
-    <div class="mb-2">
-
-        <nav class="mb-3 flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:text-[11px]">
-            <a href="{{ route('owner.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-            <span class="text-slate-200 dark:text-slate-700">/</span>
-            <span class="text-slate-600 dark:text-slate-300">Monitoring Stok</span>
-        </nav>
-
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
-            <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Monitoring Stok
-            </h1>
-
-            {{-- STAT CHIPS inline --}}
-            <div class="flex gap-4 flex-wrap shrink-0">
-                <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                    Total <span class="text-slate-800 dark:text-white">{{ $summary['total'] }}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    Rendah <span class="text-amber-800 dark:text-amber-300">{{ $summary['low'] }}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
-                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                    Habis <span class="text-red-800 dark:text-red-300">{{ $summary['out'] }}</span>
-                </div>
+    <x-page-header 
+        title="Monitoring Stok" 
+        subtitle="Pantau ketersediaan stok bahan secara langsung. Halaman ini hanya untuk pemantauan." 
+        breadcrumb-parent="Owner" 
+        breadcrumb-child="Monitoring Stok">
+        
+        {{-- STAT CHIPS inline --}}
+        <div class="flex gap-4 flex-wrap shrink-0">
+            <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Total <span class="text-slate-800 dark:text-white">{{ $summary['total'] }}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Rendah <span class="text-amber-800 dark:text-amber-300">{{ $summary['low'] }}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                Habis <span class="text-red-800 dark:text-red-300">{{ $summary['out'] }}</span>
             </div>
         </div>
-        
-        <p class="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-3xl mb-5">
-            Pantau ketersediaan stok bahan secara langsung. Halaman ini hanya untuk pemantauan.
-        </p>
-
-    </div>
-
-
-
+    </x-page-header>
 
     {{-- ================= ALERT ================= --}}
     @if ($summary['low'] > 0)
