@@ -1,104 +1,98 @@
 <div align="center">
-  <img src="public/favicon.svg" alt="Kebab SK Logo" width="120" />
-
-  # Kebab SK Inventory & POS System (SIINV)
-
-  **Cloud-Based Point of Sales & Supply Chain Management System**
-
-  [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
-  [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-  [![Alpine.js](https://img.shields.io/badge/Alpine.js-8BC0D0?style=for-the-badge&logo=alpine.js&logoColor=white)](https://alpinejs.dev/)
-  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-
+  <img src="public/favicon.svg" alt="Kebab SK Logo" width="100" />
+  <h1>Kebab SK - SIINV</h1>
+  <p><b>Cloud-Based Point of Sales & Supply Chain Management System</b></p>
+  
+  [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+  [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+  [![Alpine.js](https://img.shields.io/badge/Alpine.js-8BC0D0?style=flat-square&logo=alpine.js&logoColor=white)](https://alpinejs.dev/)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+  
   <br />
-
-  <a href="README.md"><img src="https://img.shields.io/badge/-🇮🇩%20Bahasa%20Indonesia-E11D48?style=for-the-badge" alt="Bahasa Indonesia" /></a>
-  &nbsp;&nbsp;
-  <a href="README-en.md"><img src="https://img.shields.io/badge/-🌍%20English-1E40AF?style=for-the-badge" alt="English" /></a>
+  <br />
+  
+  **[🇮🇩 ID](README.md)** &nbsp;&middot;&nbsp; **[🇬🇧 ENG](README-en.md)**
 </div>
 
 ---
 
-**Kebab SK Inventory System (SIINV)** is a unified management platform specifically designed to monitor operations, supply chain (inventory), and cashier transactions for the Kebab SK franchise. It uses a modern SaaS-like architecture that separates the web-based management panel from the mobile Point of Sales (POS) interface.
+## 📖 About The Project
+**SIINV (Inventory System)** is a unified management platform designed specifically for the operational needs of Kebab SK. This system bridges the complexity of the supply chain (raw material stock) with daily cashier transaction recording (Point of Sales). SIINV separates the web-based management panel for owners and admins from the high-performance API backend designed for the mobile cashier application.
 
-### ✨ Key Features
+---
 
-#### 👑 Owner (Business Owner)
-High-level analytical panel to monitor business performance across all branches.
-*   **Analytics & Performance:** Centralized financial dashboard, Sales Reports (Daily & Monthly), and Menu Analysis (Contribution & Trends).
-*   **Finance & Audit:** Branch-specific automated Closing Book records.
-*   **HR Management:** Role-Based Access Control (RBAC), Cashier/Admin account creation, and employee archives.
-*   **Branch Monitoring:** Read-only stock monitoring of all registered branches.
+## ✨ Key Features
 
-#### 💼 Admin (Operations Manager)
-Technical panel to manage daily supply chains and product administration.
-*   **Inventory Management:** Raw Material Catalog, Material Categories, Stock Adjustments, and Restock History.
-*   **Product Management:** Main Menu Catalog, Menu Categories, and Recipe Standardization (BoM - Bill of Materials).
-*   **Daily Operations:** Daily Stock Audits, Usage Reports, and Operational Expense tracking.
-*   **Unified Archives:** Restore system for deactivated raw materials and menus.
+### 👑 Owner Panel
+- 📊 **Financial Dashboard:** Monitor daily and monthly revenues, alongside real-time sales trends.
+- 🔒 **Closing Book:** Validate and archive transaction data per branch into permanent historical records.
+- 👥 **HR Management:** Role-Based Access Control (RBAC), employee account creation, and deactivated account archiving.
 
-#### 📱 Cashier API (Mobile App)
-Fast and secure RESTful endpoints intended for the Android/Kotlin mobile POS application.
-*   **Secure Authentication:** Bearer Token System, OTP Password Reset.
-*   **Real-time Transactions:** Fetch Menus, Payment Methods, and Checkout processing (integrated with automatic recipe stock deduction).
-*   **Shift History:** Daily revenue summary and cashier-specific transaction history.
+### 💼 Admin Panel (Operations)
+- 📦 **Supply Chain:** Manage raw material data, track stock adjustments, and monitor restock history.
+- 🧾 **Product Catalog:** Detailed recipe standardization (BoM - *Bill of Materials*) for automated stock deduction.
+- 📋 **Daily Audits:** Track material usage reports, record operational expenses, and process stock transfers between branches.
 
-### 📸 Screenshots
-> *Add your application screenshots here (e.g., Dashboard, POS interface, Reports).*
+### 📱 Cashier API (Mobile POS)
+- 🚀 **Fast Transactions:** Lightweight and secure JSON checkout processing.
+- 🔑 **Layered Authentication:** Bearer Token system featuring OTP-based password recovery.
+- 📈 **Shift History:** Cashiers can independently track their daily generated revenue at the end of their shifts.
 
-### 🚀 Local Installation Guide
+---
 
-#### Prerequisites
-*   PHP >= 8.2
-*   Composer >= 2.0
-*   Node.js >= 18.0 & NPM
-*   PostgreSQL
+## 🛠️ Architecture & Technology
+This project is built on a robust modern web architecture.
+- **Backend:** PHP 8.2+, Laravel 11
+- **Database:** PostgreSQL (Supabase integration ready)
+- **Frontend (Web):** Blade Templates, Tailwind CSS v3, Alpine.js, SweetAlert2
+- **Mobile Integration:** RESTful API (JSON Response)
 
-#### Step-by-Step
-1. **Clone the repository:**
+---
+
+## 🚀 Getting Started (Local Installation)
+
+To run this project on your local machine, follow these steps:
+
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/athayabismaj/siinv-kebab-sk.git
    cd siinv-kebab-sk
    ```
-2. **Install dependencies:**
+2. **Install Dependencies**
    ```bash
-   composer install
-   npm install
+   composer install && npm install
    ```
-3. **Environment Setup:**
+3. **Environment Configuration**
+   Copy the environment file, then configure your database credentials (ensure it is set for PostgreSQL).
    ```bash
    cp .env.example .env
    php artisan key:generate
    ```
-   *Update your database credentials in the `.env` file (ensure DB_CONNECTION=pgsql).*
-4. **Migrate & Seed:**
-   *(The seeder will generate initial roles, an admin account, and payment methods).*
+4. **Database Migration & Seeding**
+   *This step is mandatory to initialize basic access roles, the primary admin account, and default payment options.*
    ```bash
    php artisan migrate --seed
    ```
-5. **Run the application:**
-   Open two terminals:
-   *   Terminal 1: `npm run dev` (Vite frontend compiler)
-   *   Terminal 2: `php artisan serve` (Laravel backend server)
-   
-   Access the web app at `http://127.0.0.1:8000`.
-
-### 📖 API Documentation (Overview)
-Base URL: `/api` (Requires `Accept: application/json`)
-
-| Module | Endpoint | Description |
-| :--- | :--- | :--- |
-| **Auth** | `POST /auth/login` | Obtain Bearer Token credentials. |
-| **Auth** | `GET /auth/me` | Get active cashier profile. |
-| **Data** | `GET /menus` | Retrieve available product catalog. |
-| **Sales** | `POST /transactions` | Submit transaction data (Checkout). |
-| **Sales** | `GET /revenue/summary`| Get daily revenue summary. |
-
-### ⚖️ License
-This project is proprietary and confidential. Unauthorized copying of this file, via any medium is strictly prohibited.
+5. **Run the Application**
+   Open two terminal windows to run both the frontend compiler and backend server simultaneously.
+   ```bash
+   npm run dev
+   php artisan serve
+   ```
+   The application will now be accessible in your browser at `http://127.0.0.1:8000`.
 
 ---
 
+## 📚 API Endpoint Summary
+
+All API routes are prefixed with `/api/` and require the `Accept: application/json` header.
+- `POST /auth/login` — Authentication and session token retrieval.
+- `GET /menus` — List of active products available for order.
+- `POST /transactions` — Store customer purchase transaction data.
+- `GET /revenue/summary` — Automated daily revenue calculation for the cashier.
+
+---
+<br />
 <div align="center">
-  <p>Developed with ❤️ for <b>Kebab SK</b>. &copy; 2026</p>
+  <sub>All rights reserved. Built for <b>Kebab SK</b> operations &copy; 2026.</sub>
 </div>
