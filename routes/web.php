@@ -9,6 +9,7 @@ use App\Http\Controllers\Owner\UserManagementController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\SalesReportController;
 use App\Http\Controllers\Owner\TransactionHistoryController;
+use App\Http\Controllers\Owner\GeneratedExportController;
 use App\Http\Controllers\Owner\StockMonitoringController;
 use App\Http\Controllers\Owner\StockLogController as OwnerStockLogController;
 use App\Http\Controllers\Owner\CashflowController as OwnerCashflowController;
@@ -28,12 +29,10 @@ use App\Http\Controllers\Admin\UsageReportController;
 use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
 use App\Http\Controllers\Admin\DailyStockReportController;
 use App\Http\Controllers\Admin\BranchContextController;
-
-
-
-
+use App\Http\Controllers\System\ReadinessController;
 
 Route::get('/', [LoginController::class, 'showLogin'])->name('login');
+Route::get('/health/ready', ReadinessController::class)->name('health.ready');
 Route::post('/login', [LoginController::class, 'login'])
     ->middleware('throttle:auth-login')
     ->name('login.process');
@@ -137,6 +136,12 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
             Route::get('/{transaction}', [TransactionHistoryController::class, 'show'])->name('show');
         });
 
+        Route::prefix('exports')->name('generated-exports.')->group(function () {
+            Route::get('/{generatedExport}', [GeneratedExportController::class, 'show'])->name('show');
+            Route::get('/{generatedExport}/download', [GeneratedExportController::class, 'download'])->name('download');
+            Route::post('/{generatedExport}/retry', [GeneratedExportController::class, 'retry'])->name('retry');
+        });
+
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/sales', [SalesReportController::class, 'index'])->name('sales');
             Route::get('/sales/export', [SalesReportController::class, 'export'])
@@ -176,6 +181,12 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
 */
 
 Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('admin.')->group(function () {
+
+        Route::prefix('exports')->name('generated-exports.')->group(function () {
+            Route::get('/{generatedExport}', [GeneratedExportController::class, 'show'])->name('show');
+            Route::get('/{generatedExport}/download', [GeneratedExportController::class, 'download'])->name('download');
+            Route::post('/{generatedExport}/retry', [GeneratedExportController::class, 'retry'])->name('retry');
+        });
 
         // ===== PANEL =====
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel');

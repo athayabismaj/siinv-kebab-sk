@@ -70,10 +70,10 @@ class VoidTransactionController extends Controller
             }
 
             Log::error('Gagal membatalkan transaksi via API.', [
+                'operation' => 'void-transaction',
                 'transaction_id' => (int) $transactionId,
                 'actor_id' => optional($request->user())->id,
                 'exception' => get_class($exception),
-                'error' => $exception->getMessage(),
             ]);
 
             return response()->json([

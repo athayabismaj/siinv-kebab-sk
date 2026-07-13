@@ -5,6 +5,7 @@ use App\Http\Middleware\ApiRoleMiddleware;
 use App\Http\Middleware\ApiTokenMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\PerformanceLogMiddleware;
+use App\Http\Middleware\RequestCorrelationMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function ($middleware) {
+        $middleware->append(RequestCorrelationMiddleware::class);
         $middleware->append(SecurityHeadersMiddleware::class);
 
         $middleware->alias([

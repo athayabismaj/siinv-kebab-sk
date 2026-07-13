@@ -148,8 +148,9 @@ class TransactionController extends Controller
         } catch (Throwable $e) {
             try {
                 Log::error('Gagal memproses transaksi kasir.', [
+                    'operation' => 'checkout',
                     'user_id' => $userId,
-                    'error' => $e->getMessage(),
+                    'branch_id' => $this->branchIdFor($request->user()),
                     'exception' => get_class($e),
                 ]);
             } catch (Throwable) {
