@@ -3,6 +3,7 @@
 namespace Tests\Feature\API;
 
 use App\Models\ApiToken;
+use App\Models\Branch;
 use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
@@ -18,6 +19,8 @@ use Tests\TestCase;
 class VariantAvailabilityApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    private ?Branch $branch = null;
 
     public function test_menu_endpoint_returns_no_session_reason_when_session_not_open(): void
     {
@@ -176,6 +179,7 @@ class VariantAvailabilityApiTest extends TestCase
         $role = Role::query()->create(['name' => 'kasir']);
         $user = User::factory()->create([
             'role_id' => $role->id,
+            'branch_id' => $this->testBranch()->id,
         ]);
 
         $plainToken = 'tok_' . bin2hex(random_bytes(12));
@@ -251,8 +255,17 @@ class VariantAvailabilityApiTest extends TestCase
             'session_date' => now('Asia/Jakarta')->toDateString(),
             'cashier_id' => $cashierId,
             'opened_by' => $cashierId,
+            'branch_id' => $this->testBranch()->id,
             'status' => 'open',
             'opened_at' => now(),
         ]);
+    }
+
+    private function testBranch(): Branch
+    {
+        return $this->branch ??= Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\ApiToken;
+use App\Models\Branch;
 use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
@@ -372,6 +373,7 @@ class DailyStockFlowTest extends TestCase
             'cashier_id' => $cashier->id,
             'opened_by' => $admin->id,
             'closed_by' => $admin->id,
+            'branch_id' => $cashier->branch_id,
             'status' => 'closed',
             'opened_at' => now()->subDay(),
             'closed_at' => now()->subDay(),
@@ -564,6 +566,10 @@ class DailyStockFlowTest extends TestCase
     {
         $adminRole = Role::create(['name' => 'admin']);
         $cashierRole = Role::create(['name' => 'kasir']);
+        $branch = Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
 
         $admin = User::create([
             'name' => 'Admin Uji',
@@ -571,6 +577,7 @@ class DailyStockFlowTest extends TestCase
             'email' => 'admin-uji@example.test',
             'password' => 'secret123',
             'role_id' => $adminRole->id,
+            'branch_id' => $branch->id,
         ]);
 
         $cashier = User::create([
@@ -579,6 +586,7 @@ class DailyStockFlowTest extends TestCase
             'email' => 'kasir-uji@example.test',
             'password' => 'secret123',
             'role_id' => $cashierRole->id,
+            'branch_id' => $branch->id,
         ]);
 
         $category = IngredientCategory::create(['name' => 'Bahan Uji']);

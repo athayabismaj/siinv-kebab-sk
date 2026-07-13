@@ -4,6 +4,7 @@ namespace Tests\Feature\API;
 
 use App\Models\ApiToken;
 use App\Models\BackupHistory;
+use App\Models\Branch;
 use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
@@ -24,6 +25,8 @@ use Tests\TestCase;
 class SecurityBatchTwoTest extends TestCase
 {
     use RefreshDatabase;
+
+    private ?Branch $branch = null;
 
     public function test_non_developer_cannot_access_backup_routes(): void
     {
@@ -233,6 +236,7 @@ class SecurityBatchTwoTest extends TestCase
 
         return User::factory()->create([
             'role_id' => $role->id,
+            'branch_id' => $this->testBranch()->id,
         ]);
     }
 
@@ -276,6 +280,7 @@ class SecurityBatchTwoTest extends TestCase
             'change_amount' => 0,
             'status' => 'SUCCESS',
             'daily_stock_session_id' => $session->id,
+            'branch_id' => $session->branch_id,
         ]);
 
         TransactionDetail::query()->create([
@@ -338,8 +343,17 @@ class SecurityBatchTwoTest extends TestCase
             'session_date' => $sessionDate ?? now('Asia/Jakarta')->toDateString(),
             'cashier_id' => $cashierId,
             'opened_by' => $cashierId,
+            'branch_id' => $this->testBranch()->id,
             'status' => 'open',
             'opened_at' => now(),
         ]);
+    }
+
+    private function testBranch(): Branch
+    {
+        return $this->branch ??= Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\API;
 
 use App\Models\ApiToken;
+use App\Models\Branch;
 use App\Models\CashflowEntry;
 use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
@@ -22,6 +23,8 @@ use Tests\TestCase;
 class SecurityBatchOneTest extends TestCase
 {
     use RefreshDatabase;
+
+    private ?Branch $branch = null;
 
     public function test_checkout_uses_database_variant_price_and_ignores_client_price(): void
     {
@@ -204,6 +207,7 @@ class SecurityBatchOneTest extends TestCase
         $role = Role::query()->create(['name' => $roleName]);
         $user = User::factory()->create([
             'role_id' => $role->id,
+            'branch_id' => $this->testBranch()->id,
         ]);
 
         $plainToken = 'tok_' . bin2hex(random_bytes(12));
@@ -261,8 +265,17 @@ class SecurityBatchOneTest extends TestCase
             'session_date' => now('Asia/Jakarta')->toDateString(),
             'cashier_id' => $cashierId,
             'opened_by' => $cashierId,
+            'branch_id' => $this->testBranch()->id,
             'status' => 'open',
             'opened_at' => now(),
         ]);
+    }
+
+    private function testBranch(): Branch
+    {
+        return $this->branch ??= Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
     }
 }
