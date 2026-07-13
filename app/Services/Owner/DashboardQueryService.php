@@ -38,20 +38,21 @@ class DashboardQueryService
 
         $todayAggregate = Transaction::query()
             ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
+            })
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_revenue, COUNT(*) as total_transactions');
         $this->applyBranch($todayAggregate, $branchId, 'branch_id');
         $todayAggregate = $todayAggregate->first();
         $todayRevenue = (float) ($todayAggregate->total_revenue ?? 0);
         $todayTransactionsCount = (int) ($todayAggregate->total_transactions ?? 0);
 
-        $target = Schema::hasTable('daily_targets')
-            ? DailyTarget::query()
-                ->whereDate('target_date', '<=', $todayKey)
-                ->orderByDesc('target_date')
-                ->first(['target_date', 'target_revenue', 'target_transactions'])
-            : null;
-        $targetRevenue = (float) ($target->target_revenue ?? 0);
-        $targetTransactions = (int) ($target->target_transactions ?? 0);
+        [$target, $targetRevenue, $targetTransactions] = $this->resolveTargetSummary(
+            $todayKey,
+            $branchId,
+            $branchOptions
+        );
         $targetProgress = $targetRevenue > 0 ? min(100, (int) round(($todayRevenue / $targetRevenue) * 100)) : 0;
         $targetGap = max(0, $targetRevenue - $todayRevenue);
 
@@ -199,6 +200,55 @@ class DashboardQueryService
             'lowStockItems' => $lowStockItems,
             'salesLast7Days' => $salesLast7Days,
             'latestTransactions' => $latestTransactions,
+        ];
+    }
+
+    private function resolveTargetSummary(string $date, ?int $branchId, $branchOptions): array
+    {
+        if (! Schema::hasTable('daily_targets')) {
+            return [null, 0.0, 0];
+        }
+
+        $query = DailyTarget::query()
+            ->whereDate('target_date', '<=', $date)
+            ->orderByDesc('target_date');
+
+        if (! Schema::hasColumn('daily_targets', 'branch_id')) {
+            $target = $query->first(['target_date', 'target_revenue', 'target_transactions']);
+
+            return [
+                $target,
+                (float) ($target->target_revenue ?? 0),
+                (int) ($target->target_transactions ?? 0),
+            ];
+        }
+
+        if ($branchId) {
+            $target = $query
+                ->where('branch_id', $branchId)
+                ->first(['branch_id', 'target_date', 'target_revenue', 'target_transactions']);
+
+            return [
+                $target,
+                (float) ($target->target_revenue ?? 0),
+                (int) ($target->target_transactions ?? 0),
+            ];
+        }
+
+        $branchIds = $branchOptions
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $targets = $query
+            ->whereIn('branch_id', $branchIds)
+            ->get(['branch_id', 'target_date', 'target_revenue', 'target_transactions'])
+            ->unique('branch_id');
+
+        return [
+            null,
+            (float) $targets->sum(fn (DailyTarget $target) => (float) $target->target_revenue),
+            (int) $targets->sum(fn (DailyTarget $target) => (int) $target->target_transactions),
         ];
     }
 

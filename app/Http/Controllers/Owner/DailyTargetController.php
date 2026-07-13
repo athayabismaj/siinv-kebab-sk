@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Models\DailyTarget;
 use App\Models\Transaction;
+use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -14,10 +16,16 @@ class DailyTargetController extends Controller
     public function index(Request $request)
     {
         $selectedDate = $this->resolveDate((string) $request->input('date', now()->toDateString()));
+        $branchOptions = BranchScope::options();
+        $selectedBranchId = $this->resolveBranchId($request);
+        $selectedBranch = $branchOptions->firstWhere('id', $selectedBranchId);
 
         if (!Schema::hasTable('daily_targets')) {
             return view('owner.targets.daily', [
                 'selectedDate' => $selectedDate,
+                'branchOptions' => $branchOptions,
+                'selectedBranchId' => $selectedBranchId,
+                'selectedBranch' => $selectedBranch,
                 'target' => null,
                 'targetRevenue' => 0.0,
                 'targetTransactions' => 0,
@@ -31,6 +39,7 @@ class DailyTargetController extends Controller
         $target = DailyTarget::query()
             ->with('setBy:id,name')
             ->whereDate('target_date', '<=', $selectedDate->toDateString())
+            ->when($this->supportsBranchTargets() && $selectedBranchId, fn ($query) => $query->where('branch_id', $selectedBranchId))
             ->orderByDesc('target_date')
             ->first();
 
@@ -39,6 +48,11 @@ class DailyTargetController extends Controller
                 $selectedDate->copy()->startOfDay(),
                 $selectedDate->copy()->endOfDay(),
             ])
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
+            })
+            ->when($selectedBranchId, fn ($query) => $query->where('branch_id', $selectedBranchId))
             ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
             ->first();
 
@@ -49,6 +63,9 @@ class DailyTargetController extends Controller
 
         return view('owner.targets.daily', [
             'selectedDate' => $selectedDate,
+            'branchOptions' => $branchOptions,
+            'selectedBranchId' => $selectedBranchId,
+            'selectedBranch' => $selectedBranch,
             'target' => $target,
             'targetRevenue' => $targetRevenue,
             'targetTransactions' => $targetTransactions,
@@ -73,6 +90,7 @@ class DailyTargetController extends Controller
         ]);
 
         $validated = $request->validate([
+            'branch_id' => 'nullable|integer',
             'target_date' => 'required|date',
             'target_revenue' => 'required|numeric|min:0',
             'target_transactions' => 'required|integer|min:0',
@@ -90,20 +108,47 @@ class DailyTargetController extends Controller
         ]);
 
         $effectiveDate = Carbon::parse((string) $validated['target_date'])->startOfDay();
+        $branchId = $this->resolveBranchId($request);
+
+        if ($request->filled('branch_id') && ! BranchScope::requestBranchId((int) $request->input('branch_id'))) {
+            return back()
+                ->withInput()
+                ->withErrors(['branch_id' => 'Cabang yang dipilih tidak tersedia atau sudah tidak aktif.']);
+        }
+
+        if ($this->supportsBranchTargets() && ! $branchId) {
+            return back()
+                ->withInput()
+                ->withErrors(['branch_id' => 'Pilih cabang yang aktif untuk menyimpan target harian.']);
+        }
+
+        $targetPayload = [
+            'target_revenue' => (float) $validated['target_revenue'],
+            'target_transactions' => (int) $validated['target_transactions'],
+            'notes' => $validated['notes'] ?? null,
+            'set_by_user_id' => auth()->id(),
+        ];
+
+        if ($this->supportsBranchTargets()) {
+            $targetPayload['branch_id'] = $branchId;
+        }
 
         DailyTarget::query()->updateOrCreate(
-            ['target_date' => $effectiveDate->toDateString()],
-            [
-                'target_revenue' => (float) $validated['target_revenue'],
-                'target_transactions' => (int) $validated['target_transactions'],
-                'notes' => $validated['notes'] ?? null,
-                'set_by_user_id' => auth()->id(),
-            ]
+            array_filter([
+                'branch_id' => $this->supportsBranchTargets() ? $branchId : null,
+                'target_date' => $effectiveDate->toDateString(),
+            ], fn ($value) => $value !== null),
+            $targetPayload
         );
 
+        AdminCache::bumpDashboard();
+
         return redirect()
-            ->route('owner.targets.index', ['date' => $effectiveDate->toDateString()])
-            ->with('success', 'Target default berhasil disimpan dan akan berlaku sampai diubah.');
+            ->route('owner.targets.index', array_filter([
+                'date' => $effectiveDate->toDateString(),
+                'branch_id' => $request->filled('branch_id') ? $branchId : null,
+            ]))
+            ->with('success', 'Target cabang berhasil disimpan dan akan berlaku sampai diubah.');
     }
 
     private function resolveDate(string $dateInput): Carbon
@@ -141,5 +186,25 @@ class DailyTargetController extends Controller
         }
 
         return $value;
+    }
+
+    private function resolveBranchId(Request $request): ?int
+    {
+        $requestedBranchId = BranchScope::requestBranchId((int) $request->input('branch_id'));
+        if ($requestedBranchId) {
+            return (int) $requestedBranchId;
+        }
+
+        $activeBranchId = BranchScope::ownerActiveBranchId();
+        if ($activeBranchId) {
+            return BranchScope::requestBranchId($activeBranchId);
+        }
+
+        return BranchScope::defaultBranchId();
+    }
+
+    private function supportsBranchTargets(): bool
+    {
+        return Schema::hasColumn('daily_targets', 'branch_id');
     }
 }

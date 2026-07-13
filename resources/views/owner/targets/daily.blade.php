@@ -2,6 +2,10 @@
 
 @section('content')
 <div class="space-y-6 pb-10">
+    @php
+        $targetQuery = ['branch_id' => $selectedBranchId];
+    @endphp
+
     <x-page-header 
         title="Target Harian" 
         subtitle="Pantau performa dan tetapkan target pencapaian harian." 
@@ -9,21 +13,37 @@
         breadcrumb-child="Target Harian">
         
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0" x-data x-ref="filterFormWrapper">
-            <a href="{{ route('owner.targets.index', ['date' => $selectedDate->copy()->subDay()->toDateString()]) }}" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none flex items-center justify-center">
+            <a href="{{ route('owner.targets.index', array_merge($targetQuery, ['date' => $selectedDate->copy()->subDay()->toDateString()])) }}" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none flex items-center justify-center">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
             </a>
             
             <form method="GET" action="{{ route('owner.targets.index') }}" class="flex items-center m-0 w-full sm:w-auto">
+                <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
                 <input type="date" name="date" value="{{ $selectedDate->toDateString() }}"
                        @change="$el.form.submit()"
                        class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer">
             </form>
 
-            <a href="{{ route('owner.targets.index', ['date' => $selectedDate->copy()->addDay()->toDateString()]) }}" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none flex items-center justify-center">
+            <a href="{{ route('owner.targets.index', array_merge($targetQuery, ['date' => $selectedDate->copy()->addDay()->toDateString()])) }}" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none flex items-center justify-center">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
             </a>
         </div>
     </x-page-header>
+
+    @if($branchOptions->isNotEmpty())
+        <form method="GET" action="{{ route('owner.targets.index') }}" class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+            <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+            <div class="min-w-0">
+                <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Cabang Target</p>
+                <p class="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">Setiap cabang memiliki target harian dan progresnya sendiri.</p>
+            </div>
+            <select name="branch_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-64">
+                @foreach($branchOptions as $branch)
+                    <option value="{{ $branch->id }}" @selected((int) $selectedBranchId === (int) $branch->id)>{{ $branch->name }}</option>
+                @endforeach
+            </select>
+        </form>
+    @endif
 
     <!-- Alerts -->
     @if($errors->any())
@@ -149,6 +169,7 @@
         <form method="POST" action="{{ route('owner.targets.store') }}" class="p-5 sm:p-6 space-y-6">
             @csrf
             <input type="hidden" name="target_date" value="{{ $selectedDate->toDateString() }}">
+            <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
                 <div>
@@ -189,7 +210,7 @@
                         <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                     <p class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed text-left max-w-md">
-                        Target yang disimpan akan menjadi target <strong class="text-slate-700 dark:text-slate-300">default</strong> untuk hari berikutnya sampai Anda mengubahnya.
+                        Target untuk <strong class="text-slate-700 dark:text-slate-300">{{ $selectedBranch?->name ?? 'cabang ini' }}</strong> akan berlaku hingga Anda mengubahnya.
                     </p>
                 </div>
                 <button type="submit" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] sm:text-sm font-bold tracking-wide transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 shrink-0">

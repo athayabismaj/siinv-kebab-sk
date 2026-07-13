@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DailyTarget extends Model
 {
     protected $fillable = [
+        'branch_id',
         'target_date',
         'target_revenue',
         'target_transactions',
@@ -25,5 +26,9 @@ class DailyTarget extends Model
     {
         return $this->belongsTo(User::class, 'set_by_user_id');
     }
-}
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+}
