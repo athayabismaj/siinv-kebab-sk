@@ -78,10 +78,7 @@ class ApiTransactionService
     {
         $selectedDate = $this->resolveDateOrNow($date)->toDateString();
         $query = $this->baseUserTransactionQuery($userId, $selectedDate, $branchId)
-            ->where(function (Builder $query) {
-                $query->whereNull('t.status')
-                    ->orWhereRaw('LOWER(t.status) <> ?', ['void']);
-            });
+            ->whereRaw("UPPER(COALESCE(t.status, '')) = ?", ['SUCCESS']);
 
         $totalRevenue = (float) (clone $query)->sum('t.total_amount');
         $totalCount = (int) (clone $query)->count();
@@ -96,10 +93,7 @@ class ApiTransactionService
                 $end = Carbon::parse($selectedDate)->endOfDay();
                 $query->whereBetween('t.created_at', [$start, $end]);
             })
-            ->where(function ($query) {
-                $query->whereNull('t.status')
-                    ->orWhereRaw('LOWER(t.status) <> ?', ['void']);
-            })
+            ->whereRaw("UPPER(COALESCE(t.status, '')) = ?", ['SUCCESS'])
             ->select('menus.name', DB::raw('SUM(td.quantity) as total_qty'))
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('total_qty')
@@ -166,10 +160,7 @@ class ApiTransactionService
             ->where('user_id', $userId)
             ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
-            ->where(function (Builder $query) {
-                $query->whereNull('status')
-                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
-            })
+            ->whereRaw("UPPER(COALESCE(status, '')) = ?", ['SUCCESS'])
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date')
             ->get()
