@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\DirectExportResponse;
+use App\Jobs\GenerateTransactionExport;
+use App\Models\GeneratedExport;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
@@ -17,6 +19,8 @@ use Illuminate\Support\Facades\Cache;
 class TransactionHistoryController extends Controller
 {
     use DirectExportResponse;
+
+    private const QUEUED_EXCEL_THRESHOLD = 100;
 
     public function __construct(
         private readonly TransactionHistoryQueryService $queryService,
@@ -38,7 +42,8 @@ class TransactionHistoryController extends Controller
                 $this->queryService->baseListQuery($dateFrom, $dateTo),
                 $filters
             )
-            ->latest();
+            ->latest('transactions.created_at')
+            ->orderByDesc('transactions.id');
 
         $summary = $this->queryService->summary($dateFrom, $dateTo, $filters);
         $topCashierName = $this->queryService->topCashierName($dateFrom, $dateTo, $filters);
@@ -102,7 +107,24 @@ class TransactionHistoryController extends Controller
                 $this->queryService->baseListQuery($dateFrom, $dateTo),
                 $filters
             )
-            ->latest();
+            ->latest('transactions.created_at')
+            ->orderByDesc('transactions.id');
+
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Riwayat_Transaksi_' . $dateSuffix;
+
+        $rowCount = (clone $listQuery)->count();
+
+        if ($format === 'excel' && $rowCount > self::QUEUED_EXCEL_THRESHOLD) {
+            return $this->queueLargeExcelExport($request, $branchId, $filters, $dateFrom, $dateTo, $fileName);
+        }
+
+        if ($format !== 'excel' && $rowCount > self::QUEUED_EXCEL_THRESHOLD) {
+            return redirect()->route('owner.transactions.index', $request->query())
+                ->withErrors(['export' => 'Ekspor HTML atau PDF dibatasi hingga 100 transaksi. Persempit periode atau gunakan ekspor Excel.']);
+        }
 
         $summary = $this->queryService->summary($dateFrom, $dateTo, $filters);
         
@@ -141,11 +163,6 @@ class TransactionHistoryController extends Controller
             'isExcel' => $format === 'excel',
         ];
 
-        $dateSuffix = $dateFrom->isSameDay($dateTo)
-            ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Riwayat_Transaksi_' . $dateSuffix;
-
         return $this->exportByFormat(
             $format,
             'exports.transaction_professional',
@@ -158,6 +175,31 @@ class TransactionHistoryController extends Controller
             'A4',
             'landscape'
         );
+    }
+
+    private function queueLargeExcelExport(Request $request, ?int $branchId, array $filters, \Carbon\Carbon $dateFrom, \Carbon\Carbon $dateTo, string $fileName)
+    {
+        $generatedExport = GeneratedExport::query()->create([
+            'requested_by' => $request->user()->id,
+            'branch_id' => $branchId,
+            'type' => 'transaction_history',
+            'format' => 'excel',
+            'filters' => [
+                'date_from' => $dateFrom->toDateString(),
+                'date_to' => $dateTo->toDateString(),
+                'search' => trim((string) ($filters['search'] ?? '')),
+                'user_id' => (int) ($filters['user_id'] ?? 0),
+                'payment_method_id' => (int) ($filters['payment_method_id'] ?? 0),
+            ],
+            'status' => GeneratedExport::STATUS_PENDING,
+            'original_filename' => $fileName . '.xlsx',
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        GenerateTransactionExport::dispatch($generatedExport->id)->onConnection('database');
+
+        return redirect()->route('owner.generated-exports.show', $generatedExport)
+            ->with('success', 'Ekspor data besar sedang diproses.');
     }
 
     public function show(Transaction $transaction)

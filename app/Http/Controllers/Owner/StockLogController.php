@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Owner;
 use App\Exports\StockLogsReportExport;
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateStockLogExport;
+use App\Models\GeneratedExport;
 use App\Models\StockLog;
+use App\Services\Exports\StockLogExportQuery;
 use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\StockLogTypeMap;
@@ -16,6 +19,12 @@ use Illuminate\Support\Facades\DB;
 class StockLogController extends Controller
 {
     use DirectExportResponse;
+
+    private const DIRECT_EXPORT_LIMIT = 100;
+
+    public function __construct(private readonly StockLogExportQuery $exportQuery)
+    {
+    }
 
     public function index(Request $request)
     {
@@ -112,17 +121,14 @@ class StockLogController extends Controller
 
     private function exportDirect(Request $request, string $format)
     {
-        $this->raiseMemoryLimit();
-
         $period = StockLogView::normalizePeriod($request->input('period'));
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
         $typeFilter = $request->input('type');
         $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
 
-        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter, $branchId)
-            ->get()
-            ->map(fn (StockLog $log) => StockLogView::decorate($log));
+        $query = $this->exportQuery->build($rangeStart, $rangeEnd, $typeFilter, $branchId);
+        $total = (clone $query)->count();
 
         $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter, $branchId);
         $dateDisplay = StockLogView::dateDisplay($period, $selectedDate, $rangeStart, $rangeEnd);
@@ -131,6 +137,34 @@ class StockLogController extends Controller
             ? $rangeStart->format('dMY')
             : $rangeStart->format('dM') . '-' . $rangeEnd->format('dMY');
         $fileName = 'Riwayat_Stok_' . $dateSuffix;
+
+        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            $generatedExport = GeneratedExport::query()->create([
+                'requested_by' => $request->user()->id,
+                'branch_id' => $branchId,
+                'type' => 'stock_log',
+                'format' => 'excel',
+                'filters' => [
+                    'date_from' => $rangeStart->toDateString(),
+                    'date_to' => $rangeEnd->toDateString(),
+                    'type' => $typeFilter,
+                ],
+                'status' => GeneratedExport::STATUS_PENDING,
+                'original_filename' => $fileName . '.xlsx',
+                'expires_at' => now()->addDays(7),
+            ]);
+            GenerateStockLogExport::dispatch($generatedExport->id)->onConnection('database');
+
+            return redirect()->route('owner.generated-exports.show', $generatedExport)
+                ->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
+        }
+
+        if ($format !== 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            return redirect()->route('owner.stock-logs.index', $request->query())
+                ->withErrors(['export' => 'Ekspor HTML atau PDF dibatasi hingga 100 riwayat. Gunakan Excel untuk data lebih besar.']);
+        }
+
+        $logs = $query->get()->map(fn (StockLog $log) => StockLogView::decorate($log));
 
         $periodLabels = [
             'daily' => 'HARIAN',
@@ -218,37 +252,5 @@ class StockLogController extends Controller
         $this->applyStockLogTypeFilter($query, $typeFilter);
 
         return $query;
-    }
-
-    private function raiseMemoryLimit(): void
-    {
-        $currentLimit = ini_get('memory_limit');
-
-        if ($currentLimit === false || $currentLimit === '-1') {
-            return;
-        }
-
-        if ($this->memoryLimitToBytes($currentLimit) < 512 * 1024 * 1024) {
-            ini_set('memory_limit', '512M');
-        }
-    }
-
-    private function memoryLimitToBytes(string $value): int
-    {
-        $value = trim($value);
-
-        if ($value === '') {
-            return 0;
-        }
-
-        $unit = strtolower(substr($value, -1));
-        $number = (float) $value;
-
-        return match ($unit) {
-            'g' => (int) ($number * 1024 * 1024 * 1024),
-            'm' => (int) ($number * 1024 * 1024),
-            'k' => (int) ($number * 1024),
-            default => (int) $number,
-        };
     }
 }

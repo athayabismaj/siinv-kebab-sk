@@ -1,0 +1,20 @@
+# Copy this file to /etc/systemd/system/siinv-exports.service after replacing
+# every {{...}} placeholder. Do not run the worker as root.
+[Unit]
+Description=SiInv Kebab SK export queue worker
+After=network.target
+
+[Service]
+Type=simple
+User={{APP_USER}}
+Group={{APP_GROUP}}
+WorkingDirectory={{APP_PATH}}
+EnvironmentFile={{ENV_FILE}}
+ExecStart={{PHP_BINARY}} {{APP_PATH}}/artisan queue:work database --queue=exports --sleep=3 --tries=2 --timeout=75 --memory=192 --max-jobs=100 --max-time=3600 --no-interaction
+Restart=always
+RestartSec=5
+TimeoutStopSec=105
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

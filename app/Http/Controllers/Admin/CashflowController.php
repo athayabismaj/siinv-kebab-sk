@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateExpenseExport;
 use App\Models\Branch;
 use App\Models\CashflowEntry;
+use App\Models\GeneratedExport;
 use App\Models\Transaction;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
@@ -20,6 +22,7 @@ class CashflowController extends Controller
 {
     use DirectExportResponse;
 
+    private const DIRECT_EXPORT_LIMIT = 250;
 
     public function index(Request $request)
     {
@@ -124,6 +127,41 @@ class CashflowController extends Controller
         $baseQuery = $this->baseExpenseQuery($dateFrom->toDateString(), $dateTo->toDateString());
         $this->applySearch($baseQuery, $request);
 
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Pengeluaran_' . $dateSuffix;
+        $branchId = BranchScope::scopedBranchIdFor($request->user());
+        $total = (clone $baseQuery)->toBase()->count();
+
+        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            $generatedExport = GeneratedExport::query()->create([
+                'requested_by' => $request->user()->id,
+                'branch_id' => $branchId,
+                'type' => 'expense_report',
+                'format' => 'excel',
+                'filters' => [
+                    'date_from' => $dateFrom->toDateString(),
+                    'date_to' => $dateTo->toDateString(),
+                    'type' => $type,
+                    'search' => trim((string) $request->input('search', '')),
+                ],
+                'status' => GeneratedExport::STATUS_PENDING,
+                'original_filename' => $fileName . '.xlsx',
+                'expires_at' => now()->addDays(7),
+            ]);
+
+            GenerateExpenseExport::dispatch($generatedExport->id)->onConnection('database');
+
+            return redirect()->route('admin.generated-exports.show', $generatedExport)
+                ->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
+        }
+
+        if ($format !== 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            return redirect()->back()
+                ->withErrors(['export' => 'Ekspor HTML atau PDF dibatasi hingga 250 data. Gunakan Excel untuk data lebih besar.']);
+        }
+
         $entries = (clone $baseQuery)->get();
         $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $request, $baseQuery);
         $summary['branchName'] = $this->branchLabel(BranchScope::scopedBranchIdFor(auth()->user()));
@@ -150,10 +188,6 @@ class CashflowController extends Controller
             'isExcel' => $format === 'excel',
         ];
 
-        $dateSuffix = $dateFrom->isSameDay($dateTo)
-            ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Pengeluaran_' . $dateSuffix;
         return $this->exportByFormat(
             $format,
             'exports.expense_professional',
@@ -172,7 +206,10 @@ class CashflowController extends Controller
             ->with(['creator:id,name', 'branch:id,name'])
             ->where('type', 'expense')
             ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
-            ->whereBetween('entry_date', [$dateFrom, $dateTo])
+            ->whereBetween('entry_date', [
+                $dateFrom . ' 00:00:00',
+                $dateTo . ' 23:59:59',
+            ])
             ->latest('entry_date')
             ->latest('id');
     }
@@ -189,6 +226,7 @@ class CashflowController extends Controller
 
         return Cache::remember($summaryKey, now()->addSeconds(90), function () use ($dateFrom, $dateTo, $baseQuery) {
             $salesRevenue = (float) Transaction::query()
+                ->successful()
                 ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
                 ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->sum('total_amount');

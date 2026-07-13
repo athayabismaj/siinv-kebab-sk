@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateDailyStockReportExport;
 use App\Models\DailyStockSession;
+use App\Models\GeneratedExport;
 use App\Services\Admin\DailyStockReportQueryService;
+use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\ReportPeriod;
 use Illuminate\Http\Request;
@@ -17,6 +20,7 @@ use Throwable;
 class DailyStockReportController extends Controller
 {
     use DirectExportResponse;
+    private const DIRECT_EXPORT_LIMIT = 100;
 
     public function __construct(
         private readonly DailyStockReportQueryService $reportQuery
@@ -29,12 +33,13 @@ class DailyStockReportController extends Controller
 
         $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
+        $branchId = BranchScope::scopedBranchIdFor($request->user());
 
         $runtimeError = null;
 
         try {
-            $sessions = $this->reportQuery->paginated($dateFrom, $dateTo, 10);
-            $summary = $this->reportQuery->summary($dateFrom, $dateTo);
+            $sessions = $this->reportQuery->paginated($dateFrom, $dateTo, $branchId, 10);
+            $summary = $this->reportQuery->summary($dateFrom, $dateTo, $branchId);
         } catch (Throwable $e) {
             Log::error('Daily stock report failed to load', [
                 'message' => $e->getMessage(),
@@ -92,9 +97,11 @@ class DailyStockReportController extends Controller
     {
         $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
         [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
+        $branchId = BranchScope::scopedBranchIdFor($request->user());
 
-        $rows = $this->reportQuery->rows($dateFrom, $dateTo);
-        $summary = $this->reportQuery->summary($dateFrom, $dateTo);
+        $query = $this->reportQuery->exportQuery($dateFrom, $dateTo, $branchId);
+        $total = (clone $query)->count();
+        $summary = $this->reportQuery->summary($dateFrom, $dateTo, $branchId);
 
         $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
         if ($dateFrom->toDateString() === $dateTo->toDateString()) {
@@ -109,6 +116,23 @@ class DailyStockReportController extends Controller
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Stok_Harian_' . $dateSuffix;
+
+        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            $generatedExport = GeneratedExport::query()->create([
+                'requested_by' => $request->user()->id, 'branch_id' => $branchId,
+                'type' => 'daily_stock_report', 'format' => 'excel',
+                'filters' => ['date_from' => $dateFrom->toDateString(), 'date_to' => $dateTo->toDateString()],
+                'status' => GeneratedExport::STATUS_PENDING, 'original_filename' => $fileName . '.xlsx', 'expires_at' => now()->addDays(7),
+            ]);
+            GenerateDailyStockReportExport::dispatch($generatedExport->id)->onConnection('database');
+            return redirect()->route('admin.generated-exports.show', $generatedExport)->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
+        }
+        if ($total > self::DIRECT_EXPORT_LIMIT) return redirect()->back()->withErrors(['export' => 'Ekspor langsung dibatasi hingga 100 data.']);
+        $rows = $query->get();
         $viewData = [
             'sessions' => $rows,
             'periode' => $periodeLabel,
@@ -117,11 +141,6 @@ class DailyStockReportController extends Controller
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
-
-        $dateSuffix = $dateFrom->isSameDay($dateTo)
-            ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Stok_Harian_' . $dateSuffix;
 
         return $this->exportByFormat(
             $format,

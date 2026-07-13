@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateUsageReportExport;
+use App\Models\GeneratedExport;
 use App\Models\StockLog;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
@@ -13,6 +15,7 @@ use App\Support\UsageQuantityFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +26,7 @@ class UsageReportController extends Controller
     use DirectExportResponse;
 
     private const ITEMS_PER_PAGE = 10;
+    private const DIRECT_EXPORT_LIMIT = 100;
 
     public function index(Request $request)
     {
@@ -132,9 +136,9 @@ class UsageReportController extends Controller
         $rangeEnd = $dateTo->copy()->endOfDay();
         $branchId = $this->selectedBranchId($request);
 
-        $rows = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd, $branchId)
-            ->orderByDesc('total_quantity')
-            ->get();
+        $query = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd, $branchId)
+            ->orderByDesc('total_quantity');
+        $total = DB::query()->fromSub((clone $query)->toBase(), 'usage_rows')->count();
 
         $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd, $branchId);
         $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
@@ -158,6 +162,30 @@ class UsageReportController extends Controller
             }
         }
 
+        $dateSuffix = $dateFrom->isSameDay($dateTo)
+            ? $dateFrom->format('dMY')
+            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
+        $fileName = 'Pemakaian_Bahan_' . $dateSuffix;
+
+        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            $generatedExport = GeneratedExport::query()->create([
+                'requested_by' => $request->user()->id, 'branch_id' => $branchId,
+                'type' => 'usage_report', 'format' => 'excel',
+                'filters' => ['date_from' => $rangeStart->toDateString(), 'date_to' => $rangeEnd->toDateString()],
+                'status' => GeneratedExport::STATUS_PENDING, 'original_filename' => $fileName . '.xlsx', 'expires_at' => now()->addDays(7),
+            ]);
+            GenerateUsageReportExport::dispatch($generatedExport->id)->onConnection('database');
+            $routePrefix = $request->routeIs('owner.*') ? 'owner' : 'admin';
+
+            return redirect()->route($routePrefix . '.generated-exports.show', $generatedExport)
+                ->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
+        }
+
+        if ($total > self::DIRECT_EXPORT_LIMIT) {
+            return redirect()->back()->withErrors(['export' => 'Ekspor langsung dibatasi hingga 100 data.']);
+        }
+
+        $rows = $query->get();
         $viewData = [
             'items' => $rows,
             'periode' => $periodeLabel,
@@ -167,11 +195,6 @@ class UsageReportController extends Controller
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
-
-        $dateSuffix = $dateFrom->isSameDay($dateTo)
-            ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Pemakaian_Bahan_' . $dateSuffix;
 
         return $this->exportByFormat(
             $format,
@@ -221,10 +244,7 @@ class UsageReportController extends Controller
             ->where('stock_logs.type', 'daily_usage')
             ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
             ->when($branchId, fn ($query, $branchId) => $query->where('transactions.branch_id', $branchId))
-            ->where(function ($query) {
-                $query->whereNull('transactions.status')
-                    ->orWhereRaw('LOWER(transactions.status) = ?', ['success']);
-            });
+            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS']);
     }
 
     private function summary(string $type, string $from, string $to, Carbon $rangeStart, Carbon $rangeEnd, ?int $branchId = null): array

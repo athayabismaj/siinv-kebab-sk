@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\DailyStockSession;
+use App\Models\GeneratedExport;
 use App\Models\Transaction;
 use App\Policies\DailyStockSessionPolicy;
+use App\Policies\GeneratedExportPolicy;
 use App\Policies\TransactionPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::policy(DailyStockSession::class, DailyStockSessionPolicy::class);
+        Gate::policy(GeneratedExport::class, GeneratedExportPolicy::class);
         Gate::policy(Transaction::class, TransactionPolicy::class);
 
         RateLimiter::for('auth-login', function (Request $request) {

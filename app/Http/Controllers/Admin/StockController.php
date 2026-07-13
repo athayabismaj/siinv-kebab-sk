@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Inventory\AdjustInventoryStockAction;
 use App\Actions\Inventory\RestockInventoryStockAction;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateStockLogExport;
+use App\Models\GeneratedExport;
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Requests\Admin\AdjustIngredientStockRequest;
 use App\Http\Requests\Admin\RestockIngredientRequest;
@@ -18,6 +20,7 @@ use App\Support\IngredientStockView;
 use App\Support\ReportBrand;
 use App\Support\StockLogTypeMap;
 use App\Support\StockLogView;
+use App\Services\Exports\StockLogExportQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +29,12 @@ use Illuminate\Support\Facades\Log;
 class StockController extends Controller
 {
     use DirectExportResponse;
+    private const DIRECT_EXPORT_LIMIT = 100;
 
     public function __construct(
         private readonly RestockInventoryStockAction $restockInventoryStock,
         private readonly AdjustInventoryStockAction $adjustInventoryStock,
+        private readonly StockLogExportQuery $stockLogExportQuery,
     ) {
     }
 
@@ -366,15 +371,14 @@ class StockController extends Controller
 
     private function exportLogsDirect(Request $request, string $format)
     {
-        $this->raiseMemoryLimitForStockLogExport();
-
         $period = StockLogView::normalizePeriod($request->input('period'));
         $selectedDate = StockLogView::parseSelectedDate($request->input('date'));
         [$rangeStart, $rangeEnd] = StockLogView::resolveRange($period, $selectedDate);
         $typeFilter = $request->input('type');
 
-        $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter)->get();
-        $logs = $logs->map(fn (StockLog $log) => StockLogView::decorate($log));
+        $branchId = BranchScope::scopedBranchIdFor($request->user());
+        $query = $this->stockLogExportQuery->build($rangeStart, $rangeEnd, $typeFilter, $branchId);
+        $total = (clone $query)->count();
 
         $summaryQuery = StockLog::query()
             ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
@@ -405,6 +409,19 @@ class StockController extends Controller
             ? $rangeStart->format('dMY')
             : $rangeStart->format('dM') . '-' . $rangeEnd->format('dMY');
         $fileName = 'Riwayat_Stok_' . $dateSuffix;
+
+        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            $generatedExport = GeneratedExport::query()->create([
+                'requested_by' => $request->user()->id, 'branch_id' => $branchId,
+                'type' => 'stock_log', 'format' => 'excel',
+                'filters' => ['date_from' => $rangeStart->toDateString(), 'date_to' => $rangeEnd->toDateString(), 'type' => $typeFilter],
+                'status' => GeneratedExport::STATUS_PENDING, 'original_filename' => $fileName . '.xlsx', 'expires_at' => now()->addDays(7),
+            ]);
+            GenerateStockLogExport::dispatch($generatedExport->id)->onConnection('database');
+            return redirect()->route('admin.generated-exports.show', $generatedExport)->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
+        }
+        if ($total > self::DIRECT_EXPORT_LIMIT) return redirect()->back()->withErrors(['export' => 'Ekspor langsung dibatasi hingga 100 riwayat.']);
+        $logs = $query->get()->map(fn (StockLog $log) => StockLogView::decorate($log));
 
         $periodLabels = [
             'daily' => 'HARIAN',

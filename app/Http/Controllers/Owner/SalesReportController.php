@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\DirectExportResponse;
+use App\Jobs\GenerateSalesReportExport;
+use App\Models\GeneratedExport;
 use App\Models\PeriodClosing;
+use App\Services\Exports\SalesReportExportQuery;
 use App\Services\Owner\SalesReportQueryService;
 use App\Services\Shared\PeriodFilterService;
 use App\Support\BranchScope;
@@ -17,9 +20,12 @@ class SalesReportController extends Controller
 {
     use DirectExportResponse;
 
+    private const DIRECT_EXPORT_LIMIT = 250;
+
     public function __construct(
         private readonly SalesReportQueryService $queryService,
-        private readonly PeriodFilterService $periodFilter
+        private readonly PeriodFilterService $periodFilter,
+        private readonly SalesReportExportQuery $exportQuery,
     ) {}
 
     public function index(Request $request)
@@ -269,6 +275,36 @@ class SalesReportController extends Controller
     private function exportDirect(Request $request, string $format)
     {
         $type = $this->periodFilter->resolveType((string) $request->input('type', 'daily'));
+        [$start, $end, $fileName] = $this->exportPeriodContext($request, $type);
+        $branchId = $this->selectedBranchId($request);
+        $total = (clone $this->exportQuery->transactionHistory($start, $end, $branchId))->toBase()->count();
+
+        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            $generatedExport = GeneratedExport::query()->create([
+                'requested_by' => $request->user()->id,
+                'branch_id' => $branchId,
+                'type' => 'sales_report',
+                'format' => 'excel',
+                'filters' => [
+                    'date_from' => $start->toDateString(),
+                    'date_to' => $end->toDateString(),
+                    'type' => $type,
+                ],
+                'status' => GeneratedExport::STATUS_PENDING,
+                'original_filename' => $fileName . '.xlsx',
+                'expires_at' => now()->addDays(7),
+            ]);
+
+            GenerateSalesReportExport::dispatch($generatedExport->id)->onConnection('database');
+
+            return redirect()->route('owner.generated-exports.show', $generatedExport)
+                ->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
+        }
+
+        if ($format !== 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+            return redirect()->back()
+                ->withErrors(['export' => 'Ekspor HTML atau PDF dibatasi hingga 250 transaksi. Gunakan Excel untuk data lebih besar.']);
+        }
         
         if ($type === 'weekly') {
             $data = $this->weeklySalesPayload($request);
@@ -311,6 +347,35 @@ class SalesReportController extends Controller
                 $fileName . '.xlsx'
             )
         );
+    }
+
+    private function exportPeriodContext(Request $request, string $type): array
+    {
+        if ($type === 'weekly') {
+            $start = $this->resolveSelectedDate((string) $request->input('week_date', ''))
+                ->startOfWeek(Carbon::MONDAY);
+            $end = $start->copy()->endOfWeek(Carbon::SUNDAY);
+
+            return [
+                $start,
+                $end,
+                'Penjualan_' . $start->format('dM') . '-' . $end->format('dMY'),
+            ];
+        }
+
+        if ($type === 'monthly') {
+            $month = $this->resolveSelectedMonth((string) $request->input('month', ''));
+
+            return [
+                $month->copy()->startOfMonth(),
+                $month->copy()->endOfMonth(),
+                'Penjualan_' . $month->format('M_Y'),
+            ];
+        }
+
+        $date = $this->resolveSelectedDate((string) $request->input('date', ''));
+
+        return [$date, $date, 'Penjualan_' . $date->format('dMY')];
     }
 
 
