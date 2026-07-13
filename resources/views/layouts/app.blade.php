@@ -11,6 +11,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -191,6 +192,54 @@
         } else {
             moveGlobalFlashAlerts();
         }
+
+        // Global interceptor for native window.confirm triggered via onclick="return confirm('...')"
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[onclick*="confirm("]');
+            if (target) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const onclickCode = target.getAttribute('onclick');
+                const match = onclickCode.match(/confirm\(\s*['"](.*?)['"]\s*\)/);
+                const message = match ? match[1] : 'Apakah Anda yakin ingin melanjutkan?';
+
+                // Temporarily remove onclick to prevent loop if we trigger click programmatically
+                target.removeAttribute('onclick');
+
+                Swal.fire({
+                    title: 'Konfirmasi',
+                    text: message,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb', // text-blue-600
+                    cancelButtonColor: '#ef4444', // text-red-500
+                    confirmButtonText: 'Ya, Lanjutkan',
+                    cancelButtonText: 'Batal',
+                    customClass: {
+                        popup: 'rounded-3xl dark:bg-slate-900 dark:border dark:border-slate-800 shadow-xl',
+                        title: 'text-lg font-bold text-slate-800 dark:text-white',
+                        htmlContainer: 'text-sm font-medium text-slate-500 dark:text-slate-400',
+                        confirmButton: 'rounded-xl px-5 py-2.5 font-bold shadow-sm focus:ring-4 focus:ring-blue-500/20',
+                        cancelButton: 'rounded-xl px-5 py-2.5 font-bold shadow-sm bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-4 focus:ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:focus:ring-slate-700'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (target.tagName.toLowerCase() === 'button' && target.type === 'submit') {
+                            const form = target.closest('form');
+                            if (form) form.submit();
+                        } else if (target.tagName.toLowerCase() === 'a' && target.href) {
+                            window.location.href = target.href;
+                        } else {
+                            target.click();
+                        }
+                    } else {
+                        // Restore onclick if user cancels
+                        target.setAttribute('onclick', onclickCode);
+                    }
+                });
+            }
+        }, true);
     })();
 </script>
 </body>
