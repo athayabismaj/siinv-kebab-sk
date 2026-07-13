@@ -134,11 +134,8 @@ class SalesReportQueryService
 
             $paymentRows = Transaction::query()
                 ->leftJoin('payment_methods', 'payment_methods.id', '=', 'transactions.payment_method_id')
+                ->successful()
                 ->whereBetween('transactions.created_at', [$startDateTime, $endDateTime])
-                ->where(function ($query) {
-                    $query->whereNull('transactions.status')
-                        ->orWhereRaw('LOWER(transactions.status) <> ?', ['void']);
-                })
                 ->selectRaw('
                     payment_methods.id as payment_method_id,
                     COALESCE(payment_methods.name, ?) as payment_method_name,
@@ -163,11 +160,8 @@ class SalesReportQueryService
             }
 
             $successQuery = Transaction::query()
-                ->whereBetween('created_at', [$startDateTime, $endDateTime])
-                ->where(function ($query) {
-                    $query->whereNull('status')
-                        ->orWhereRaw('LOWER(status) <> ?', ['void']);
-                });
+                ->successful()
+                ->whereBetween('created_at', [$startDateTime, $endDateTime]);
             BranchScope::apply($successQuery, $branchId, 'branch_id');
             $successCount = (int) $successQuery->count();
 
@@ -235,10 +229,7 @@ class SalesReportQueryService
             ->leftJoin('menu_variants', 'menu_variants.id', '=', 'transaction_details.menu_variant_id')
             ->leftJoin('menu_categories', 'menu_categories.id', '=', 'menus.category_id')
             ->whereBetween('transactions.created_at', [$startDateTime, $endDateTime])
-            ->where(function ($query) {
-                $query->whereNull('transactions.status')
-                    ->orWhereRaw('LOWER(transactions.status) <> ?', ['void']);
-            })
+            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
             ->where(function ($query) {
                 $query->whereNull('menu_categories.id')
                     ->orWhere('menu_categories.is_addon', false);
@@ -273,11 +264,8 @@ class SalesReportQueryService
         [$startDateTime, $endDateTime] = $this->toDateTimeRange($start, $end);
 
         $aggregateQuery = Transaction::query()
+            ->successful()
             ->whereBetween('created_at', [$startDateTime, $endDateTime])
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
-            })
             ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue');
 
         BranchScope::apply($aggregateQuery, $branchId, 'branch_id');
@@ -291,10 +279,7 @@ class SalesReportQueryService
             ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
             ->leftJoin('menu_categories', 'menu_categories.id', '=', 'menus.category_id')
             ->whereBetween('transactions.created_at', [$startDateTime, $endDateTime])
-            ->where(function ($query) {
-                $query->whereNull('transactions.status')
-                    ->orWhereRaw('LOWER(transactions.status) <> ?', ['void']);
-            })
+            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
             ->where(function ($query) {
                 $query->whereNull('menu_categories.id')
                     ->orWhere('menu_categories.is_addon', false);
@@ -316,11 +301,8 @@ class SalesReportQueryService
         [$startDateTime, $endDateTime] = $this->toDateTimeRange($start, $end);
 
         $query = Transaction::query()
+            ->successful()
             ->whereBetween('created_at', [$startDateTime, $endDateTime])
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
-            })
             ->selectRaw('DATE(created_at) as date, COUNT(*) as trx_count, COALESCE(SUM(total_amount), 0) as revenue')
             ->groupByRaw('DATE(created_at)')
             ->orderBy('date');

@@ -197,7 +197,7 @@ class DailySalesSummaryServiceTest extends TestCase
         int $totalAmount,
         string $transactionCode
     ): void {
-        Transaction::query()->create([
+        $transaction = Transaction::query()->create([
             'transaction_code' => $transactionCode,
             'branch_id' => $branch->id,
             'user_id' => $cashier->id,
@@ -206,8 +206,11 @@ class DailySalesSummaryServiceTest extends TestCase
             'paid_amount' => $totalAmount,
             'change_amount' => 0,
             'status' => $status,
+        ]);
+
+        $transaction->forceFill([
             'created_at' => $createdAt,
             'updated_at' => $createdAt,
-        ]);
+        ])->saveQuietly();
     }
 }

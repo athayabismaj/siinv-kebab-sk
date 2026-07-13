@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -53,5 +54,13 @@ class Transaction extends Model
     public function voidedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
+    }
+
+    /**
+     * Sales metrics are based only on completed checkout transactions.
+     */
+    public function scopeSuccessful(Builder $query): Builder
+    {
+        return $query->whereRaw("UPPER(COALESCE(status, '')) = ?", ['SUCCESS']);
     }
 }

@@ -44,14 +44,11 @@ class DailyTargetController extends Controller
             ->first();
 
         $actual = Transaction::query()
+            ->successful()
             ->whereBetween('created_at', [
                 $selectedDate->copy()->startOfDay(),
                 $selectedDate->copy()->endOfDay(),
             ])
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
-            })
             ->when($selectedBranchId, fn ($query) => $query->where('branch_id', $selectedBranchId))
             ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
             ->first();

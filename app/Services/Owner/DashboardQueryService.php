@@ -15,11 +15,9 @@ use Illuminate\Support\Facades\Schema;
 
 class DashboardQueryService
 {
-    public function buildDashboardData(): array
+    public function buildDashboardData(?int $branchId, $branchOptions): array
     {
         $todayKey = now()->toDateString();
-        $branchOptions = BranchScope::options();
-        $branchId = BranchScope::ownerBranchId();
         $selectedBranch = $branchId ? $branchOptions->firstWhere('id', $branchId) : null;
 
         return Cache::remember(
@@ -37,11 +35,8 @@ class DashboardQueryService
         $last7Start = now()->subDays(6)->startOfDay();
 
         $todayAggregate = Transaction::query()
+            ->successful()
             ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
-            })
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_revenue, COUNT(*) as total_transactions');
         $this->applyBranch($todayAggregate, $branchId, 'branch_id');
         $todayAggregate = $todayAggregate->first();
@@ -109,6 +104,7 @@ class DashboardQueryService
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
             ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
             ->whereBetween('transactions.created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
+            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
             ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('sold_qty')
@@ -146,6 +142,7 @@ class DashboardQueryService
         $latestTransactions = $latestTransactions->get();
 
         $dailySalesRaw = Transaction::query()
+            ->successful()
             ->selectRaw('DATE(created_at) as sale_date, COALESCE(SUM(total_amount), 0) as omzet')
             ->whereBetween('created_at', [$last7Start->toDateTimeString(), $todayEnd->toDateTimeString()])
             ->groupByRaw('DATE(created_at)')
