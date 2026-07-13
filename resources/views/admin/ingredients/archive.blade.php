@@ -27,26 +27,12 @@
 <div class="w-full space-y-6 overflow-x-hidden pb-10">
 
     {{-- ================= HEADER & BREADCRUMB ================= --}}
-    <div class="mb-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-            <nav class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                <a href="{{ route('admin.panel') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Beranda</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-slate-500 dark:text-slate-400">Inventori</span>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <a href="{{ route('admin.ingredients.index') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Manajemen Bahan</a>
-                <span class="text-slate-300 dark:text-slate-600">/</span>
-                <span class="text-blue-600 dark:text-blue-400">Arsip Bahan</span>
-            </nav>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Arsip Bahan
-            </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Daftar bahan yang telah dinonaktifkan. Bahan di arsip tidak muncul di restok atau pemakaian, namun tetap bisa dipulihkan.
-            </p>
-        </div>
-
+    <x-page-header 
+        title="Arsip Bahan" 
+        subtitle="Daftar bahan yang telah dinonaktifkan. Bahan di arsip tidak muncul di stok, namun tetap bisa dipulihkan." 
+        breadcrumb-parent="Manajemen Bahan" 
+        breadcrumb-child="Arsip Bahan">
+        
         <a href="{{ route('admin.ingredients.index') }}"
            class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:w-auto">
             <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,6 +40,12 @@
             </svg>
             Kembali
         </a>
+    </x-page-header>
+
+    {{-- ================= TABS NAVIGATION ================= --}}
+    <div class="flex rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 w-full mb-2">
+        <a href="{{ route('admin.ingredients.archive') }}" class="flex-1 rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400">Arsip Bahan</a>
+        <a href="{{ route('admin.menus.archive') }}" class="flex-1 rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all text-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Arsip Menu</a>
     </div>
 
     {{-- ================= FILTER SECTION ================= --}}
@@ -82,28 +74,26 @@
 
     {{-- ================= TABLE & CARD SECTION ================= --}}
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-between">
-            <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                    <h2 class="text-sm font-black text-slate-900 dark:text-white">Daftar Bahan Nonaktif</h2>
+        <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Daftar Bahan Nonaktif</h2>
                     @if(method_exists($ingredients, 'total'))
-                        <span class="inline-flex h-6 items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300">
-                            {{ $ingredients->total() }} data
+                        <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500 shadow-sm">
+                            {{ $ingredients->total() }} bahan
                         </span>
                     @endif
                 </div>
-                <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Pulihkan bahan jika ingin digunakan kembali di transaksi stok dan resep.
-                </p>
+                <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Pulihkan bahan jika ingin digunakan kembali.</p>
             </div>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="hidden border-b border-slate-100 bg-white text-[10px] font-black uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500 md:table-header-group">
+                <thead class="hidden border-b border-slate-100 bg-white text-[11px] font-black uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500 md:table-header-group">
                     <tr>
                         <th class="px-6 py-4">Bahan</th>
-                        <th class="px-6 py-4">Dinonaktifkan</th>
+                        <th class="px-6 py-4">Dinonaktifkan Pada</th>
                         <th class="px-6 py-4 text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -118,26 +108,26 @@
                                         </svg>
                                     </span>
                                     <div class="min-w-0">
-                                        <p class="truncate font-black text-slate-900 dark:text-white">{{ $ingredient->name }}</p>
-                                        <p class="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">{{ $ingredient->category->name ?? 'Tanpa Kategori' }}</p>
+                                        <p class="truncate font-black text-[14px] text-slate-900 dark:text-white">{{ $ingredient->name }}</p>
+                                        <p class="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ $ingredient->category->name ?? 'Tanpa Kategori' }}</p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="font-bold text-slate-700 dark:text-slate-200">{{ optional($ingredient->deleted_at)->format('d F Y') }}</p>
-                                <p class="mt-0.5 text-xs font-medium text-slate-400">Pukul {{ optional($ingredient->deleted_at)->format('H:i') }} WIB</p>
+                                <p class="text-[13px] font-bold text-slate-700 dark:text-slate-200">{{ optional($ingredient->deleted_at)->format('d F Y') }}</p>
+                                <p class="mt-0.5 text-[11px] font-medium text-slate-400">Pukul {{ optional($ingredient->deleted_at)->format('H:i') }} WIB</p>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <form action="{{ route('admin.ingredients.restore', $ingredient->id) }}" method="POST" class="inline-block">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit"
-                                            onclick="return confirm('Apakah Anda yakin ingin mengaktifkan kembali bahan ini?')"
-                                            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-600 transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/15">
+                                            title="Pulihkan Bahan"
+                                            onclick="return confirm('Apakah Anda yakin ingin memulihkan bahan ini?')"
+                                            class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
                                         </svg>
-                                        Pulihkan
                                     </button>
                                 </form>
                             </td>
@@ -153,9 +143,9 @@
                                             </svg>
                                         </span>
                                         <div class="min-w-0">
-                                            <p class="break-words font-black text-slate-900 dark:text-white">{{ $ingredient->name }}</p>
-                                            <p class="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $ingredient->category->name ?? 'Tanpa Kategori' }}</p>
-                                            <p class="mt-2 text-xs font-medium text-slate-400">
+                                            <p class="break-words font-black text-[14px] text-slate-900 dark:text-white">{{ $ingredient->name }}</p>
+                                            <p class="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ $ingredient->category->name ?? 'Tanpa Kategori' }}</p>
+                                            <p class="mt-2 text-[11px] font-medium text-slate-400">
                                                 {{ optional($ingredient->deleted_at)->format('d M Y, H:i') }}
                                             </p>
                                         </div>
@@ -164,11 +154,11 @@
                                         @csrf
                                         @method('PATCH')
                                         <button type="submit"
-                                                title="Pulihkan bahan"
-                                                onclick="return confirm('Aktifkan kembali bahan ini?')"
-                                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 transition hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300">
+                                                title="Pulihkan Bahan"
+                                                onclick="return confirm('Apakah Anda yakin ingin memulihkan bahan ini?')"
+                                                class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2.5 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
                                             </svg>
                                         </button>
                                     </form>
@@ -177,14 +167,14 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="px-6 py-16 text-center">
-                                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
-                                    <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7.5l-8-4.5-8 4.5m16 0-8 4.5m8-4.5v9L12 21m0-9L4 7.5m8 4.5v9M4 7.5v9L12 21" />
+                            <td colspan="3" class="px-6 py-20 text-center">
+                                <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 ring-4 ring-white shadow-sm dark:bg-slate-800 dark:ring-slate-900 text-slate-400 dark:text-slate-500 mb-4">
+                                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                     </svg>
                                 </div>
-                                <p class="mt-4 text-sm font-black text-slate-900 dark:text-white">Arsip bahan masih kosong.</p>
-                                <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Bahan yang dinonaktifkan akan muncul di halaman ini.</p>
+                                <h3 class="text-[14px] font-bold text-slate-900 dark:text-white">Arsip bahan masih kosong</h3>
+                                <p class="mt-1 text-[13px] font-medium text-slate-500 dark:text-slate-400">Belum ada bahan yang dinonaktifkan saat ini.</p>
                             </td>
                         </tr>
                     @endforelse
