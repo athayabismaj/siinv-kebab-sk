@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Inventory\AdjustInventoryStockAction;
+use App\Actions\Inventory\RestockInventoryStockAction;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\DirectExportResponse;
+use App\Http\Requests\Admin\AdjustIngredientStockRequest;
+use App\Http\Requests\Admin\RestockIngredientRequest;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\StockLog;
@@ -11,7 +15,6 @@ use App\Exports\StockLogsReportExport;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
 use App\Support\IngredientStockView;
-use App\Support\IngredientUnit;
 use App\Support\ReportBrand;
 use App\Support\StockLogTypeMap;
 use App\Support\StockLogView;
@@ -23,6 +26,12 @@ use Illuminate\Support\Facades\Log;
 class StockController extends Controller
 {
     use DirectExportResponse;
+
+    public function __construct(
+        private readonly RestockInventoryStockAction $restockInventoryStock,
+        private readonly AdjustInventoryStockAction $adjustInventoryStock,
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -153,34 +162,18 @@ class StockController extends Controller
         return view('admin.stocks.restock', compact('ingredient'));
     }
 
-    public function restock(Request $request, Ingredient $ingredient)
+    public function restock(RestockIngredientRequest $request, Ingredient $ingredient)
     {
-        $validated = $request->validate([
-            'quantity' => 'required|numeric|min:0.01',
-            'input_unit' => 'nullable|string|in:pack,pcs',
-            'note' => 'nullable|string|max:255'
-        ]);
+        $validated = $request->validated();
 
         try {
-            $quantityInBaseUnit = $this->normalizeQuantityForIngredient(
-                $ingredient,
+            $this->restockInventoryStock->execute(
+                $ingredient->id,
                 (float) $validated['quantity'],
-                $validated['input_unit'] ?? null
+                $validated['input_unit'] ?? null,
+                $validated['note'] ?? null,
+                BranchScope::scopedBranchIdFor(auth()->user())
             );
-
-            $branchId = BranchScope::scopedBranchIdFor(auth()->user());
-
-            DB::transaction(function () use ($validated, $ingredient, $quantityInBaseUnit, $branchId) {
-                $ingredient->increment('stock', $quantityInBaseUnit);
-
-                StockLog::create([
-                    'branch_id' => $branchId,
-                    'ingredient_id' => $ingredient->id,
-                    'type' => 'in',
-                    'quantity' => $quantityInBaseUnit,
-                    'note' => $validated['note'] ?? null
-                ]);
-            });
 
             AdminCache::bumpDashboard();
             AdminCache::bumpStock();
@@ -207,44 +200,24 @@ class StockController extends Controller
         return view('admin.stocks.adjust', compact('ingredient'));
     }
 
-    public function adjust(Request $request, Ingredient $ingredient)
+    public function adjust(AdjustIngredientStockRequest $request, Ingredient $ingredient)
     {
-        $validated = $request->validate([
-            'new_stock' => 'required|numeric|min:0',
-            'input_unit' => 'nullable|string|in:pack,pcs',
-            'note' => 'required|string|max:255'
-        ]);
+        $validated = $request->validated();
 
         try {
-            $newStockInBaseUnit = $this->normalizeQuantityForIngredient(
-                $ingredient,
+            $adjustedIngredient = $this->adjustInventoryStock->execute(
+                $ingredient->id,
                 (float) $validated['new_stock'],
-                $validated['input_unit'] ?? null
+                $validated['input_unit'] ?? null,
+                $validated['note'],
+                BranchScope::scopedBranchIdFor(auth()->user())
             );
 
-            if (round($newStockInBaseUnit, 2) === round((float) $ingredient->stock, 2)) {
+            if (! $adjustedIngredient) {
                 return back()
                     ->withInput()
                     ->with('error', 'Stok baru sama dengan stok saat ini. Tidak ada perubahan yang disimpan.');
             }
-
-            $branchId = BranchScope::scopedBranchIdFor(auth()->user());
-
-            DB::transaction(function () use ($validated, $ingredient, $newStockInBaseUnit, $branchId) {
-                $difference = $newStockInBaseUnit - $ingredient->stock;
-
-                $ingredient->update([
-                    'stock' => $newStockInBaseUnit
-                ]);
-
-                StockLog::create([
-                    'branch_id' => $branchId,
-                    'ingredient_id' => $ingredient->id,
-                    'type' => 'adjustment',
-                    'quantity' => $difference,
-                    'note' => $validated['note']
-                ]);
-            });
 
             AdminCache::bumpDashboard();
             AdminCache::bumpStock();
@@ -486,19 +459,6 @@ class StockController extends Controller
         }
 
         $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
-    }
-
-    private function normalizeQuantityForIngredient(Ingredient $ingredient, float $value, ?string $inputUnit = null): float
-    {
-        if ((string) $ingredient->display_unit === 'pcs') {
-            if ($inputUnit === 'pcs') {
-                return $value;
-            }
-
-            return $value * max(1, (int) ($ingredient->pack_size ?? 1));
-        }
-
-        return IngredientUnit::toBase((string) $ingredient->display_unit, $value);
     }
 
     private function raiseMemoryLimitForStockLogExport(): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\DailyStockSession;
+use App\Support\BranchScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ class SessionStatusController extends Controller
 
         // Query efisien: index-friendly, limit 1, tanpa eager load yang tidak perlu
         $session = DailyStockSession::where('cashier_id', $userId)
+            ->when(BranchScope::userBranchId($request->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->whereRaw("LOWER(TRIM(status)) = 'open'")
             ->orderByDesc('created_at')
             ->first(['id', 'status', 'opened_at', 'session_date']);

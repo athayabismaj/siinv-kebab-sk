@@ -341,6 +341,17 @@ class DailyStockFlowTest extends TestCase
         ]);
     }
 
+    public function test_open_daily_stock_requires_date_and_cashier(): void
+    {
+        [$admin] = $this->baseDailyStockDataset();
+
+        $this->actingAs($admin)
+            ->from(route('admin.daily-stocks.index'))
+            ->post(route('admin.daily-stocks.open'), [])
+            ->assertRedirect(route('admin.daily-stocks.index'))
+            ->assertSessionHasErrors(['date', 'cashier_id']);
+    }
+
     public function test_admin_cannot_open_future_daily_stock_session(): void
     {
         [$admin, $cashier] = $this->baseDailyStockDataset();
@@ -362,6 +373,81 @@ class DailyStockFlowTest extends TestCase
             'session_date' => $futureDate,
             'cashier_id' => $cashier->id,
         ]);
+    }
+
+    public function test_admin_cannot_open_a_session_for_cashier_from_another_branch(): void
+    {
+        [$admin] = $this->baseDailyStockDataset();
+        $cashierRole = Role::query()->where('name', 'kasir')->firstOrFail();
+        $foreignBranch = Branch::query()->create([
+            'name' => 'Cabang Kasir Lain',
+            'code' => 'cabang-kasir-lain',
+            'is_active' => true,
+        ]);
+        $foreignCashier = User::query()->create([
+            'name' => 'Kasir Cabang Lain',
+            'username' => 'kasir_cabang_lain',
+            'email' => 'kasir-cabang-lain@example.test',
+            'password' => 'secret123',
+            'role_id' => $cashierRole->id,
+            'branch_id' => $foreignBranch->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.daily-stocks.index'))
+            ->post(route('admin.daily-stocks.open'), [
+                'date' => now()->toDateString(),
+                'cashier_id' => $foreignCashier->id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error', 'Kasir yang dipilih bukan bagian dari cabang Anda.');
+
+        $this->assertDatabaseMissing('daily_stock_sessions', [
+            'cashier_id' => $foreignCashier->id,
+            'branch_id' => $foreignBranch->id,
+        ]);
+    }
+
+    public function test_second_session_close_keeps_stock_and_logs_unchanged(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 100);
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.open'), [
+            'date' => now()->toDateString(),
+            'cashier_id' => $cashier->id,
+        ])->assertRedirect();
+
+        $session = DailyStockSession::query()->firstOrFail();
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
+            'session_id' => $session->id,
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 30,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.close'), [
+            'session_id' => $session->id,
+            'remaining' => [$ingredient->id => 10],
+        ])->assertRedirect();
+
+        $logCount = StockLog::query()->count();
+        $stockAfterFirstClose = (float) $ingredient->fresh()->stock;
+
+        $this->actingAs($admin)
+            ->post(route('admin.daily-stocks.close'), [
+                'session_id' => $session->id,
+                'remaining' => [$ingredient->id => 10],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame($stockAfterFirstClose, (float) $ingredient->fresh()->stock);
+        $this->assertSame($logCount, StockLog::query()->count());
+        $this->assertSame('closed', $session->fresh()->status);
     }
 
     public function test_admin_cannot_reopen_past_daily_stock_session(): void
@@ -515,6 +601,132 @@ class DailyStockFlowTest extends TestCase
         $this->assertSame(150.0, (float) $item->remaining_qty);
         $this->assertSame(50.0, (float) $item->used_qty);
         $this->assertSame(150.0, (float) $item->returned_qty);
+    }
+
+    public function test_api_close_session_preserves_validation_error_contract(): void
+    {
+        [, $cashier] = $this->baseDailyStockDataset();
+        $apiToken = $this->createApiTokenForUser($cashier);
+
+        $response = $this->postJson('/api/daily-stock-sessions/close', [], [
+            'Authorization' => 'Bearer ' . $apiToken,
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Data yang dikirim tidak valid.')
+            ->assertJsonStructure(['data' => ['errors' => ['remaining']]]);
+    }
+
+    public function test_api_daily_stock_does_not_return_a_session_from_another_branch(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset();
+        $foreignBranch = Branch::query()->create([
+            'name' => 'Cabang Lain',
+            'code' => 'cabang-lain',
+            'is_active' => true,
+        ]);
+
+        $foreignSession = DailyStockSession::query()->create([
+            'session_date' => now('Asia/Jakarta')->toDateString(),
+            'cashier_id' => $cashier->id,
+            'opened_by' => $admin->id,
+            'branch_id' => $foreignBranch->id,
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+
+        DailyStockItem::query()->create([
+            'daily_stock_session_id' => $foreignSession->id,
+            'ingredient_id' => $ingredient->id,
+            'opening_qty' => 10,
+            'remaining_qty' => 10,
+            'used_qty' => 0,
+            'returned_qty' => 0,
+        ]);
+
+        $apiToken = $this->createApiTokenForUser($cashier);
+
+        $this->getJson('/api/daily-stock-items', [
+            'Authorization' => 'Bearer ' . $apiToken,
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.session_id', null)
+            ->assertJsonPath('data.items', []);
+    }
+
+    public function test_api_session_status_does_not_return_a_session_from_another_branch(): void
+    {
+        [$admin, $cashier] = $this->baseDailyStockDataset();
+        $foreignBranch = Branch::query()->create([
+            'name' => 'Cabang Status Lain',
+            'code' => 'cabang-status-lain',
+            'is_active' => true,
+        ]);
+
+        DailyStockSession::query()->create([
+            'session_date' => now('Asia/Jakarta')->toDateString(),
+            'cashier_id' => $cashier->id,
+            'opened_by' => $admin->id,
+            'branch_id' => $foreignBranch->id,
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+
+        $apiToken = $this->createApiTokenForUser($cashier);
+
+        $this->getJson('/api/sessions/current-status', [
+            'Authorization' => 'Bearer ' . $apiToken,
+        ])->assertNotFound()
+            ->assertJsonPath('active', false);
+    }
+
+    public function test_restock_keeps_redirect_and_records_the_active_branch_in_stock_log(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 10);
+
+        $this->actingAs($admin)
+            ->post(route('admin.stocks.restock', $ingredient), [
+                'quantity' => 5,
+                'input_unit' => 'pcs',
+                'note' => 'Penerimaan bahan uji',
+            ])
+            ->assertRedirect(route('admin.stocks.index'))
+            ->assertSessionHas('success', 'Restok berhasil dilakukan.');
+
+        $ingredient->refresh();
+        $this->assertSame(15.0, (float) $ingredient->stock);
+        $this->assertDatabaseHas('stock_logs', [
+            'branch_id' => $admin->branch_id,
+            'ingredient_id' => $ingredient->id,
+            'type' => 'in',
+            'quantity' => 5.00,
+            'note' => 'Penerimaan bahan uji',
+        ]);
+    }
+
+    public function test_adjustment_keeps_redirect_and_records_the_stock_difference(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 10);
+
+        $this->actingAs($admin)
+            ->post(route('admin.stocks.adjust', $ingredient), [
+                'new_stock' => 6,
+                'input_unit' => 'pcs',
+                'note' => 'Hitung fisik uji',
+            ])
+            ->assertRedirect(route('admin.stocks.index'))
+            ->assertSessionHas('success', 'Penyesuaian stok berhasil.');
+
+        $ingredient->refresh();
+        $this->assertSame(6.0, (float) $ingredient->stock);
+        $this->assertDatabaseHas('stock_logs', [
+            'branch_id' => $admin->branch_id,
+            'ingredient_id' => $ingredient->id,
+            'type' => 'adjustment',
+            'quantity' => -4.00,
+            'note' => 'Hitung fisik uji',
+        ]);
     }
 
     public function test_admin_can_trigger_manual_reconcile_action(): void

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\API\CloseDailyStockSessionRequest;
 use App\Models\DailyStockSession;
 use App\Services\DailyStockService;
+use App\Support\BranchScope;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +27,10 @@ class DailyStockController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $session = $this->openSessionForCashier((int) $user->id);
+        $session = $this->openSessionForCashier(
+            (int) $user->id,
+            BranchScope::userBranchId($user)
+        );
 
         if (! $session) {
             return $this->successResponse('Sesi stok harian belum dibuka oleh admin hari ini.', [
@@ -69,19 +74,17 @@ class DailyStockController extends Controller
         ]);
     }
 
-    public function closeSession(Request $request)
+    public function closeSession(CloseDailyStockSessionRequest $request)
     {
         $user = $request->user();
         if (! $user) {
             return $this->unauthorizedResponse();
         }
 
-        $request->validate([
-            'remaining' => 'required|array',
-            'notes' => 'nullable|string|max:255',
-        ]);
-
-        $session = $this->openSessionForCashier((int) $user->id);
+        $session = $this->openSessionForCashier(
+            (int) $user->id,
+            BranchScope::userBranchId($user)
+        );
 
         if (! $session) {
             return $this->errorResponse('Tidak ada sesi stok harian yang aktif untuk ditutup.', null, 404);
@@ -141,7 +144,8 @@ class DailyStockController extends Controller
                 $session->id,
                 $remainingByIngredient,
                 $user->id,
-                $request->input('notes')
+                $request->input('notes'),
+                BranchScope::userBranchId($user)
             );
 
             return $this->successResponse('Sesi stok harian berhasil ditutup.', [
@@ -198,15 +202,15 @@ class DailyStockController extends Controller
         return is_numeric($normalized) ? (float) $normalized : null;
     }
 
-    private function openSessionForCashier(int $cashierId): ?DailyStockSession
+    private function openSessionForCashier(int $cashierId, ?int $branchId): ?DailyStockSession
     {
         return DailyStockSession::query()
             ->with(['items.ingredient'])
             ->where('cashier_id', $cashierId)
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereRaw("LOWER(TRIM(status)) = 'open'")
             ->latest('session_date')
             ->latest('id')
             ->first();
     }
 }
-

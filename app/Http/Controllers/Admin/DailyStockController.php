@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\OpenDailyStockSessionRequest;
+use App\Http\Requests\Admin\CloseDailyStockSessionRequest;
+use App\Http\Requests\Admin\ReconcileDailyStockSessionRequest;
+use App\Http\Requests\Admin\ReopenDailyStockSessionRequest;
+use App\Http\Requests\Admin\TransferDailyStockRequest;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
@@ -311,18 +316,11 @@ class DailyStockController extends Controller
         ]);
     }
 
-    public function open(Request $request)
+    public function open(OpenDailyStockSessionRequest $request)
     {
         $this->authorize('open', DailyStockSession::class);
 
-        $validated = $request->validate([
-            'date' => 'required|date',
-            'cashier_id' => [
-                'required',
-                Rule::exists((new User())->getTable(), 'id'),
-            ],
-            'notes' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         $sessionDate = $this->resolveDate((string) $validated['date']);
         if ($this->isPastSessionDate($sessionDate)) {
@@ -383,27 +381,14 @@ class DailyStockController extends Controller
         }
     }
 
-    public function transfer(Request $request)
+    public function transfer(TransferDailyStockRequest $request)
     {
-        $validated = $request->validate([
-            'session_id' => [
-                'required',
-                Rule::exists((new DailyStockSession())->getTable(), 'id'),
-            ],
-            'transfers' => 'required|array',
-            'transfers.*.quantity' => 'nullable|numeric|min:0',
-            'transfers.*.note' => 'nullable|string|max:255',
-            'transfers.*.transfer_unit' => 'nullable|in:pack,pcs,g,kg,ml,l',
-        ], [
-            'session_id.required' => 'Sesi stok harian belum dipilih.',
-            'session_id.exists' => 'Sesi stok harian tidak ditemukan atau sudah tidak aktif.',
-            'transfers.required' => 'Pilih bahan dan isi jumlah transfer terlebih dahulu.',
-            'transfers.array' => 'Data transfer tidak valid.',
-        ]);
+        $validated = $request->validated();
+        $branchId = BranchScope::scopedBranchIdFor(auth()->user());
 
         try {
             $session = DailyStockSession::query()
-                ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
+                ->when($branchId, fn ($query, $scopedBranchId) => $query->where('branch_id', $scopedBranchId))
                 ->findOrFail((int) $validated['session_id']);
             $this->authorize('transfer', $session);
 
@@ -443,7 +428,8 @@ class DailyStockController extends Controller
                 $transferResult = $this->dailyStockService->batchTransferToDaily(
                     (int) $validated['session_id'],
                     $batchTransfers,
-                    (int) auth()->id()
+                    (int) auth()->id(),
+                    $branchId
                 );
 
                 $processedCount = (int) ($transferResult['processed'] ?? 0);
@@ -496,17 +482,9 @@ class DailyStockController extends Controller
         }
     }
 
-    public function close(Request $request)
+    public function close(CloseDailyStockSessionRequest $request)
     {
-        $validated = $request->validate([
-            'session_id' => [
-                'required',
-                Rule::exists((new DailyStockSession())->getTable(), 'id'),
-            ],
-            'remaining' => 'nullable|array',
-            'remaining.*' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         try {
             $session = DailyStockSession::query()
@@ -528,7 +506,8 @@ class DailyStockController extends Controller
                 $session->id,
                 $remainingByIngredient,
                 (int) auth()->id(),
-                $validated['notes'] ?? null
+                $validated['notes'] ?? null,
+                BranchScope::scopedBranchIdFor(auth()->user())
             );
 
             return redirect()
@@ -557,15 +536,9 @@ class DailyStockController extends Controller
         }
     }
 
-    public function reopen(Request $request)
+    public function reopen(ReopenDailyStockSessionRequest $request)
     {
-        $validated = $request->validate([
-            'session_id' => [
-                'required',
-                Rule::exists((new DailyStockSession())->getTable(), 'id'),
-            ],
-            'notes' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         try {
             $sessionModel = DailyStockSession::query()
@@ -609,14 +582,9 @@ class DailyStockController extends Controller
         }
     }
 
-    public function reconcile(Request $request)
+    public function reconcile(ReconcileDailyStockSessionRequest $request)
     {
-        $validated = $request->validate([
-            'session_id' => [
-                'required',
-                Rule::exists((new DailyStockSession())->getTable(), 'id'),
-            ],
-        ]);
+        $validated = $request->validated();
 
         try {
             $sessionModel = DailyStockSession::query()
