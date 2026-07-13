@@ -5,7 +5,9 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
+use App\Models\Branch;
 use App\Models\PaymentMethod;
+use App\Models\Transaction;
 use App\Services\Analytics\DailySalesSummaryService;
 use App\Services\ApiTransactionService;
 use App\Support\AdminCache;
@@ -140,7 +142,11 @@ class TransactionController extends Controller
             AdminCache::bumpUsage();
             AdminCache::bumpDailyStock();
             AdminCache::bumpTransactions();
-            $this->dailySalesSummaryService->rebuildForDate(now());
+            $branchId = (int) Transaction::query()
+                ->whereKey($result['transaction_id'])
+                ->value('branch_id');
+            $branch = Branch::query()->findOrFail($branchId);
+            $this->dailySalesSummaryService->rebuildForDate($branch, now());
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {

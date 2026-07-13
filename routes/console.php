@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Analytics\DailySalesSummaryService;
+use App\Models\Branch;
 use App\Services\System\DailyStockIntegrityAuditService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
@@ -35,15 +36,21 @@ Artisan::command('analytics:daily-summary {--date=} {--days=0}', function (Daily
 
     for ($i = $days; $i >= 0; $i--) {
         $target = $baseDate->copy()->subDays($i);
-        $result = $service->rebuildForDate($target);
+        Branch::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->each(function (Branch $branch) use ($service, $target): void {
+                $result = $service->rebuildForDate($branch, $target);
 
-        $this->info(sprintf(
-            '[%s] trx=%d omzet=%.2f items=%d',
-            $target->toDateString(),
-            $result['total_transactions'],
-            $result['total_revenue'],
-            $result['total_items_sold']
-        ));
+                $this->info(sprintf(
+                    '[%s][%s] trx=%d omzet=%.2f items=%d',
+                    $target->toDateString(),
+                    $branch->code,
+                    $result['total_transactions'],
+                    $result['total_revenue'],
+                    $result['total_items_sold']
+                ));
+            });
     }
 })->purpose('Rebuild daily pre-aggregated sales summary');
 
