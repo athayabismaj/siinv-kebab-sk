@@ -4,7 +4,36 @@
         <h2 class="mt-1 text-lg font-black text-slate-900 dark:text-white">{{ $title }}</h2>
     </div>
 
-    <form method="POST" action="{{ $action }}" class="p-6">
+    @php
+        $isNewBranch = empty($branch->id) && ($method ?? 'POST') === 'POST';
+    @endphp
+
+    <form method="POST" action="{{ $action }}" class="p-6"
+          x-data="{
+              codeTouched: false,
+              suggestCode(name) {
+                  const ignored = ['kebab', 'sk', 'cabang', 'branch', 'outlet'];
+                  const words = String(name || '')
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, ' ')
+                      .trim()
+                      .split(/\s+/)
+                      .filter(Boolean);
+                  const locationWords = words.filter(word => !ignored.includes(word));
+                  const source = locationWords.at(-1) || words.at(-1) || '';
+                  if (source.length <= 3) return source.toUpperCase();
+
+                  let code = source.replace(/[aiueo]/g, '');
+                  for (const character of [...source].reverse()) {
+                      if (code.length >= 3) break;
+                      if (!code.includes(character)) code += character;
+                  }
+
+                  return code.slice(0, 12).toUpperCase();
+              }
+          }">
         @csrf
         @if(($method ?? 'POST') !== 'POST')
             @method($method)
@@ -19,6 +48,7 @@
                     value="{{ old('name', $branch->name) }}"
                     required
                     placeholder="Contoh: Kebab SK Cabang B"
+                    @if($isNewBranch) x-on:input="if (!codeTouched) $refs.branchCode.value = suggestCode($event.target.value)" @endif
                     class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
                 @error('name')
                     <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
@@ -30,10 +60,12 @@
                 <input
                     type="text"
                     name="code"
+                    x-ref="branchCode"
+                    @if($isNewBranch) x-on:input="codeTouched = true" @endif
                     value="{{ old('code', $branch->code) }}"
-                    placeholder="Contoh: cabang-b"
+                    placeholder="Contoh: UMK atau JPR"
                     class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
-                <p class="mt-2 text-[11px] font-medium text-slate-400">Kosongkan jika ingin dibuat otomatis dari nama cabang.</p>
+                <p class="mt-2 text-[11px] font-medium text-slate-400">Pada cabang baru, kode disarankan otomatis dari nama dan tetap bisa diubah. Dipakai sebagai prefix transaksi, misalnya UMK atau JPR.</p>
                 @error('code')
                     <p class="mt-2 text-xs font-semibold text-rose-500">{{ $message }}</p>
                 @enderror

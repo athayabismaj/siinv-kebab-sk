@@ -112,6 +112,12 @@ class BranchController extends Controller
 
     private function validateBranch(Request $request, ?Branch $branch = null): array
     {
+        if ($request->filled('code')) {
+            $request->merge([
+                'code' => Str::slug((string) $request->input('code')),
+            ]);
+        }
+
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'code' => [
@@ -142,16 +148,49 @@ class BranchController extends Controller
 
     private function uniqueCodeFromName(string $name): string
     {
-        $base = Str::slug($name) ?: 'cabang';
+        $normalizedName = Str::of($name)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->trim();
+        $words = preg_split('/\s+/', (string) $normalizedName, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $locationWords = array_values(array_filter($words, fn (string $word) => ! in_array($word, [
+            'kebab', 'sk', 'cabang', 'branch', 'outlet',
+        ], true)));
+        $source = end($locationWords) ?: end($words) ?: 'cabang';
+        $base = $this->abbreviateBranchCode((string) $source);
         $code = $base;
         $counter = 2;
 
         while (Branch::query()->where('code', $code)->exists()) {
-            $code = $base . '-' . $counter;
+            $code = $base . $counter;
             $counter++;
         }
 
         return $code;
+    }
+
+    private function abbreviateBranchCode(string $source): string
+    {
+        $source = Str::lower(Str::ascii($source));
+
+        if (strlen($source) <= 3) {
+            return $source ?: 'cabang';
+        }
+
+        $code = preg_replace('/[aiueo]/', '', $source) ?: '';
+
+        foreach (array_reverse(str_split($source)) as $character) {
+            if (strlen($code) >= 3) {
+                break;
+            }
+
+            if (! str_contains($code, $character)) {
+                $code .= $character;
+            }
+        }
+
+        return Str::limit($code ?: $source, 12, '');
     }
 
     private function activeBranchCount(): int
