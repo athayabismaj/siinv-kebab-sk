@@ -11,7 +11,9 @@
   <br />
   <br />
   
-  **[🇮🇩 ID](README.md)** &nbsp;&middot;&nbsp; **[🇬🇧 ENG](README-en.md)**
+  <a href="README.md"><img src="https://img.shields.io/badge/-🇮🇩%20ID-E11D48?style=for-the-badge" alt="ID" /></a>
+  &nbsp;&nbsp;
+  <a href="README-en.md"><img src="https://img.shields.io/badge/-🇬🇧%20ENG-1E40AF?style=for-the-badge" alt="ENG" /></a>
 </div>
 
 ---
