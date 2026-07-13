@@ -1,143 +1,151 @@
-# SIINV Kebab SK
+<div align="center">
+  <img src="public/favicon.svg" alt="Logo Kebab SK" width="120" />
 
-Sistem inventory + monitoring transaksi untuk operasional Kebab SK.
+  # Sistem Inventory Kebab SK (SIINV)
 
-Project ini terdiri dari:
-- Web panel Laravel (role `admin` dan `owner`)
-- API Laravel untuk aplikasi mobile kasir (Kotlin)
+  **Sistem Manajemen Inventaris & Operasional Point of Sales Berbasis Cloud**
 
-## Fitur Utama
+  [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+  [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+  [![Alpine.js](https://img.shields.io/badge/Alpine.js-8BC0D0?style=for-the-badge&logo=alpine.js&logoColor=white)](https://alpinejs.dev/)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+</div>
 
-### Admin
-- Dashboard ringkas operasional
-- Manajemen bahan, kategori bahan, stok, restok, dan adjustment
-- Riwayat stok
-- Manajemen menu, kategori menu, dan resep
-- Monitoring transaksi kasir
-- Laporan pemakaian
-- Arsip bahan/menu (restore data nonaktif)
+<br>
 
-### Owner
-- Dashboard monitoring bisnis
-- Monitoring stok (read-only)
-- Laporan penjualan (harian & bulanan)
-- Riwayat transaksi
-- Analisis menu (terlaris, paling sedikit terjual, kontribusi)
-- Laporan pemakaian
-- Manajemen user + arsip user
+**Sistem Inventory Kebab SK (SIINV)** adalah platform manajemen terpadu yang dirancang khusus untuk memonitor operasional, rantai pasok (stok), dan pencatatan transaksi kasir Kebab SK. Sistem ini menggunakan arsitektur modern (SaaS-like) yang memisahkan panel manajemen berbasis web dengan antarmuka kasir (*Point of Sales*) berbasis aplikasi mobile.
 
-### API Mobile Kasir
-- Auth login + profil + ganti password + logout
-- Forgot password OTP flow
-- List menu
-- List metode pembayaran
-- Checkout transaksi
-- Riwayat transaksi + summary revenue
+---
 
-## Teknologi
-- PHP 8.x
-- Laravel 11
-- PostgreSQL (termasuk Supabase)
-- Blade + TailwindCSS + Alpine.js
+## ✨ Fitur Utama
 
-## Struktur Penting
-- `routes/web.php` -> route panel admin/owner
-- `routes/api.php` -> endpoint mobile
-- `app/Http/Controllers/Admin` -> logic admin
-- `app/Http/Controllers/Owner` -> logic owner
-- `app/Http/Controllers/API` -> logic API mobile
-- `app/Services` -> service layer (stok/transaksi)
-- `resources/views` -> UI blade
+### 👑 Owner (Pemilik Bisnis)
+Panel analitik tingkat tinggi untuk memantau performa bisnis di seluruh cabang.
+*   **Analitik & Performa:** Dashboard finansial terpusat, Laporan Penjualan (Harian & Bulanan), dan Analisis Menu (Kontribusi & Tren).
+*   **Keuangan & Audit:** Pencatatan Tutup Buku (*Closing Book*) spesifik per cabang.
+*   **Manajemen SDM:** Pengelolaan Hak Akses (*Role-Based Access Control*), Pembuatan Akun Kasir/Admin, dan Arsip Karyawan.
+*   **Monitoring Cabang:** Pemantauan stok *read-only* dari seluruh cabang yang terdaftar.
 
-## Instalasi Lokal
+### 💼 Admin (Manajer Operasional)
+Panel teknis untuk mengelola rantai pasok harian dan administrasi produk.
+*   **Manajemen Inventaris:** Katalog Bahan Baku, Kategori Bahan, Penyesuaian Stok (*Adjustment*), dan Histori Restok.
+*   **Manajemen Produk:** Katalog Menu Utama, Kategori Menu, dan Standardisasi Resep (BoM - *Bill of Materials*).
+*   **Operasional Harian:** Audit Stok Harian, Laporan Pemakaian, dan Pencatatan Pengeluaran Operasional.
+*   **Arsip Terpadu:** Sistem pemulihan (*restore*) untuk data bahan baku dan menu yang dinonaktifkan.
 
-1. Clone repository
+### 📱 API Kasir (Aplikasi Mobile)
+Endpoint RESTful yang cepat dan aman untuk digunakan oleh aplikasi mobile kasir (Android/Kotlin).
+*   **Autentikasi Aman:** Sistem Token (Bearer), Reset Password via OTP.
+*   **Transaksi Real-time:** Pengambilan Menu, Metode Pembayaran, dan Pemrosesan *Checkout* (Terintegrasi dengan pengurangan stok resep).
+*   **Riwayat Shift:** Ringkasan pendapatan harian dan histori transaksi spesifik milik kasir yang bertugas.
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+*   **Backend:** [PHP 8.2+](https://www.php.net/) & [Laravel 11](https://laravel.com/)
+*   **Frontend (Panel):** Blade Templates, [Tailwind CSS v3](https://tailwindcss.com/) (Desain Modern), [Alpine.js](https://alpinejs.dev/) (Reaktivitas UI), [SweetAlert2](https://sweetalert2.github.io/) (Pop-up modern).
+*   **Database:** [PostgreSQL](https://www.postgresql.org/) (Dioptimalkan untuk *Supabase*).
+*   **Arsitektur:** REST API, Repository/Service Pattern.
+
+---
+
+## 🚀 Panduan Instalasi Lokal
+
+Ikuti langkah-langkah berikut untuk menjalankan proyek ini di lingkungan pengembangan (*localhost*).
+
+### Prasyarat Sistem
+*   PHP >= 8.2
+*   Composer >= 2.0
+*   Node.js >= 18.0 & NPM
+*   PostgreSQL
+
+### 1. Kloning Repositori
 ```bash
 git clone https://github.com/athayabismaj/siinv-kebab-sk.git
 cd siinv-kebab-sk
 ```
 
-2. Install dependency
+### 2. Instalasi Dependensi
+Jalankan perintah berikut untuk menginstal dependensi PHP dan Node.js:
 ```bash
 composer install
 npm install
 ```
 
-3. Siapkan environment
+### 3. Konfigurasi Lingkungan (*Environment*)
+Salin berkas konfigurasi contoh dan buat kunci aplikasi Laravel:
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-4. Atur konfigurasi database di `.env`
-Contoh PostgreSQL:
+Ubah pengaturan kredensial basis data di dalam berkas `.env`:
 ```env
 DB_CONNECTION=pgsql
-DB_HOST=your-host
-DB_PORT=6543
-DB_DATABASE=postgres
-DB_USERNAME=postgres
-DB_PASSWORD=your-password
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=nama_database_anda
+DB_USERNAME=user_database_anda
+DB_PASSWORD=password_database_anda
 ```
 
-5. Jalankan migrasi + seeder
+### 4. Migrasi & Seeding Data Awal
+Sistem membutuhkan *role* awal, akun administrator, dan *payment methods* agar dapat beroperasi penuh:
 ```bash
 php artisan migrate --seed
 ```
 
-6. Jalankan aplikasi
+### 5. Menjalankan Aplikasi
+Jalankan *compiler frontend* dan server backend secara bersamaan (gunakan dua terminal terpisah):
+
+**Terminal 1 (Frontend Vite):**
 ```bash
 npm run dev
-php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-Akses web:
-- Local: `http://127.0.0.1:8000`
-- Satu jaringan (HP): `http://IP-PC-KAMU:8000`
+**Terminal 2 (Backend Laravel):**
+```bash
+php artisan serve
+```
+Aplikasi kini dapat diakses melalui peramban di `http://127.0.0.1:8000`.
 
-## Endpoint API Utama
+---
 
-Base URL: `/api`
+## 📖 Dokumentasi API Kasir (Mobile)
 
-### Auth
-- `POST /auth/login`
-- `POST /auth/forgot-password`
-- `POST /auth/verify-reset-code`
-- `POST /auth/reset-password`
-- `GET /auth/me` (Bearer token)
-- `PUT /auth/profile` (Bearer token)
-- `POST /auth/change-password` (Bearer token)
-- `POST /auth/logout` (Bearer token)
+*Endpoint* API berada di bawah *path* `/api/` dan membutuhkan *header* `Accept: application/json`. Untuk *endpoint* yang dilindungi, gunakan *header* `Authorization: Bearer {token}`.
 
-### Kasir / Transaksi
-- `GET /menus` (Bearer token)
-- `GET /payment-methods` (Bearer token)
-- `GET /transactions` (Bearer token)
-- `POST /transactions` (Bearer token)
-- `GET /revenue/summary` (Bearer token)
-- `GET /revenue/trend` (Bearer token)
+| Modul | Endpoint Utama | Deskripsi |
+| :--- | :--- | :--- |
+| **Auth** | `POST /auth/login` | Mendapatkan kredensial *Bearer Token*. |
+| **Auth** | `GET /auth/me` | Profil kasir yang sedang aktif. |
+| **Data** | `GET /menus` | Mengambil katalog produk yang tersedia. |
+| **Sales** | `POST /transactions` | Mengirim data transaksi (Checkout). |
+| **Sales** | `GET /revenue/summary`| Mendapatkan ringkasan pendapatan harian. |
 
-## Catatan Konfigurasi Penting
+---
 
-1. Pastikan tabel dari migrasi benar-benar sudah dibuat (`users`, `api_tokens`, `payment_methods`, `transactions`, dll).
-2. Jika pakai PostgreSQL/Supabase, jangan lupa seed `payment_methods` (minimal `Cash`) agar checkout tidak gagal.
-3. Endpoint API mengembalikan JSON dan dilindungi middleware `api.token`.
-4. Route login web/API sudah diproteksi throttle untuk mengurangi spam request.
+## 🧪 Pengujian & Audit
 
-## Troubleshooting Singkat
+Proyek ini dilengkapi dengan skrip pengujian bawaan untuk memastikan integritas data (terutama logika rantai pasok dan pemotongan resep).
 
-- Error `relation "users" does not exist`:
-  - database belum migrate / salah koneksi DB
-- Error `relation "cache" does not exist`:
-  - pastikan `CACHE_DRIVER` sesuai dan tabel cache tersedia jika memakai database cache
-- Endpoint API timeout:
-  - cek koneksi DB, indeks query, dan lokasi server
+*   **Menjalankan Unit/Feature Test:**
+    ```bash
+    php artisan test
+    ```
+*   **Menjalankan Test Spesifik PostgreSQL:**
+    ```bash
+    vendor/bin/phpunit -c phpunit.pgsql.xml
+    ```
+*   **Audit Integritas Stok:**
+    Sistem memiliki *Command Line* khusus untuk melakukan audit apakah stok fisik dan sistem sinkron:
+    ```bash
+    php artisan ops:daily-stock-integrity-audit --days=1
+    ```
 
-## Testing & Audit
+---
 
-- Jika environment PHP tidak memiliki extension `pdo_sqlite`, gunakan konfigurasi test PostgreSQL:
-  - `vendor/bin/phpunit -c phpunit.pgsql.xml tests/Feature/Admin/DailyStockFlowTest.php tests/Feature/Admin/DailyStockIntegrityAuditTest.php`
-- Audit integritas stok harian:
-  - `php artisan ops:daily-stock-integrity-audit --days=1`
-- Cek kesehatan environment runtime:
-  - `php artisan ops:doctor-env`
+<div align="center">
+  <p>Dibuat untuk kelancaran operasional <b>Kebab SK</b>. &copy; 2026</p>
+</div>
