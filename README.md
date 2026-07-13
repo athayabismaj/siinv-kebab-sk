@@ -8,12 +8,11 @@
   [![Alpine.js](https://img.shields.io/badge/Alpine.js-8BC0D0?style=flat-square&logo=alpine.js&logoColor=white)](https://alpinejs.dev/)
   [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
   
-  <br />
-  <br />
+  <br>
   
-  <a href="README.md"><img src="https://img.shields.io/badge/-🇮🇩%20ID-E11D48?style=for-the-badge" alt="ID" /></a>
+  <a href="README.md"><img src="https://img.shields.io/badge/-ID-E11D48?style=for-the-badge" alt="ID" /></a>
   &nbsp;&nbsp;
-  <a href="README-en.md"><img src="https://img.shields.io/badge/-🇬🇧%20ENG-1E40AF?style=for-the-badge" alt="ENG" /></a>
+  <a href="README-en.md"><img src="https://img.shields.io/badge/-ENG-1E40AF?style=for-the-badge" alt="ENG" /></a>
 </div>
 
 ---
