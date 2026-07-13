@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
 use App\Services\ApiTransactionService;
 use App\Support\AdminCache;
+use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -36,7 +37,8 @@ class TransactionController extends Controller
         $transactions = $this->transactionService->getHistory(
             $userId,
             $request->input('date'),
-            (int) $request->input('per_page', 15)
+            (int) $request->input('per_page', 15),
+            $this->branchIdFor($request->user())
         );
 
         $data = $transactions->map(fn ($transaction) => [
@@ -64,9 +66,14 @@ class TransactionController extends Controller
         }
 
         $roleName = strtolower(trim((string) optional($user->role)->name));
-        $canReadAll = in_array($roleName, ['admin', 'owner', 'superadmin', 'developer'], true);
+        $canReadAllUsers = in_array($roleName, ['admin', 'owner', 'superadmin', 'developer'], true);
 
-        $transaction = $this->transactionService->getTransactionDetail($transactionKey, $userId, $canReadAll);
+        $transaction = $this->transactionService->getTransactionDetail(
+            $transactionKey,
+            $userId,
+            $canReadAllUsers,
+            $this->branchIdFor($user)
+        );
         if (! $transaction) {
             return $this->errorResponse('Transaksi tidak ditemukan.', null, 404);
         }
@@ -86,7 +93,11 @@ class TransactionController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $summary = $this->transactionService->getRevenueSummary($userId, $request->input('date'));
+        $summary = $this->transactionService->getRevenueSummary(
+            $userId,
+            $request->input('date'),
+            $this->branchIdFor($request->user())
+        );
 
         return $this->successResponse('Berhasil mengambil ringkasan pendapatan', $summary);
     }
@@ -98,7 +109,11 @@ class TransactionController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $trend = $this->transactionService->getRevenueTrend($userId, $request->input('date'));
+        $trend = $this->transactionService->getRevenueTrend(
+            $userId,
+            $request->input('date'),
+            $this->branchIdFor($request->user())
+        );
 
         return $this->successResponse('Berhasil mengambil tren pendapatan', $trend);
     }
@@ -164,6 +179,17 @@ class TransactionController extends Controller
     private function resolveUserId(Request $request): int
     {
         return (int) optional($request->user())->id;
+    }
+
+    private function branchIdFor(mixed $user): ?int
+    {
+        $roleName = strtolower(trim((string) optional(optional($user)->role)->name));
+
+        if (in_array($roleName, ['owner', 'superadmin', 'developer'], true)) {
+            return null;
+        }
+
+        return $user ? BranchScope::userBranchId($user) : null;
     }
 
     private function formatCreatedAt(mixed $createdAt): string

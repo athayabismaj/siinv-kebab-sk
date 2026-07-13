@@ -162,6 +162,8 @@ class TransactionHistoryController extends Controller
 
     public function show(Transaction $transaction)
     {
+        $this->authorize('view', $transaction);
+
         $transaction->load([
             'user:id,name,username',
             'voidedBy:id,name,username',

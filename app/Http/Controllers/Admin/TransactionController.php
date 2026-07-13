@@ -66,10 +66,12 @@ class TransactionController extends Controller
     {
         if (! $this->isOwnerView($request)) {
             $branchId = BranchScope::scopedBranchIdFor($request->user());
-            if ($branchId && (int) $transaction->branch_id !== (int) $branchId) {
-                abort(404);
-            }
+            $transaction = Transaction::query()
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+                ->findOrFail($transaction->id);
         }
+
+        $this->authorize('view', $transaction);
 
         $transaction->load([
             'user:id,name,username',

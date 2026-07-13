@@ -3,6 +3,7 @@
 namespace Tests\Feature\API;
 
 use App\Models\ApiToken;
+use App\Models\Branch;
 use App\Models\Menu;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
@@ -64,14 +65,74 @@ class TransactionReceiptApiTest extends TestCase
             ->assertJsonPath('message', 'Transaksi tidak ditemukan.');
     }
 
+    public function test_admin_cannot_fetch_transaction_detail_from_another_branch(): void
+    {
+        $branchA = Branch::query()->where('code', 'default')->firstOrFail();
+        $branchB = Branch::query()->create([
+            'name' => 'Kebab SK Jepara',
+            'code' => 'jpr',
+            'is_active' => true,
+        ]);
+
+        [, $token] = $this->createUserWithToken('admin', $branchA);
+        [$cashier] = $this->createUserWithToken('kasir', $branchB);
+        [$transaction] = $this->createTransactionWithDetail($cashier, $branchB);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/transactions/' . $transaction->id)
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Transaksi tidak ditemukan.');
+    }
+
+    public function test_cashier_history_is_scoped_to_its_current_branch_before_pagination(): void
+    {
+        $branchA = Branch::query()->where('code', 'default')->firstOrFail();
+        $branchB = Branch::query()->create([
+            'name' => 'Kebab SK Jepara',
+            'code' => 'jpr',
+            'is_active' => true,
+        ]);
+
+        [$cashier, $token] = $this->createUserWithToken('kasir', $branchA);
+        [$transactionA] = $this->createTransactionWithDetail($cashier, $branchA);
+        $this->createTransactionWithDetail($cashier, $branchB);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/transactions?per_page=15')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.id', $transactionA->id);
+    }
+
+    public function test_owner_can_fetch_transaction_detail_from_another_branch(): void
+    {
+        $branchA = Branch::query()->where('code', 'default')->firstOrFail();
+        $branchB = Branch::query()->create([
+            'name' => 'Kebab SK Jepara',
+            'code' => 'jpr',
+            'is_active' => true,
+        ]);
+
+        [, $token] = $this->createUserWithToken('owner', $branchA);
+        [$cashier] = $this->createUserWithToken('kasir', $branchB);
+        [$transaction] = $this->createTransactionWithDetail($cashier, $branchB);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/transactions/' . $transaction->id)
+            ->assertOk()
+            ->assertJsonPath('data.id', $transaction->id);
+    }
+
     /**
      * @return array{User,string}
      */
-    private function createUserWithToken(string $roleName): array
+    private function createUserWithToken(string $roleName, ?Branch $branch = null): array
     {
+        $branch ??= Branch::query()->where('code', 'default')->firstOrFail();
         $role = Role::query()->firstOrCreate(['name' => $roleName]);
         $user = User::factory()->create([
             'role_id' => $role->id,
+            'branch_id' => $branch?->id,
         ]);
 
         $plainToken = 'tok_' . bin2hex(random_bytes(12));
@@ -88,17 +149,20 @@ class TransactionReceiptApiTest extends TestCase
     /**
      * @return array{Transaction,MenuVariant}
      */
-    private function createTransactionWithDetail(User $cashier): array
+    private function createTransactionWithDetail(User $cashier, ?Branch $branch = null): array
     {
-        $payment = PaymentMethod::query()->create(['name' => 'Cash']);
-        $menu = Menu::query()->create([
+        $payment = PaymentMethod::query()->firstOrCreate(['name' => 'Cash']);
+        $menu = Menu::query()->firstOrCreate(['name' => 'Kebab Mini'], [
             'name' => 'Kebab Mini',
             'description' => null,
             'is_active' => true,
             'sort_order' => 0,
         ]);
 
-        $variant = MenuVariant::query()->create([
+        $variant = MenuVariant::query()->firstOrCreate([
+            'menu_id' => $menu->id,
+            'name' => 'Mini',
+        ], [
             'menu_id' => $menu->id,
             'name' => 'Mini',
             'price' => 2500,
@@ -107,7 +171,8 @@ class TransactionReceiptApiTest extends TestCase
         ]);
 
         $transaction = Transaction::query()->create([
-            'transaction_code' => 'TRX-20260705-214326-UNQE',
+            'transaction_code' => 'TRX-TEST-' . strtoupper(uniqid()),
+            'branch_id' => $branch?->id ?? $cashier->branch_id,
             'user_id' => $cashier->id,
             'total_amount' => 2500,
             'payment_method_id' => $payment->id,

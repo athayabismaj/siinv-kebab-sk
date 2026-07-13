@@ -2,11 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Branch;
 use App\Models\DailyTarget;
 use App\Models\Transaction;
-use App\Models\User;
-use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -15,9 +12,9 @@ use Illuminate\Support\Facades\Schema;
 
 class ApiTransactionService
 {
-    public function getHistory(int $userId, ?string $date, int $perPage = 15): LengthAwarePaginator
+    public function getHistory(int $userId, ?string $date, int $perPage = 15, ?int $branchId = null): LengthAwarePaginator
     {
-        $query = $this->baseUserTransactionQuery($userId, $date)
+        $query = $this->baseUserTransactionQuery($userId, $date, $branchId)
             ->leftJoin('transaction_details as td', 'td.transaction_id', '=', 't.id')
             ->select([
                 't.id',
@@ -33,7 +30,7 @@ class ApiTransactionService
         return $query->paginate($perPage);
     }
 
-    public function getTransactionDetail(string $transactionKey, int $userId, bool $canReadAll = false): ?array
+    public function getTransactionDetail(string $transactionKey, int $userId, bool $canReadAll = false, ?int $branchId = null): ?array
     {
         $transaction = Transaction::query()
             ->with([
@@ -47,6 +44,7 @@ class ApiTransactionService
                 fn ($query) => $query->where('transaction_code', $transactionKey),
             )
             ->when(! $canReadAll, fn ($query) => $query->where('user_id', $userId))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->first();
 
         if (! $transaction) {
@@ -76,10 +74,10 @@ class ApiTransactionService
         ];
     }
 
-    public function getRevenueSummary(int $userId, ?string $date): array
+    public function getRevenueSummary(int $userId, ?string $date, ?int $branchId = null): array
     {
         $selectedDate = $this->resolveDateOrNow($date)->toDateString();
-        $query = $this->baseUserTransactionQuery($userId, $selectedDate)
+        $query = $this->baseUserTransactionQuery($userId, $selectedDate, $branchId)
             ->where(function (Builder $query) {
                 $query->whereNull('t.status')
                     ->orWhereRaw('LOWER(t.status) <> ?', ['void']);
@@ -92,6 +90,7 @@ class ApiTransactionService
             ->join('transactions as t', 'td.transaction_id', '=', 't.id')
             ->join('menus', 'menus.id', '=', 'td.menu_id')
             ->where('t.user_id', $userId)
+            ->when($branchId, fn ($query) => $query->where('t.branch_id', $branchId))
             ->when(! empty($selectedDate), function ($query) use ($selectedDate) {
                 $start = Carbon::parse($selectedDate)->startOfDay();
                 $end = Carbon::parse($selectedDate)->endOfDay();
@@ -116,9 +115,6 @@ class ApiTransactionService
                 ->orderByDesc('target_date');
 
             if (Schema::hasColumn('daily_targets', 'branch_id')) {
-                $cashier = User::query()->find($userId, ['id', 'branch_id']);
-                $branchId = BranchScope::userBranchId($cashier);
-
                 if ($branchId) {
                     $targetQuery->where('branch_id', $branchId);
                 }
@@ -160,7 +156,7 @@ class ApiTransactionService
         ];
     }
 
-    public function getRevenueTrend(int $userId, ?string $dateInput): array
+    public function getRevenueTrend(int $userId, ?string $dateInput, ?int $branchId = null): array
     {
         $endDate = $this->resolveDateOrNow($dateInput);
         $startDate = $endDate->copy()->subDays(6);
@@ -168,6 +164,7 @@ class ApiTransactionService
         $trendData = DB::table('transactions')
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_revenue'))
             ->where('user_id', $userId)
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
             ->where(function (Builder $query) {
                 $query->whereNull('status')
@@ -190,9 +187,13 @@ class ApiTransactionService
         return $result;
     }
 
-    private function baseUserTransactionQuery(int $userId, ?string $date): Builder
+    private function baseUserTransactionQuery(int $userId, ?string $date, ?int $branchId = null): Builder
     {
         $query = DB::table('transactions as t')->where('t.user_id', $userId);
+
+        if ($branchId) {
+            $query->where('t.branch_id', $branchId);
+        }
 
         if (! empty($date)) {
             $start = Carbon::parse($date)->startOfDay();
