@@ -12,7 +12,9 @@
 
   <br />
 
-  🌍 **[Read in English](#english-version)** | 🇮🇩 **[Baca dalam Bahasa Indonesia](#versi-indonesia)**
+  <a href="#english-version"><img src="https://img.shields.io/badge/🌍_Read_in-English-0F172A?style=for-the-badge" alt="English" /></a>
+  &nbsp;&nbsp;
+  <a href="#versi-indonesia"><img src="https://img.shields.io/badge/🇮🇩_Baca_dalam-Bahasa_Indonesia-E11D48?style=for-the-badge" alt="Indonesia" /></a>
 </div>
 
 ---
