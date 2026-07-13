@@ -12,40 +12,6 @@
             ],
         ],
         [
-            'label' => 'Inventory',
-            'items' => [
-                [
-                    'label' => 'Monitoring Stok',
-                    'route' => route('owner.stocks.index'),
-                    'active' => request()->routeIs('owner.stocks.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
-                ],
-                [
-                    'label' => 'Riwayat Stok',
-                    'route' => route('owner.stock-logs.index'),
-                    'active' => request()->routeIs('owner.stock-logs.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 8h6m-6-4h6"></path>',
-                ],
-                [
-                    'label' => 'Laporan Pemakaian Bahan',
-                    'route' => route('owner.reports.usage'),
-                    'active' => request()->routeIs('owner.reports.usage') || request()->routeIs('owner.reports.usage.export'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
-                ],
-            ],
-        ],
-        [
-            'label' => 'Target',
-            'items' => [
-                [
-                    'label' => 'Target Harian',
-                    'route' => route('owner.targets.index'),
-                    'active' => request()->routeIs('owner.targets.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
-                ],
-            ],
-        ],
-        [
             'label' => 'Penjualan',
             'items' => [
                 [
@@ -63,8 +29,37 @@
             ],
         ],
         [
-            'label' => 'Analisis',
+            'label' => 'Inventory',
             'items' => [
+                [
+                    'label' => 'Monitoring Stok',
+                    'route' => route('owner.stocks.index'),
+                    'active' => request()->routeIs('owner.stocks.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
+                ],
+                [
+                    'label' => 'Riwayat Stok',
+                    'route' => route('owner.stock-logs.index'),
+                    'active' => request()->routeIs('owner.stock-logs.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 8h6m-6-4h6"></path>',
+                ],
+                [
+                    'label' => 'Laporan Pemakaian',
+                    'route' => route('owner.reports.usage'),
+                    'active' => request()->routeIs('owner.reports.usage') || request()->routeIs('owner.reports.usage.export'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
+                ],
+            ],
+        ],
+        [
+            'label' => 'Performa & Analisis',
+            'items' => [
+                [
+                    'label' => 'Target Harian',
+                    'route' => route('owner.targets.index'),
+                    'active' => request()->routeIs('owner.targets.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
+                ],
                 [
                     'label' => 'Analisis Menu',
                     'route' => route('owner.analytics.menu'),
@@ -83,7 +78,7 @@
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>',
                 ],
                 [
-                    'label' => 'Laporan Pengeluaran Operasional',
+                    'label' => 'Pengeluaran Ops.',
                     'route' => route('owner.reports.cashflow'),
                     'active' => request()->routeIs('owner.reports.cashflow') || request()->routeIs('owner.reports.cashflow.export'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10V6m0 2v10m0 0v2"></path>',
@@ -91,7 +86,7 @@
             ],
         ],
         [
-            'label' => 'Pengguna',
+            'label' => 'Pengaturan',
             'items' => [
                 [
                     'label' => 'Cabang Operasional',
@@ -100,13 +95,13 @@
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1m-1 4h1m-1 4h1m5-4h1m-1 4h1"></path>',
                 ],
                 [
-                    'label' => 'Daftar User',
+                    'label' => 'Daftar Pengguna',
                     'route' => route('owner.users.index'),
                     'active' => request()->routeIs('owner.users.index') || request()->routeIs('owner.users.create') || request()->routeIs('owner.users.edit') || request()->routeIs('owner.users.reset.*'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>',
                 ],
                 [
-                    'label' => 'Arsip User',
+                    'label' => 'Arsip Pengguna',
                     'route' => route('owner.users.archive'),
                     'active' => request()->routeIs('owner.users.archive'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
@@ -116,7 +111,7 @@
     ];
 
     $baseItemClass = 'group relative flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition-all';
-    $activeItemClass = 'bg-white !text-slate-950 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:!text-slate-100 dark:ring-slate-700/80';
+    $activeItemClass = 'bg-blue-600 !text-white shadow-md shadow-blue-500/20 ring-1 ring-blue-700/50 dark:bg-blue-500 dark:ring-blue-400/50';
     $inactiveItemClass = 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white';
 @endphp
 
@@ -158,11 +153,11 @@
                             <a href="{{ $item['route'] }}"
                                @click="sidebarOpen = false"
                                class="{{ $baseItemClass }} {{ $item['active'] ? $activeItemClass : $inactiveItemClass }}">
-                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-slate-100 !text-slate-950 dark:bg-slate-700 dark:!text-slate-100' : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
+                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white/20 !text-white shadow-inner dark:bg-black/10' : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $item['icon'] !!}</svg>
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate {{ $item['active'] ? '!text-slate-950 dark:!text-slate-100' : '' }}">{{ $item['label'] }}</span>
+                                <span class="min-w-0 flex-1 truncate {{ $item['active'] ? '!text-white font-bold' : '' }}">{{ $item['label'] }}</span>
                             </a>
                         @endforeach
                     </div>

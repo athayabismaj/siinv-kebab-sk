@@ -1,7 +1,7 @@
 @php
     $sections = [
         [
-            'label' => 'Ringkasan',
+            'label' => 'Utama',
             'items' => [
                 [
                     'label' => 'Dashboard',
@@ -12,47 +12,18 @@
             ],
         ],
         [
-            'label' => 'Inventory',
+            'label' => 'Penjualan',
             'items' => [
                 [
-                    'label' => 'Kategori Bahan',
-                    'route' => route('admin.ingredient-categories.index'),
-                    'active' => request()->routeIs('admin.ingredient-categories.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>',
-                ],
-                [
-                    'label' => 'Manajemen Bahan',
-                    'route' => route('admin.ingredients.index'),
-                    'active' => request()->routeIs('admin.ingredients.index') || request()->routeIs('admin.ingredients.create') || request()->routeIs('admin.ingredients.edit'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>',
-                ],
-                [
-                    'label' => 'Restok & Penyesuaian',
-                    'route' => route('admin.stocks.index'),
-                    'active' => request()->routeIs('admin.stocks.index') || request()->routeIs('admin.stocks.restock.*') || request()->routeIs('admin.stocks.adjust.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
-                ],
-                [
-                    'label' => 'Riwayat Stok',
-                    'route' => route('admin.stocks.logs'),
-                    'active' => request()->routeIs('admin.stocks.logs'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>',
+                    'label' => 'Riwayat Transaksi',
+                    'route' => route('admin.transactions.index'),
+                    'active' => request()->routeIs('admin.transactions.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>',
                 ],
             ],
         ],
         [
-            'label' => 'Stok Harian',
-            'items' => [
-                [
-                    'label' => 'Sesi Stok Harian',
-                    'route' => route('admin.daily-stocks.index'),
-                    'active' => request()->routeIs('admin.daily-stocks.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
-                ],
-            ],
-        ],
-        [
-            'label' => 'Menu & Resep',
+            'label' => 'Produk & Menu',
             'items' => [
                 [
                     'label' => 'Kategori Menu',
@@ -75,13 +46,37 @@
             ],
         ],
         [
-            'label' => 'Penjualan',
+            'label' => 'Inventory & Stok',
             'items' => [
                 [
-                    'label' => 'Riwayat Transaksi',
-                    'route' => route('admin.transactions.index'),
-                    'active' => request()->routeIs('admin.transactions.*'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>',
+                    'label' => 'Kategori Bahan',
+                    'route' => route('admin.ingredient-categories.index'),
+                    'active' => request()->routeIs('admin.ingredient-categories.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>',
+                ],
+                [
+                    'label' => 'Manajemen Bahan',
+                    'route' => route('admin.ingredients.index'),
+                    'active' => request()->routeIs('admin.ingredients.index') || request()->routeIs('admin.ingredients.create') || request()->routeIs('admin.ingredients.edit'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>',
+                ],
+                [
+                    'label' => 'Sesi Stok Harian',
+                    'route' => route('admin.daily-stocks.index'),
+                    'active' => request()->routeIs('admin.daily-stocks.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
+                ],
+                [
+                    'label' => 'Restok & Penyesuaian',
+                    'route' => route('admin.stocks.index'),
+                    'active' => request()->routeIs('admin.stocks.index') || request()->routeIs('admin.stocks.restock.*') || request()->routeIs('admin.stocks.adjust.*'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
+                ],
+                [
+                    'label' => 'Riwayat Stok',
+                    'route' => route('admin.stocks.logs'),
+                    'active' => request()->routeIs('admin.stocks.logs'),
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>',
                 ],
             ],
         ],
@@ -89,7 +84,7 @@
             'label' => 'Laporan',
             'items' => [
                 [
-                    'label' => 'Laporan Pemakaian Bahan',
+                    'label' => 'Laporan Pemakaian',
                     'route' => route('admin.reports.usage'),
                     'active' => request()->routeIs('admin.reports.usage') || request()->routeIs('admin.reports.usage.export'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
@@ -101,7 +96,7 @@
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
                 ],
                 [
-                    'label' => 'Laporan Pengeluaran Operasional',
+                    'label' => 'Pengeluaran Ops.',
                     'route' => route('admin.reports.cashflow'),
                     'active' => request()->routeIs('admin.reports.cashflow') || request()->routeIs('admin.reports.cashflow.*'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10V6m0 2v10m0 0v2"></path>',
@@ -109,18 +104,12 @@
             ],
         ],
         [
-            'label' => 'Arsip',
+            'label' => 'Arsip Data',
             'items' => [
                 [
-                    'label' => 'Arsip Bahan',
+                    'label' => 'Daftar Arsip',
                     'route' => route('admin.ingredients.archive'),
-                    'active' => request()->routeIs('admin.ingredients.archive'),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
-                ],
-                [
-                    'label' => 'Arsip Menu',
-                    'route' => route('admin.menus.archive'),
-                    'active' => request()->routeIs('admin.menus.archive'),
+                    'active' => request()->routeIs('admin.ingredients.archive') || request()->routeIs('admin.menus.archive'),
                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>',
                 ],
             ],
@@ -128,7 +117,7 @@
     ];
 
     $baseItemClass = 'group relative flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition-all';
-    $activeItemClass = 'bg-white !text-slate-950 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:!text-slate-100 dark:ring-slate-700/80';
+    $activeItemClass = 'bg-blue-600 !text-white shadow-md shadow-blue-500/20 ring-1 ring-blue-700/50 dark:bg-blue-500 dark:ring-blue-400/50';
     $inactiveItemClass = 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white';
 @endphp
 
@@ -170,11 +159,11 @@
                             <a href="{{ $item['route'] }}"
                                @click="sidebarOpen = false"
                                class="{{ $baseItemClass }} {{ $item['active'] ? $activeItemClass : $inactiveItemClass }}">
-                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-slate-100 !text-slate-950 dark:bg-slate-700 dark:!text-slate-100' : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
+                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white/20 !text-white shadow-inner dark:bg-black/10' : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $item['icon'] !!}</svg>
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate {{ $item['active'] ? '!text-slate-950 dark:!text-slate-100' : '' }}">{{ $item['label'] }}</span>
+                                <span class="min-w-0 flex-1 truncate {{ $item['active'] ? '!text-white font-bold' : '' }}">{{ $item['label'] }}</span>
                             </a>
                         @endforeach
                     </div>
