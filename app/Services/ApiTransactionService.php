@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DailyTarget;
+use App\Models\Branch;
 use App\Models\Transaction;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
@@ -15,6 +16,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class ApiTransactionService
 {
@@ -89,7 +91,11 @@ class ApiTransactionService
     public function getRevenueSummary(int $userId, ?string $date): array
     {
         $selectedDate = $this->resolveDateOrNow($date)->toDateString();
-        $query = $this->baseUserTransactionQuery($userId, $selectedDate);
+        $query = $this->baseUserTransactionQuery($userId, $selectedDate)
+            ->where(function (Builder $query) {
+                $query->whereNull('t.status')
+                    ->orWhereRaw('LOWER(t.status) <> ?', ['void']);
+            });
 
         $totalRevenue = (float) (clone $query)->sum('t.total_amount');
         $totalCount   = (int) (clone $query)->count();
@@ -104,6 +110,10 @@ class ApiTransactionService
                 $end   = Carbon::parse($selectedDate)->endOfDay();
                 $q->whereBetween('t.created_at', [$start, $end]);
             })
+            ->where(function ($query) {
+                $query->whereNull('t.status')
+                    ->orWhereRaw('LOWER(t.status) <> ?', ['void']);
+            })
             ->select('menus.name', DB::raw('SUM(td.quantity) as total_qty'))
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('total_qty')
@@ -114,10 +124,20 @@ class ApiTransactionService
         $targetTransactions = 0;
 
         if (Schema::hasTable('daily_targets')) {
-            $target = DailyTarget::query()
+            $targetQuery = DailyTarget::query()
                 ->whereDate('target_date', '<=', $selectedDate)
-                ->orderByDesc('target_date')
-                ->first(['target_revenue', 'target_transactions']);
+                ->orderByDesc('target_date');
+
+            if (Schema::hasColumn('daily_targets', 'branch_id')) {
+                $cashier = User::query()->find($userId, ['id', 'branch_id']);
+                $branchId = BranchScope::userBranchId($cashier);
+
+                if ($branchId) {
+                    $targetQuery->where('branch_id', $branchId);
+                }
+            }
+
+            $target = $targetQuery->first(['target_revenue', 'target_transactions']);
 
             $targetRevenue = (float) ($target->target_revenue ?? 0);
             $targetTransactions = (int) ($target->target_transactions ?? 0);
@@ -165,6 +185,10 @@ class ApiTransactionService
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_revenue'))
             ->where('user_id', $userId)
             ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
+            ->where(function (Builder $query) {
+                $query->whereNull('status')
+                    ->orWhereRaw('LOWER(status) <> ?', ['void']);
+            })
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date', 'asc')
             ->get()
@@ -335,9 +359,15 @@ class ApiTransactionService
             }
 
             $now = now(config('app.timezone', 'Asia/Jakarta'));
-            $transactionCode = $this->generateTransactionCode($now);
             $cashier = User::query()->with('branch:id,name,code')->find($userId);
             $branchId = BranchScope::userBranchId($cashier);
+            $branch = $cashier?->branch ?: Branch::query()->find($branchId, ['id', 'name', 'code']);
+
+            if (! $branchId || ! $branch) {
+                throw new RuntimeException('Cabang kasir tidak ditemukan. Transaksi tidak dapat diproses.');
+            }
+
+            $transactionCode = $this->generateTransactionCode($now, $branchId, (string) $branch->code);
 
             // Cari sesi kasir yang aktif hari ini untuk menautkan transaksi ke sesi
             $activeSessionId = \App\Models\DailyStockSession::query()
@@ -433,12 +463,13 @@ class ApiTransactionService
         }
     }
 
-    private function generateTransactionCode(Carbon $now): string
+    private function generateTransactionCode(Carbon $now, int $branchId, string $branchCode): string
     {
         $sequenceDate = $now->toDateString();
         $timestamp = $now->toDateTimeString();
 
         DB::table('transaction_sequences')->insertOrIgnore([
+            'branch_id' => $branchId,
             'sequence_date' => $sequenceDate,
             'last_number' => 0,
             'created_at' => $timestamp,
@@ -446,6 +477,7 @@ class ApiTransactionService
         ]);
 
         $sequence = DB::table('transaction_sequences')
+            ->where('branch_id', $branchId)
             ->where('sequence_date', $sequenceDate)
             ->lockForUpdate()
             ->first();
@@ -453,12 +485,25 @@ class ApiTransactionService
         $nextNumber = ((int) ($sequence->last_number ?? 0)) + 1;
 
         DB::table('transaction_sequences')
+            ->where('branch_id', $branchId)
             ->where('sequence_date', $sequenceDate)
             ->update([
                 'last_number' => $nextNumber,
                 'updated_at' => $timestamp,
             ]);
 
-        return sprintf('TRX-%s-%03d', $now->format('Ymd'), $nextNumber);
+        return sprintf(
+            'TRX-%s-%s-%03d',
+            $this->transactionBranchCode($branchCode),
+            $now->format('Ymd'),
+            $nextNumber
+        );
+    }
+
+    private function transactionBranchCode(string $branchCode): string
+    {
+        $code = strtoupper(Str::slug($branchCode));
+
+        return $code !== '' ? $code : 'CABANG';
     }
 }

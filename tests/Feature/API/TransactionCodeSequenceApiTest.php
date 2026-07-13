@@ -3,6 +3,7 @@
 namespace Tests\Feature\API;
 
 use App\Models\ApiToken;
+use App\Models\Branch;
 use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
@@ -25,6 +26,9 @@ class TransactionCodeSequenceApiTest extends TestCase
         [$cashier, $token] = $this->createUserWithToken('kasir');
         [$variant, $ingredient] = $this->createSellableVariant(price: 10000, requiredQty: 1);
         $payment = PaymentMethod::query()->create(['name' => 'Cash']);
+        $branch = Branch::query()->where('code', 'default')->firstOrFail();
+        $branch->update(['code' => 'umk']);
+        $cashier->update(['branch_id' => $branch->id]);
 
         try {
             Carbon::setTestNow(Carbon::parse('2026-07-10 09:00:00', 'Asia/Jakarta'));
@@ -33,21 +37,67 @@ class TransactionCodeSequenceApiTest extends TestCase
             $first = $this->checkout($token, $payment->id, $variant->id);
             $second = $this->checkout($token, $payment->id, $variant->id);
 
-            $first->assertCreated()->assertJsonPath('data.transaction_code', 'TRX-20260710-001');
-            $second->assertCreated()->assertJsonPath('data.transaction_code', 'TRX-20260710-002');
+            $first->assertCreated()->assertJsonPath('data.transaction_code', 'TRX-UMK-20260710-001');
+            $second->assertCreated()->assertJsonPath('data.transaction_code', 'TRX-UMK-20260710-002');
 
             Carbon::setTestNow(Carbon::parse('2026-07-11 09:00:00', 'Asia/Jakarta'));
             $this->openSession($cashier->id, '2026-07-11', $ingredient->id);
 
             $third = $this->checkout($token, $payment->id, $variant->id);
-            $third->assertCreated()->assertJsonPath('data.transaction_code', 'TRX-20260711-001');
+            $third->assertCreated()->assertJsonPath('data.transaction_code', 'TRX-UMK-20260711-001');
 
             $this->assertDatabaseHas('transaction_sequences', [
+                'branch_id' => $branch->id,
                 'sequence_date' => '2026-07-10',
                 'last_number' => 2,
             ]);
             $this->assertDatabaseHas('transaction_sequences', [
+                'branch_id' => $branch->id,
                 'sequence_date' => '2026-07-11',
+                'last_number' => 1,
+            ]);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_each_branch_starts_its_own_daily_transaction_sequence(): void
+    {
+        [$umkCashier, $umkToken] = $this->createUserWithToken('kasir');
+        [$variant, $ingredient] = $this->createSellableVariant(price: 10000, requiredQty: 1);
+        $payment = PaymentMethod::query()->create(['name' => 'Cash']);
+        $umkBranch = Branch::query()->where('code', 'default')->firstOrFail();
+        $umkBranch->update(['code' => 'umk']);
+        $umkCashier->update(['branch_id' => $umkBranch->id]);
+
+        $jeparaBranch = Branch::query()->create([
+            'name' => 'Kebab SK Jepara',
+            'code' => 'jpr',
+            'is_active' => true,
+        ]);
+        [$jeparaCashier, $jeparaToken] = $this->createUserWithToken('kasir');
+        $jeparaCashier->update(['branch_id' => $jeparaBranch->id]);
+
+        try {
+            Carbon::setTestNow(Carbon::parse('2026-07-10 09:00:00', 'Asia/Jakarta'));
+            $this->openSession($umkCashier->id, '2026-07-10', $ingredient->id);
+            $this->openSession($jeparaCashier->id, '2026-07-10', $ingredient->id);
+
+            $this->checkout($umkToken, $payment->id, $variant->id)
+                ->assertCreated()
+                ->assertJsonPath('data.transaction_code', 'TRX-UMK-20260710-001');
+            $this->checkout($jeparaToken, $payment->id, $variant->id)
+                ->assertCreated()
+                ->assertJsonPath('data.transaction_code', 'TRX-JPR-20260710-001');
+
+            $this->assertDatabaseHas('transaction_sequences', [
+                'branch_id' => $umkBranch->id,
+                'sequence_date' => '2026-07-10',
+                'last_number' => 1,
+            ]);
+            $this->assertDatabaseHas('transaction_sequences', [
+                'branch_id' => $jeparaBranch->id,
+                'sequence_date' => '2026-07-10',
                 'last_number' => 1,
             ]);
         } finally {
@@ -136,6 +186,7 @@ class TransactionCodeSequenceApiTest extends TestCase
     {
         $session = DailyStockSession::query()->create([
             'session_date' => $sessionDate,
+            'branch_id' => User::query()->findOrFail($cashierId)->branch_id,
             'cashier_id' => $cashierId,
             'opened_by' => $cashierId,
             'status' => 'open',
