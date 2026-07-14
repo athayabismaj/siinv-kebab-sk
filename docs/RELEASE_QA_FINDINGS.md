@@ -24,3 +24,16 @@ Rilis backend dapat dinilai setelah:
 2. Migration pending diterapkan melalui prosedur deployment yang disetujui.
 3. Suite penuh dan test browser manual pada matriks `REL-*` lulus.
 4. Jika target menggunakan PostgreSQL, drill aman memakai database disposable lulus.
+
+## Pembaruan Fase 5B - 14 Juli 2026
+
+Baseline sebelum perubahan Fase 5B adalah `177 passed`, `963 assertions`.
+Suite `tests/Integration/PostgreSqlConcurrencyTest.php` memverifikasi PostgreSQL
+disposable dengan dua proses PHP untuk checkout, transfer, void, restok, sesi,
+summary, constraint, dan query-count checkout.
+
+| ID | Severity | Temuan | Bukti | Status |
+| --- | --- | --- | --- | --- |
+| QA-004 | Info | Suite default tetap memakai SQLite. | PostgreSQL core diuji terpisah pada database dengan prefix `siinv_fase5b_test_`. | Open - jalankan suite PostgreSQL sebelum rilis PostgreSQL. |
+| QA-005 | Info | Runner `php artisan test --parallel` belum dapat dipakai. | Collision Laravel membutuhkan `brianium/paratest` 7.x, sedangkan dependency tidak dipasang. | Open - keputusan toolchain terpisah; Fase 5B tidak menambah dependency. |
+| QA-006 | Low | Proses PHP mandiri tanpa Laravel ParallelTesting dapat berbagi fake storage. | `Storage::fake()` menambahkan token hanya saat runner Laravel parallel aktif. | Open - jalankan regresi ekspor serial sampai runner resmi tersedia. |

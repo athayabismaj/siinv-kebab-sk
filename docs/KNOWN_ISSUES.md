@@ -7,3 +7,10 @@
 | QA-TEST-001 | Low | File test ekspor yang dijalankan sebagai proses PHP paralel memakai lokasi storage lokal sementara yang dapat sama. | Artefak test dapat saling terlihat sehingga assertion file gagal secara non-deterministik. | Jalankan test ekspor secara serial; perubahan ini tidak memengaruhi workflow ekspor aplikasi. |
 
 Tidak ada isu fungsional lain yang dicatat tanpa reproduksi atau bukti test.
+
+## Pembaruan Fase 5B
+
+| ID | Severity | Kondisi | Dampak | Tindak lanjut |
+| --- | --- | --- | --- | --- |
+| QA-POSTGRES-002 | Info | Core checkout, void, stock, session, summary, dan constraint telah diuji pada PostgreSQL disposable. | Suite default masih tidak menjalankan PostgreSQL otomatis. | Jalankan `tests/Integration/PostgreSqlConcurrencyTest.php` sebelum rilis PostgreSQL. |
+| QA-TEST-002 | Info | Laravel parallel runner belum tersedia tanpa `brianium/paratest`. | Regresi penuh `--parallel --processes=2` belum dapat dibuktikan di repository ini. | Tambahkan dependency hanya melalui keputusan toolchain terpisah. |
