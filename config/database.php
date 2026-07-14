@@ -101,6 +101,20 @@ return [
             ]) : [],
         ],
 
+        'fase4d' => [
+            'driver' => 'pgsql',
+            'host' => env('FASE4D_PG_HOST', '127.0.0.1'),
+            'port' => env('FASE4D_PG_PORT', '5432'),
+            'database' => env('FASE4D_PG_DATABASE'),
+            'username' => env('FASE4D_PG_USERNAME'),
+            'password' => env('FASE4D_PG_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

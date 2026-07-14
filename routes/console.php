@@ -6,6 +6,7 @@ use App\Services\System\DailyStockIntegrityAuditService;
 use App\Services\System\SchedulerLockConfiguration;
 use App\Services\System\SchedulerHeartbeat;
 use App\Services\System\SystemHealthService;
+use App\Services\Backup\BackupDiagnosticsService;
 use App\Models\GeneratedExport;
 use App\Services\Exports\GeneratedExportLifecycle;
 use App\Services\Exports\GeneratedExportQueueDiagnostics;
@@ -411,9 +412,10 @@ Artisan::command('system:heartbeat', function (SchedulerHeartbeat $heartbeat) {
     }
 })->purpose('Record a lightweight scheduler heartbeat in the configured cache store');
 
-Artisan::command('system:diagnose {--json : Emit safe JSON output} {--no-write-probe : Skip the private storage write probe}', function (SystemHealthService $healthService) {
+Artisan::command('system:diagnose {--json : Emit safe JSON output} {--no-write-probe : Skip the private storage write probe}', function (SystemHealthService $healthService, BackupDiagnosticsService $backupDiagnostics) {
     $report = $healthService->report(! $this->option('no-write-probe'));
     $data = $report->toDiagnosticsArray();
+    $data['backup'] = $backupDiagnostics->report();
 
     if ($this->option('json')) {
         $this->line((string) json_encode($data, JSON_UNESCAPED_SLASHES));
