@@ -123,6 +123,7 @@ class AuthController extends Controller
         ]);
 
         $user->refresh();
+        $user->loadMissing(['role', 'branch:id,name,code']);
 
         return response()->json([
             'success' => true,
@@ -133,6 +134,11 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $user->role?->name,
+                'branch' => $user->branch ? [
+                    'id' => $user->branch->id,
+                    'name' => $user->branch->name,
+                    'code' => $user->branch->code,
+                ] : null,
             ],
         ]);
     }
