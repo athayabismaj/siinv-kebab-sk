@@ -228,13 +228,18 @@ class PostgreSqlConcurrencyTest extends TestCase
             'opened_by' => $context['cashier']->id,
             'branch_id' => $context['branch']->id,
         ];
+        $dailyStockItemCount = DailyStockItem::query()->count();
+        $stockLogCount = StockLog::query()->count();
         $results = $this->runWorkers('open-session', [$payload, $payload]);
 
         $this->assertCount(2, collect($results)->where('ok', true), json_encode($results));
+        $this->assertCount(1, collect($results)->pluck('result.id')->unique(), json_encode($results));
         $this->assertSame(1, DailyStockSession::query()
             ->where('cashier_id', $context['cashier']->id)
             ->whereDate('session_date', now())
             ->count());
+        $this->assertSame($dailyStockItemCount, DailyStockItem::query()->count());
+        $this->assertSame($stockLogCount, StockLog::query()->count());
     }
 
     public function test_concurrent_adjustment_keeps_inventory_at_a_valid_explicit_value(): void
