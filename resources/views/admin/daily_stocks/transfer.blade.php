@@ -8,61 +8,7 @@
 @section('disableGlobalAlerts', 'true')
 
 @push('styles')
-<style>
-    .dark .transfer-stock-page input[name^="transfers["],
-    .dark .transfer-stock-page select[name^="transfers["] {
-        background-color: #0f172a !important;
-        border-color: #475569 !important;
-        color: #f8fafc !important;
-        color-scheme: dark;
-    }
-
-    .dark .transfer-stock-page input[name^="transfers["]::placeholder {
-        color: #94a3b8 !important;
-        opacity: 1;
-    }
-
-    .dark .transfer-stock-page .transfer-unit-toggle {
-        background-color: #0f172a !important;
-        border-color: #475569 !important;
-    }
-
-    .dark .transfer-stock-page .transfer-unit-option {
-        color: #94a3b8 !important;
-    }
-
-    .dark .transfer-stock-page input[type="radio"]:checked + .transfer-unit-option {
-        background-color: #2563eb !important;
-        color: #ffffff !important;
-    }
-
-    .transfer-stock-page .transfer-filter-form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .transfer-stock-page .transfer-filter-category {
-        width: 100%;
-    }
-
-    .transfer-stock-page .transfer-filter-search {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    @media (min-width: 640px) {
-        .transfer-stock-page .transfer-filter-form {
-            flex-direction: row;
-            align-items: center;
-        }
-
-        .transfer-stock-page .transfer-filter-category {
-            flex: 0 0 176px;
-            width: 176px;
-        }
-    }
-</style>
+@vite('resources/css/pages/daily-stock-transfer.css')
 @endpush
 
 @section('content')
@@ -134,7 +80,7 @@
                    class="h-full w-full rounded-xl border-0 bg-transparent pl-10 pr-4 text-[13px] font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:ring-0 dark:text-slate-200">
         </div>
 
-        <select name="category_id" onchange="this.form.submit()" class="transfer-filter-category h-11 cursor-pointer rounded-xl border border-slate-200 bg-white px-3 text-[12px] font-bold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+        <select name="category_id" data-submit-on-change class="transfer-filter-category h-11 cursor-pointer rounded-xl border border-slate-200 bg-white px-3 text-[12px] font-bold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
             <option value="" class="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">Semua Kategori</option>
             @foreach($categories as $category)
                 <option value="{{ $category->id }}" class="bg-white text-slate-900 dark:bg-slate-800 dark:text-white" {{ (int) $selectedCategoryId === (int) $category->id ? 'selected' : '' }}>

@@ -6,7 +6,7 @@
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama menu / kategori / varian..." class="w-full h-10 bg-transparent pl-10 pr-4 text-[13px] font-medium text-slate-700 outline-none dark:text-slate-200 placeholder:text-slate-400">
     </div>
 
-    <select name="category" onchange="this.form.submit()" class="w-full sm:w-56 h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+    <select name="category" data-submit-on-change class="w-full sm:w-56 h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
         <option value="">Semua Kategori</option>
         @foreach($categories as $category)
             <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>

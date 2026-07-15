@@ -7,24 +7,20 @@
 @section('title', 'Arsip Bahan')
 
 @push('styles')
-<style>
-    .archive-filter-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: .75rem;
-    }
-
-    @media (min-width: 1024px) {
-        .archive-filter-row {
-            grid-template-columns: minmax(0, 4fr) minmax(220px, 1fr);
-            align-items: center;
-        }
-    }
-</style>
+@vite('resources/css/pages/admin-archive.css')
 @endpush
 
 @section('content')
-<div class="w-full space-y-6 overflow-x-hidden pb-10">
+<div class="w-full space-y-6 overflow-x-hidden pb-10" x-data="{
+        restoreUrl: '',
+        ingredientName: '',
+        openIngredientRestore(url, name) {
+            this.restoreUrl = url;
+            this.ingredientName = name;
+            document.getElementById('ingredient_restore_confirmation').value = '';
+            $dispatch('open-modal', 'ingredient-restore-modal');
+        }
+    }">
 
     {{-- ================= HEADER & BREADCRUMB ================= --}}
     <x-page-header 
@@ -61,7 +57,7 @@
                    class="h-full w-full bg-transparent pl-10 pr-4 text-[13px] font-semibold text-slate-700 outline-none placeholder:text-slate-400 dark:text-slate-200">
         </div>
 
-        <select name="category" onchange="this.form.submit()" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+        <select name="category" data-submit-on-change class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
             <option value="">Semua Kategori</option>
             @foreach($categories as $category)
                 <option value="{{ $category->id }}" {{ (string) request('category') === (string) $category->id ? 'selected' : '' }}>
@@ -118,18 +114,14 @@
                                 <p class="mt-0.5 text-[11px] font-medium text-slate-400">Pukul {{ optional($ingredient->deleted_at)->format('H:i') }} WIB</p>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <form action="{{ route('admin.ingredients.restore', $ingredient->id) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit"
-                                            title="Pulihkan Bahan"
-                                            onclick="return confirm('Apakah Anda yakin ingin memulihkan bahan ini?')"
-                                            class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
-                                        </svg>
-                                    </button>
-                                </form>
+                                <button type="button"
+                                        title="Pulihkan Bahan"
+                                        @click="openIngredientRestore('{{ route('admin.ingredients.restore', $ingredient->id) }}', '{{ addslashes($ingredient->name) }}')"
+                                        class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
+                                    </svg>
+                                </button>
                             </td>
                         </tr>
 
@@ -150,18 +142,14 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <form action="{{ route('admin.ingredients.restore', $ingredient->id) }}" method="POST" class="shrink-0">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit"
-                                                title="Pulihkan Bahan"
-                                                onclick="return confirm('Apakah Anda yakin ingin memulihkan bahan ini?')"
-                                                class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2.5 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
-                                            </svg>
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            title="Pulihkan Bahan"
+                                            @click="openIngredientRestore('{{ route('admin.ingredients.restore', $ingredient->id) }}', '{{ addslashes($ingredient->name) }}')"
+                                            class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2.5 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm shrink-0">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -188,6 +176,39 @@
         'paginator' => $ingredients,
         'label' => 'data',
     ])
+
+    {{-- Modal Aktifkan Kembali Bahan Baku --}}
+    <x-modal id="ingredient-restore-modal" maxWidth="md" type="success">
+        <x-slot name="title">Aktifkan Kembali Bahan Baku</x-slot>
+        <x-slot name="icon">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </x-slot>
+        <x-slot name="description">
+            Anda yakin ingin mengaktifkan kembali bahan baku <span class="font-bold text-slate-900 dark:text-white" x-text="ingredientName"></span>? Bahan ini akan tersedia kembali untuk digunakan.
+        </x-slot>
+
+        <form x-bind:action="restoreUrl" method="POST">
+            @csrf
+            @method('PATCH')
+            <div class="pt-2">
+                <label class="sr-only" for="ingredient_restore_confirmation">Konfirmasi</label>
+                <input type="text" name="restore_confirmation" id="ingredient_restore_confirmation" required pattern="AKTIFKAN" title="Ketik AKTIFKAN" placeholder="Ketik AKTIFKAN"
+                       data-uppercase-input
+                       class="uppercase block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500" />
+            </div>
+            
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'ingredient-restore-modal')"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto">
+                    Ya, Aktifkan
+                </button>
+            </div>
+        </form>
+    </x-modal>
 
 </div>
 @endsection

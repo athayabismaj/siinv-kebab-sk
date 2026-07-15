@@ -330,6 +330,8 @@ Route::middleware(['auth', 'role:developer'])->prefix('developer')->name('develo
     Route::get('/owners', [\App\Http\Controllers\Developer\OwnerController::class, 'index'])->name('owners.index');
     Route::get('/owners/create', [\App\Http\Controllers\Developer\OwnerController::class, 'create'])->name('owners.create');
     Route::post('/owners', [\App\Http\Controllers\Developer\OwnerController::class, 'store'])->name('owners.store');
+    Route::delete('/owners/{user}', [\App\Http\Controllers\Developer\OwnerController::class, 'destroy'])->name('owners.destroy');
+    Route::patch('/owners/{id}/restore', [\App\Http\Controllers\Developer\OwnerController::class, 'restore'])->name('owners.restore');
 
     // Manajemen Backup
     Route::get('/backups', [\App\Http\Controllers\Developer\BackupController::class, 'index'])->name('backups.index');

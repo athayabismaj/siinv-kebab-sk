@@ -45,7 +45,7 @@
                         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                     @endforeach
                     <input type="hidden" name="cashier_id" value="{{ $selectedCashierId }}">
-                    <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" max="{{ $todayDate->toDateString() }}" onchange="this.form.submit()" class="h-full w-full bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
+                    <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" max="{{ $todayDate->toDateString() }}" data-submit-on-change class="h-full w-full bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 </form>
 
                 @if($isAtToday)
@@ -74,7 +74,7 @@
             
             {{-- CASHIER DROPDOWN --}}
             <div class="w-full sm:flex-1 relative">
-                <select name="cashier_id" onchange="this.form.submit()" class="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-center text-[13px] font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                <select name="cashier_id" data-submit-on-change class="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-center text-[13px] font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                     <option value="">Semua Kasir</option>
                     @forelse($cashiers as $cashier)
                         <option value="{{ $cashier->id }}" {{ (int) $selectedCashierId === (int) $cashier->id ? 'selected' : '' }}>
@@ -91,7 +91,7 @@
 
             {{-- CATEGORY DROPDOWN --}}
             <div class="w-full sm:flex-1 relative">
-                <select name="category_id" onchange="this.form.submit()" class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-center text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 appearance-none">
+                <select name="category_id" data-submit-on-change class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-center text-[13px] font-medium text-slate-700 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 appearance-none">
                     <option value="">Semua Kategori</option>
                     @foreach($categories as $category)
                         <option value="{{ $category->id }}" {{ (int) $selectedCategoryId === (int) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>

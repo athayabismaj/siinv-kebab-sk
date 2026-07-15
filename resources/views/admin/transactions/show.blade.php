@@ -3,138 +3,7 @@
 @section('title', 'Detail Transaksi')
 
 @push('styles')
-<style>
-    .transaction-detail-shell {
-        width: 100%;
-        max-width: none;
-        margin: 0;
-    }
-
-    .transaction-detail-card,
-    .transaction-detail-panel,
-    .transaction-detail-void {
-        border: 1px solid rgb(226 232 240);
-        background: rgb(255 255 255);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
-    }
-
-    .dark .transaction-detail-card,
-    .dark .transaction-detail-panel {
-        border-color: rgb(30 41 59);
-        background: rgb(15 23 42);
-        box-shadow: none;
-    }
-
-    .transaction-detail-card {
-        position: relative;
-        overflow: hidden;
-        min-height: 96px;
-        border-radius: 14px;
-        padding: 16px;
-    }
-
-    .transaction-detail-card::after {
-        content: "";
-        position: absolute;
-        right: -34px;
-        top: -40px;
-        width: 92px;
-        height: 92px;
-        border-radius: 999px;
-        background: rgb(var(--tone-rgb, 37 99 235) / .08);
-        pointer-events: none;
-    }
-
-    .transaction-detail-icon {
-        display: inline-flex;
-        width: 38px;
-        height: 38px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        background: rgb(var(--tone-rgb, 37 99 235) / .10);
-        color: rgb(var(--tone-rgb, 37 99 235));
-        box-shadow: inset 0 0 0 1px rgb(var(--tone-rgb, 37 99 235) / .16);
-    }
-
-    .transaction-detail-label {
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        color: rgb(148 163 184);
-    }
-
-    .transaction-detail-value {
-        margin-top: 8px;
-        font-size: 15px;
-        font-weight: 900;
-        color: rgb(15 23 42);
-        overflow-wrap: anywhere;
-    }
-
-    .dark .transaction-detail-value {
-        color: rgb(248 250 252);
-    }
-
-    .transaction-detail-panel {
-        overflow: hidden;
-        border-radius: 14px;
-    }
-
-    .transaction-detail-info-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1rem;
-    }
-
-    .transaction-detail-panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        border-bottom: 1px solid rgb(226 232 240);
-        padding: 14px 16px;
-    }
-
-    .dark .transaction-detail-panel-header {
-        border-color: rgb(30 41 59);
-    }
-
-    .transaction-detail-void {
-        overflow: hidden;
-        border-color: rgb(252 211 77);
-        border-radius: 14px;
-        background:
-            radial-gradient(circle at right top, rgb(245 158 11 / .12), transparent 34%),
-            rgb(255 251 235);
-    }
-
-    .dark .transaction-detail-void {
-        border-color: rgb(245 158 11 / .35);
-        background:
-            radial-gradient(circle at right top, rgb(245 158 11 / .16), transparent 36%),
-            rgb(15 23 42);
-    }
-
-    .tone-blue { --tone-rgb: 37 99 235; }
-    .tone-emerald { --tone-rgb: 5 150 105; }
-    .tone-sky { --tone-rgb: 2 132 199; }
-    .tone-violet { --tone-rgb: 124 58 237; }
-    .tone-slate { --tone-rgb: 71 85 105; }
-
-    .dark .tone-blue { --tone-rgb: 96 165 250; }
-    .dark .tone-emerald { --tone-rgb: 52 211 153; }
-    .dark .tone-sky { --tone-rgb: 56 189 248; }
-    .dark .tone-violet { --tone-rgb: 167 139 250; }
-    .dark .tone-slate { --tone-rgb: 148 163 184; }
-
-    @media (min-width: 1024px) {
-        .transaction-detail-info-grid {
-            grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
-        }
-    }
-</style>
+@vite('resources/css/pages/admin-transaction-detail.css')
 @endpush
 
 @section('content')
@@ -170,7 +39,7 @@
                 {{ $statusLabel }}
             </span>
             <span class="font-mono text-sm font-bold text-slate-500 dark:text-slate-400 break-all mr-2">{{ $transaction->transaction_code }}</span>
-            <button type="button" onclick="window.print()"
+            <button type="button" data-print-page
                     class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H9v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                 Cetak

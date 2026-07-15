@@ -36,178 +36,7 @@
 @endphp
 
 @push('styles')
-<style>
-    .transaction-monitor-card,
-    .transaction-monitor-table-card {
-        border: 1px solid rgb(226 232 240);
-        background: rgb(255 255 255);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
-    }
-
-    .dark .transaction-monitor-card,
-    .dark .transaction-monitor-table-card {
-        border-color: rgb(30 41 59);
-        background: rgb(15 23 42);
-        box-shadow: none;
-    }
-
-    .transaction-monitor-summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1rem;
-    }
-
-    .transaction-monitor-card {
-        --tone-rgb: 37 99 235;
-        position: relative;
-        overflow: hidden;
-        min-height: 112px;
-        border-radius: 16px;
-        padding: 18px 82px 18px 18px;
-    }
-
-    .transaction-monitor-card::after {
-        content: "";
-        position: absolute;
-        right: -34px;
-        top: -34px;
-        width: 112px;
-        height: 112px;
-        border-radius: 999px;
-        background: rgb(var(--tone-rgb) / .08);
-        pointer-events: none;
-    }
-
-    .transaction-monitor-card > .relative {
-        position: static;
-    }
-
-    .transaction-monitor-card > .relative > .min-w-0 {
-        position: relative;
-        z-index: 3;
-    }
-
-    .transaction-monitor-icon {
-        display: inline-flex;
-        position: absolute;
-        right: 12px;
-        top: 24px;
-        width: 38px;
-        height: 38px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        background: rgb(var(--tone-rgb) / .10);
-        color: rgb(var(--tone-rgb));
-        box-shadow: inset 0 0 0 1px rgb(var(--tone-rgb) / .16);
-        transform: translateY(-50%);
-        z-index: 2;
-    }
-
-    .transaction-monitor-label {
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: .14em;
-        text-transform: uppercase;
-        color: rgb(148 163 184);
-    }
-
-    .transaction-monitor-value {
-        margin-top: 9px;
-        font-size: 26px;
-        line-height: 1;
-        font-weight: 950;
-        color: rgb(15 23 42);
-        overflow-wrap: anywhere;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .dark .transaction-monitor-value {
-        color: rgb(248 250 252);
-    }
-
-    .transaction-monitor-note {
-        margin-top: 8px;
-        font-size: 11px;
-        font-weight: 700;
-        color: rgb(100 116 139);
-    }
-
-    .dark .transaction-monitor-note {
-        color: rgb(148 163 184);
-    }
-
-    .transaction-monitor-table-card {
-        overflow: hidden;
-        border-radius: 16px;
-    }
-
-    .transaction-monitor-table-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        border-bottom: 1px solid rgb(226 232 240);
-        padding: 14px 16px;
-        background: rgb(248 250 252 / .72);
-    }
-
-    .dark .transaction-monitor-table-head {
-        border-color: rgb(30 41 59);
-        background: rgb(2 6 23 / .28);
-    }
-
-    .transaction-monitor-empty {
-        display: flex;
-        min-height: 220px;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 38px 18px;
-        text-align: center;
-    }
-
-    .transaction-monitor-empty-icon {
-        display: inline-flex;
-        height: 46px;
-        width: 46px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 16px;
-        background: rgb(37 99 235 / .08);
-        color: rgb(37 99 235);
-        box-shadow: inset 0 0 0 1px rgb(37 99 235 / .12);
-    }
-
-    .dark .transaction-monitor-empty-icon {
-        background: rgb(96 165 250 / .12);
-        color: rgb(147 197 253);
-        box-shadow: inset 0 0 0 1px rgb(96 165 250 / .18);
-    }
-
-    .transaction-monitor-mobile-card {
-        border: 1px solid rgb(226 232 240);
-        background: rgb(248 250 252 / .72);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
-    }
-
-    .dark .transaction-monitor-mobile-card {
-        border-color: rgb(30 41 59);
-        background: rgb(2 6 23 / .24);
-        box-shadow: none;
-    }
-
-    .tone-blue { --tone-rgb: 37 99 235; }
-    .tone-emerald { --tone-rgb: 5 150 105; }
-    .tone-violet { --tone-rgb: 124 58 237; }
-    .tone-amber { --tone-rgb: 217 119 6; }
-
-    .dark .tone-blue { --tone-rgb: 96 165 250; }
-    .dark .tone-emerald { --tone-rgb: 52 211 153; }
-    .dark .tone-violet { --tone-rgb: 167 139 250; }
-    .dark .tone-amber { --tone-rgb: 251 191 36; }
-</style>
+@vite('resources/css/pages/transaction-index.css')
 @endpush
 
 <div class="space-y-5 max-w-full overflow-x-hidden">
@@ -235,7 +64,7 @@
         </div>
     </x-page-header>
 
-    <form method="GET" action="{{ route($routePrefix.'.index') }}" id="filter-form" class="relative z-10">
+    <form method="GET" action="{{ route($routePrefix.'.index') }}" id="filter-form" data-period-filter class="relative z-10">
         <div class="flex flex-col gap-3">
             <input type="hidden" name="type" id="hidden_type" value="{{ $type }}">
             <input type="hidden" name="date_from" id="hidden_date_from" value="{{ $dateFrom->toDateString() }}">
@@ -247,9 +76,9 @@
                 <div class="flex flex-col md:flex-row gap-3 w-full">
                     {{-- 1. TABS (KIRI) --}}
                     <div class="flex rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
-                        <button type="button" onclick="changeType('daily')" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
-                        <button type="button" onclick="changeType('weekly')" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
-                        <button type="button" onclick="changeType('monthly')" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
+                        <button type="button" data-period-type="daily" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
+                        <button type="button" data-period-type="weekly" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
+                        <button type="button" data-period-type="monthly" class="flex-1 md:flex-none min-w-[80px] lg:px-4 flex items-center justify-center px-3 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-200 text-center {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
                     </div>
 
                     {{-- 2. DATE NAVIGATOR (KANAN BARIS 1) --}}
@@ -258,7 +87,7 @@
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
                         </a>
                         
-                        <input type="{{ $inputType }}" value="{{ $inputValue }}" onchange="updateDateRange(this, '{{ $type }}')" 
+                        <input type="{{ $inputType }}" value="{{ $inputValue }}" data-period-date data-period-mode="{{ $type }}"
                                max="{{ $inputType === 'month' ? now()->format('Y-m') : now()->toDateString() }}"
                                class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
 
@@ -278,7 +107,7 @@
                 <div class="flex flex-col md:flex-row gap-3 w-full">
                     {{-- 3. KASIR SELECTOR (KIRI BARIS 2) --}}
                     <div class="flex-1 shrink-0 min-w-0">
-                        <select name="user_id" onchange="this.form.submit()" class="h-[38px] w-full rounded-xl border border-slate-200 bg-white px-4 text-center text-[13px] font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                        <select name="user_id" data-submit-on-change class="h-[38px] w-full rounded-xl border border-slate-200 bg-white px-4 text-center text-[13px] font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                             <option value="">Semua Kasir</option>
                             @foreach($cashiers as $cashier)
                                 <option value="{{ $cashier->id }}" {{ (string) request('user_id') === (string) $cashier->id ? 'selected' : '' }}>{{ $cashier->name }}</option>
@@ -464,7 +293,7 @@
                                         </span>
                                         @if($isVoid)
                                             <details class="relative inline-block">
-                                                <summary class="flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-900" style="list-style: none;" title="Lihat alasan pembatalan">!</summary>
+                                                <summary class="app-details-summary flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-900" title="Lihat alasan pembatalan">!</summary>
                                                 <div class="absolute left-0 top-full z-30 mt-2 w-48 rounded-xl border border-amber-100 bg-white p-3 text-left shadow-xl shadow-slate-900/10 dark:border-amber-500/20 dark:bg-slate-900 dark:shadow-black/30">
                                                     <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">Alasan Pembatalan</p>
                                                     <p class="mt-1 text-xs font-bold text-slate-700 dark:text-slate-100">{{ $voidReasonLabel ?: 'Alasan belum tercatat' }}</p>
@@ -511,7 +340,7 @@
                                 </span>
                                 @if($isVoid)
                                     <details class="relative inline-block">
-                                        <summary class="flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-900" style="list-style: none;" title="Lihat alasan pembatalan">!</summary>
+                                        <summary class="app-details-summary flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-900" title="Lihat alasan pembatalan">!</summary>
                                         <div class="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-amber-100 bg-white p-3 text-left shadow-xl shadow-slate-900/10 dark:border-amber-500/20 dark:bg-slate-900 dark:shadow-black/30">
                                             <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">Alasan Pembatalan</p>
                                             <p class="mt-1 text-xs font-bold text-slate-700 dark:text-slate-100">{{ $voidReasonLabel ?: 'Alasan belum tercatat' }}</p>
@@ -564,79 +393,3 @@
     ])
 </div>
 @endsection
-
-@push('scripts')
-<script>
-function formatStr(d) {
-    return d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
-}
-
-function resolveWeekRange(dateObj) {
-    let day = dateObj.getDay();
-    let diff = day === 0 ? -6 : 1 - day;
-    let start = new Date(dateObj);
-    start.setDate(dateObj.getDate() + diff);
-    let end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return { from: formatStr(start), to: formatStr(end) };
-}
-
-function changeType(newType) {
-    document.getElementById('hidden_type').value = newType;
-    let d = new Date();
-    let from = '', to = '';
-
-    if (newType === 'daily') {
-        from = to = formatStr(d);
-    } else if (newType === 'weekly') {
-        const range = resolveWeekRange(d);
-        from = range.from;
-        to = range.to;
-    } else if (newType === 'monthly') {
-        let start = new Date(d.getFullYear(), d.getMonth(), 1);
-        let end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        from = formatStr(start);
-        to = formatStr(end);
-    }
-
-    document.getElementById('hidden_date_from').value = from;
-    document.getElementById('hidden_date_to').value = to;
-    document.getElementById('filter-form').submit();
-}
-
-function updateDateRange(input, type) {
-    let val = input.value;
-    if (!val) return;
-
-    let from = '', to = '';
-    if (type === 'daily') {
-        from = to = val;
-    } else if (type === 'weekly') {
-        const range = resolveWeekRange(new Date(val));
-        from = range.from;
-        to = range.to;
-    } else if (type === 'monthly') {
-        let parts = val.split('-');
-        let start = new Date(parts[0], parts[1] - 1, 1);
-        let end = new Date(parts[0], parts[1], 0);
-        from = formatStr(start);
-        to = formatStr(end);
-    }
-
-    document.getElementById('hidden_date_from').value = from;
-    document.getElementById('hidden_date_to').value = to;
-    document.getElementById('filter-form').submit();
-}
-
-let timeout = null;
-const searchInput = document.getElementById('search-input');
-if (searchInput) {
-    searchInput.addEventListener('input', function () {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            document.getElementById('filter-form').submit();
-        }, 500);
-    });
-}
-</script>
-@endpush

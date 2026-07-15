@@ -37,7 +37,7 @@
                 <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Cabang Target</p>
                 <p class="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">Setiap cabang memiliki target harian dan progresnya sendiri.</p>
             </div>
-            <select name="branch_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-64">
+            <select name="branch_id" data-submit-on-change class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-64">
                 @foreach($branchOptions as $branch)
                     <option value="{{ $branch->id }}" @selected((int) $selectedBranchId === (int) $branch->id)>{{ $branch->name }}</option>
                 @endforeach
@@ -222,25 +222,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    document.querySelectorAll('[data-clear-zero-input]').forEach((input) => {
-        input.addEventListener('focus', () => {
-            if (input.value === '0') {
-                input.value = '';
-            }
-        });
-
-        input.addEventListener('input', () => {
-            input.value = input.value.replace(/^0+(?=\d)/, '');
-        });
-
-        input.addEventListener('blur', () => {
-            if (input.value === '') {
-                input.value = '0';
-            }
-        });
-    });
-</script>
-@endpush

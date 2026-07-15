@@ -49,18 +49,14 @@
                             <p class="mt-0.5 text-[11px] font-medium text-slate-400">Pukul {{ optional($menu->deleted_at)->format('H:i') }} WIB</p>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <form action="{{ route('admin.menus.restore', $menu->id) }}" method="POST" class="inline-block">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit"
-                                        title="Pulihkan Menu"
-                                        onclick="return confirm('Apakah Anda yakin ingin memulihkan menu ini?')"
-                                        class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
-                                    </svg>
-                                </button>
-                            </form>
+                            <button type="button"
+                                    title="Pulihkan Menu"
+                                    @click="openMenuRestore('{{ route('admin.menus.restore', $menu->id) }}', '{{ addslashes($menu->name) }}')"
+                                    class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
+                                </svg>
+                            </button>
                         </td>
                     </tr>
 
@@ -86,18 +82,14 @@
                                         </div>
                                     </div>
                                 </div>
-                                <form action="{{ route('admin.menus.restore', $menu->id) }}" method="POST" class="shrink-0">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit"
-                                            title="Pulihkan Menu"
-                                            onclick="return confirm('Apakah Anda yakin ingin memulihkan menu ini?')"
-                                            class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2.5 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
-                                        </svg>
-                                    </button>
-                                </form>
+                                <button type="button"
+                                        title="Pulihkan Menu"
+                                        @click="openMenuRestore('{{ route('admin.menus.restore', $menu->id) }}', '{{ addslashes($menu->name) }}')"
+                                        class="inline-flex items-center justify-center rounded-xl bg-blue-50 p-2.5 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-sm shrink-0">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h5M20 20v-5h-5M5.64 15A7 7 0 0018 17.66M18.36 9A7 7 0 006 6.34" />
+                                    </svg>
+                                </button>
                             </div>
                         </td>
                     </tr>

@@ -81,7 +81,7 @@
                            max="{{ now()->toDateString() }}"
                            data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'daily'])) }}"
                            data-param="date"
-                           onchange="onSalesDateChange(this)"
+                           data-date-navigation
                            class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 @elseif($type === 'weekly')
                     <input type="date"
@@ -89,7 +89,7 @@
                            max="{{ now()->toDateString() }}"
                            data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'weekly'])) }}"
                            data-param="week_date"
-                           onchange="onSalesDateChange(this)"
+                           data-date-navigation
                            class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 @else
                     <input type="month"
@@ -97,7 +97,7 @@
                            max="{{ now()->format('Y-m') }}"
                            data-base-url="{{ route('owner.reports.sales', array_filter(['type' => 'monthly'])) }}"
                            data-param="month"
-                           onchange="onSalesDateChange(this)"
+                           data-date-navigation
                            class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 @endif
 
@@ -486,132 +486,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-function onSalesDateChange(inputEl) {
-    if (!inputEl || !inputEl.value) return;
-
-    const baseUrl = inputEl.dataset.baseUrl;
-    const param = inputEl.dataset.param;
-
-    if (!baseUrl || !param) return;
-
-    const url = new URL(baseUrl, window.location.origin);
-    url.searchParams.set(param, inputEl.value);
-    window.location.href = url.toString();
-}
-
-
-
-(function() {
-    function setupPaginatedTable({ bodyId, cardListId = null, infoId, controlsId, perPage = 20 }) {
-        const body = document.getElementById(bodyId);
-        if (!body) return;
-
-        const allRows = Array.from(body.querySelectorAll('tr:not([data-empty-row="true"])'));
-        const emptyRows = Array.from(body.querySelectorAll('tr[data-empty-row="true"]'));
-
-        const cardList = cardListId ? document.getElementById(cardListId) : null;
-        const allCards = cardList ? Array.from(cardList.children).filter(card => card.dataset.emptyCard !== 'true') : [];
-        const emptyCards = cardList ? Array.from(cardList.children).filter(card => card.dataset.emptyCard === 'true') : [];
-        const info = document.getElementById(infoId);
-        const ctrl = document.getElementById(controlsId);
-
-        if (allRows.length === 0) {
-            emptyRows.forEach(row => row.style.display = '');
-            emptyCards.forEach(card => card.style.display = '');
-            if (info) info.textContent = 'Belum ada data pada periode ini.';
-            if (ctrl) ctrl.innerHTML = '';
-            return;
-        }
-
-        emptyRows.forEach(row => row.style.display = 'none');
-        emptyCards.forEach(card => card.style.display = 'none');
-
-        let currentPage = 1;
-        const totalPages = Math.ceil(allRows.length / perPage);
-
-        function render(page) {
-            currentPage = page;
-            const start = (page - 1) * perPage;
-            const end = start + perPage;
-
-            allRows.forEach((row, i) => {
-                row.style.display = i >= start && i < end ? '' : 'none';
-            });
-
-            allCards.forEach((card, i) => {
-                card.style.display = i >= start && i < end ? '' : 'none';
-            });
-
-            if (info) info.textContent = `Menampilkan ${start + 1}-${Math.min(end, allRows.length)} dari ${allRows.length} data`;
-
-            renderControls();
-        }
-
-        function btn(label, page, disabled = false, active = false) {
-            const el = document.createElement('button');
-            el.textContent = label;
-            el.disabled = disabled;
-            el.className = [
-                'px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200',
-                active
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                    : disabled
-                        ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            ].join(' ');
-            if (!disabled) el.addEventListener('click', () => render(page));
-            return el;
-        }
-
-        function renderControls() {
-            if (!ctrl) return;
-            ctrl.innerHTML = '';
-
-            ctrl.appendChild(btn('<', currentPage - 1, currentPage === 1));
-
-            const range = [];
-            for (let p = 1; p <= totalPages; p++) {
-                if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
-                    range.push(p);
-                } else if (range[range.length - 1] !== '...') {
-                    range.push('...');
-                }
-            }
-
-            range.forEach(p => {
-                if (p === '...') {
-                    const s = document.createElement('span');
-                    s.className = 'px-1 text-slate-300 dark:text-slate-700 text-xs';
-                    s.textContent = '...';
-                    ctrl.appendChild(s);
-                } else {
-                    ctrl.appendChild(btn(p, p, false, p === currentPage));
-                }
-            });
-
-            ctrl.appendChild(btn('>', currentPage + 1, currentPage === totalPages));
-        }
-
-        render(1);
-    }
-
-    setupPaginatedTable({
-        bodyId: 'transaction-table-body',
-        cardListId: 'transaction-card-list',
-        infoId: 'transaction-pagination-info',
-        controlsId: 'transaction-pagination-controls',
-        perPage: 10,
-    });
-
-    setupPaginatedTable({
-        bodyId: 'table-body',
-        infoId: 'pagination-info',
-        controlsId: 'pagination-controls',
-        perPage: 20,
-    });
-})();
-</script>
-@endpush

@@ -29,113 +29,7 @@
 @endphp
 
 @push('styles')
-<style>
-    .owner-dashboard-kpis,
-    .owner-dashboard-main,
-    .owner-dashboard-bottom {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .owner-dashboard-sales-row {
-        display: grid;
-        grid-template-columns: 72px minmax(0, 1fr) 88px;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .owner-dashboard-sales-list {
-        display: grid;
-        grid-template-rows: repeat(7, minmax(30px, 1fr));
-        gap: 10px;
-    }
-
-    .owner-dashboard-session-metrics,
-    .owner-dashboard-shortcuts {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .owner-dashboard-shortcuts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .owner-dashboard-stock-row,
-    .owner-dashboard-transaction-row {
-        display: grid;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .owner-dashboard-stock-row {
-        grid-template-columns: minmax(130px, 1fr) minmax(110px, .7fr) auto;
-        min-height: 45px;
-    }
-
-    .owner-dashboard-transaction-row {
-        grid-template-columns: minmax(130px, 1fr) minmax(92px, .7fr) auto;
-    }
-
-    .owner-dashboard-stock-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-    }
-
-    .owner-dashboard-stock-icon > svg {
-        display: block;
-        flex: none;
-    }
-
-    [x-cloak] {
-        display: none !important;
-    }
-
-    @media (max-width: 639px) {
-        .owner-dashboard-sales-row {
-            grid-template-columns: 56px minmax(0, 1fr) 72px;
-            gap: 8px;
-        }
-
-        .owner-dashboard-stock-row,
-        .owner-dashboard-transaction-row {
-            grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        .owner-dashboard-stock-row > :nth-child(2),
-        .owner-dashboard-transaction-row > :nth-child(2) {
-            display: none;
-        }
-    }
-
-    @media (min-width: 640px) {
-        .owner-dashboard-kpis {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
-    @media (min-width: 1024px) {
-        .owner-dashboard-kpis {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .owner-dashboard-main {
-            grid-template-columns: minmax(0, 1.68fr) minmax(310px, 1fr);
-            align-items: stretch;
-        }
-
-        .owner-dashboard-bottom {
-            grid-template-columns: minmax(0, 1.16fr) minmax(350px, 0.84fr);
-            align-items: start;
-        }
-
-        .owner-dashboard-main > *,
-        .owner-dashboard-bottom > * {
-            min-width: 0;
-        }
-    }
-</style>
+@vite('resources/css/pages/owner-dashboard.css')
 @endpush
 
 <div class="owner-dashboard space-y-4">
@@ -225,7 +119,7 @@
         </section>
 
         <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900">
-            <div class="p-5">
+            <div class="flex h-full flex-col p-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Target & Sesi Stok</p>
@@ -271,14 +165,14 @@
                     @endforeach
                 </div>
 
-                <nav class="owner-dashboard-shortcuts mt-4 gap-2.5" aria-label="Aksi cepat owner">
+                <nav class="owner-dashboard-shortcuts mt-4 gap-2.5 flex-1" aria-label="Aksi cepat owner">
                     @foreach([
                         ['route' => route('owner.reports.sales'), 'label' => 'Penjualan', 'path' => 'M9 17v-6m4 6V7m4 10v-4M5 21h14'],
                         ['route' => route('owner.transactions.index'), 'label' => 'Transaksi', 'path' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
                         ['route' => route('owner.targets.index'), 'label' => 'Target', 'path' => 'M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z'],
                         ['route' => route('owner.reports.cashflow'), 'label' => 'Pengeluaran', 'path' => 'M17 9V7a5 5 0 00-10 0v2M5 9h14l-1 11H6L5 9zm7 4v3'],
                     ] as $shortcut)
-                        <a href="{{ $shortcut['route'] }}" class="group flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-blue-500/50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400">
+                        <a href="{{ $shortcut['route'] }}" class="group flex h-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-blue-500/50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400">
                             <svg class="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-blue-500 dark:group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $shortcut['path'] }}"></path></svg>
                             {{ $shortcut['label'] }}
                         </a>
@@ -297,7 +191,7 @@
                 </div>
                 <a href="{{ route('owner.stocks.index') }}" class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-blue-600 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20">Semua</a>
             </div>
-            <div class="max-h-[300px] divide-y divide-slate-100/80 overflow-y-auto dark:divide-slate-800/80">
+            <div class="flex-1 divide-y divide-slate-100/80 overflow-y-auto dark:divide-slate-800/80">
                 @forelse($lowStockItems as $item)
                     @php $isCritical = ($item['status_key'] ?? '') === 'critical'; @endphp
                     <div class="owner-dashboard-stock-row group px-5 py-3 transition hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
@@ -333,7 +227,7 @@
                 <a x-show="activeTab === 'transaction'" x-cloak href="{{ route('owner.transactions.index') }}" class="rounded-lg bg-slate-50 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200">Semua</a>
             </div>
 
-            <div x-show="activeTab === 'menu'" class="max-h-[300px] divide-y divide-slate-100/80 overflow-y-auto p-2 dark:divide-slate-800/80">
+            <div x-show="activeTab === 'menu'" class="flex-1 divide-y divide-slate-100/80 overflow-y-auto p-2 dark:divide-slate-800/80">
                 @forelse($topMenusToday as $index => $menu)
                     <div class="group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                         <div class="flex min-w-0 items-center gap-3">
@@ -347,7 +241,7 @@
                 @endforelse
             </div>
 
-            <div x-show="activeTab === 'transaction'" x-cloak class="max-h-[300px] divide-y divide-slate-100/80 overflow-y-auto dark:divide-slate-800/80">
+            <div x-show="activeTab === 'transaction'" x-cloak class="flex-1 divide-y divide-slate-100/80 overflow-y-auto dark:divide-slate-800/80">
                 @forelse($latestTransactions as $trx)
                     <a href="{{ route('owner.transactions.show', $trx->id) }}" class="owner-dashboard-transaction-row group px-5 py-3 transition hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                         <div>

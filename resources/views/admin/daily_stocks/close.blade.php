@@ -7,7 +7,11 @@
 @section('title', 'Tutup Sesi Stok Harian')
 
 @section('content')
-<div class="w-full space-y-6 overflow-x-hidden pb-10">
+<div
+    class="w-full space-y-6 overflow-x-hidden pb-10"
+    data-daily-stock-close
+    data-unit-map="{{ collect($summary['by_unit'])->pluck('unit')->values()->toJson() }}"
+>
 
     <x-page-header 
         title="Tutup Sesi Harian Kasir" 
@@ -184,91 +188,3 @@
 </div>
 
 @endsection
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const inputs = document.querySelectorAll('.daily-remaining-input');
-    if (!inputs.length) return;
-
-    // Baca mapping unit dari PHP (by_unit array)
-    const unitMap = @json(collect($summary['by_unit'])->pluck('unit')->values());
-
-    const toNumber = (v) => {
-        const n = parseFloat(v);
-        return Number.isFinite(n) ? n : 0;
-    };
-
-    const toBase = (displayQty, unit) => {
-        if (unit === 'kg' || unit === 'l') return displayQty * 1000;
-        return displayQty;
-    };
-
-    const fmt = (n) => {
-        // Format tanpa trailing zeros
-        let s = n.toFixed(2);
-        s = s.replace(/0+$/, '').replace(/\.$/, '');
-        return s || '0';
-    };
-
-    const recompute = () => {
-        // Group by unit
-        const groups = {};
-        unitMap.forEach((unit, idx) => {
-            groups[unit] = { opening: 0, remaining: 0 };
-        });
-
-        inputs.forEach((input) => {
-            const openingBase = toNumber(input.dataset.openingBase);
-            const unit = (input.dataset.displayUnit || 'unit').toUpperCase();
-
-            const maxDisplay = toNumber(input.getAttribute('max'));
-            let currentDisplay = toNumber(input.value);
-
-            if (currentDisplay > maxDisplay) {
-                input.value = maxDisplay;
-                currentDisplay = maxDisplay;
-            } else if (currentDisplay < 0) {
-                input.value = 0;
-                currentDisplay = 0;
-            }
-
-            const remainingBase = toBase(currentDisplay, (input.dataset.displayUnit || '').toLowerCase());
-
-            if (!groups[unit]) {
-                groups[unit] = { opening: 0, remaining: 0 };
-            }
-            groups[unit].opening += openingBase;
-            groups[unit].remaining += remainingBase;
-        });
-
-        // Update each unit card
-        unitMap.forEach((unit, idx) => {
-            const group = groups[unit];
-            if (!group) return;
-
-            const used = Math.max(0, group.opening - group.remaining);
-            // Convert base back to display for the card
-            const isConvertUnit = unit === 'KG' || unit === 'L';
-            const dispRemaining = isConvertUnit ? group.remaining / 1000 : group.remaining;
-            const dispUsed = isConvertUnit ? used / 1000 : used;
-
-            const remainingEl = document.getElementById('summary-remaining-' + idx);
-            const usedEl = document.getElementById('summary-used-' + idx);
-            if (remainingEl) remainingEl.textContent = fmt(dispRemaining);
-            if (usedEl) usedEl.textContent = fmt(dispUsed);
-        });
-    };
-
-    inputs.forEach((input) => {
-        input.addEventListener('input', recompute);
-        input.addEventListener('blur', function() {
-            if (this.value === '') this.value = '0';
-            recompute();
-        });
-    });
-
-    recompute();
-});
-</script>
-@endpush

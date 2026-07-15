@@ -14,7 +14,8 @@ class OwnerController extends Controller
     {
         $ownerRole = Role::where('name', 'owner')->firstOrFail();
         
-        $owners = User::where('role_id', $ownerRole->id)
+        $owners = User::withTrashed()
+            ->where('role_id', $ownerRole->id)
             ->latest()
             ->get();
 
@@ -46,5 +47,31 @@ class OwnerController extends Controller
         ]);
 
         return redirect()->route('developer.owners.index')->with('success', 'Akun Owner berhasil dibuat.');
+    }
+
+    public function destroy(User $user)
+    {
+        // Pastikan role user adalah owner
+        $ownerRole = Role::where('name', 'owner')->firstOrFail();
+        
+        if ($user->role_id === $ownerRole->id) {
+            $user->delete();
+            return redirect()->route('developer.owners.index')->with('success', 'Akun Owner berhasil dinonaktifkan.');
+        }
+
+        return redirect()->route('developer.owners.index')->with('error', 'Akun ini bukan owner.');
+    }
+
+    public function restore($id)
+    {
+        $ownerRole = Role::where('name', 'owner')->firstOrFail();
+        $user = User::onlyTrashed()->where('id', $id)->firstOrFail();
+
+        if ($user->role_id === $ownerRole->id) {
+            $user->restore();
+            return redirect()->route('developer.owners.index')->with('success', 'Akun Owner berhasil diaktifkan kembali.');
+        }
+
+        return redirect()->route('developer.owners.index')->with('error', 'Gagal mengaktifkan akun.');
     }
 }

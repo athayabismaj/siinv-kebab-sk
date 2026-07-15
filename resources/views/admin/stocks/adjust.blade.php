@@ -40,11 +40,9 @@
     {{-- ================= CARD MAIN ================= --}}
     <div class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
 
-        <style>
-            ::-webkit-scrollbar-track { background: transparent; }
-            ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-            .dark ::-webkit-scrollbar-thumb { background: #334155; }
-        </style>
+        @push('styles')
+@vite('resources/css/pages/stock-adjust.css')
+@endpush
 
         <div class="p-6 md:p-8">
             <form method="POST"

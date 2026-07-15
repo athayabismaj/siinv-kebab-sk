@@ -7,6 +7,7 @@ use App\Services\Backup\BackupManifestService;
 use App\Services\Backup\PostgreSqlBackupService;
 use App\Services\Backup\PostgreSqlProcessRunner;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use RuntimeException;
 use Tests\TestCase;
@@ -63,6 +64,10 @@ class BackupWorkflowTest extends TestCase
 
         $this->assertFileExists($backup['file_path']);
         $this->assertFileExists($backup['manifest_path']);
+        $this->assertMatchesRegularExpression(
+            '/^SK-\d{2}-[A-Za-z]+-\d{4}\.dump$/',
+            basename($backup['file_path']),
+        );
         $this->assertSame(hash_file('sha256', $backup['file_path']), $backup['manifest']['checksum']);
         $this->assertSame(filesize($backup['file_path']), $backup['manifest']['size_bytes']);
         $this->assertDirectoryDoesNotExist($this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'.tmp'.DIRECTORY_SEPARATOR.$backup['backup_id']);
@@ -79,6 +84,28 @@ class BackupWorkflowTest extends TestCase
         } catch (RuntimeException) {
             $this->assertDirectoryDoesNotExist($this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'.tmp');
             $this->assertDirectoryDoesNotExist($this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'artifacts');
+        }
+    }
+
+    public function test_failed_dump_records_process_diagnostics_in_the_server_log(): void
+    {
+        Log::spy();
+
+        $runner = new PostgreSqlProcessRunner(
+            fn () => Process::result('connection to server at 127.0.0.1 was refused', 'pg_dump: error:', 1),
+        );
+
+        try {
+            $this->backupService($runner)->create('manual');
+            $this->fail('Backup failure must be surfaced.');
+        } catch (RuntimeException) {
+            Log::shouldHaveReceived('warning')
+                ->once()
+                ->with('Database backup failed.', \Mockery::on(function (array $context): bool {
+                    return ($context['process_exit_code'] ?? null) === 1
+                        && ($context['process_error'] ?? null) === 'pg_dump: error:'
+                        && ($context['process_output'] ?? null) === 'connection to server at 127.0.0.1 was refused';
+                }));
         }
     }
 

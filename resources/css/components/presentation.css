@@ -1,0 +1,11 @@
+.app-auto-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.app-details-summary {
+    list-style: none;
+}
+
+.app-details-summary::-webkit-details-marker {
+    display: none;
+}

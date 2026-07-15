@@ -7,7 +7,16 @@
 @endsection
 
 @section('content')
-<div class="space-y-8 max-w-full overflow-x-hidden">
+<div class="space-y-8 max-w-full overflow-x-hidden" x-data="{
+        destroyUrl: '',
+        userName: '',
+        openUserDestroy(url, name) {
+            this.destroyUrl = url;
+            this.userName = name;
+            document.getElementById('user_destroy_confirmation').value = '';
+            $dispatch('open-modal', 'user-destroy-modal');
+        }
+    }">
 
     <x-page-header 
         title="Manajemen Pengguna" 
@@ -15,22 +24,22 @@
         breadcrumb-parent="Owner" 
         breadcrumb-child="Pengguna">
         
-        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-lg shadow-sm">
-            <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
-                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                Total Terdaftar:
-                <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-1">{{ $users->total() ?? $users->count() }} Akun</span>
-            </span>
-        </div>
-        
-        <div class="flex w-full flex-col gap-3 sm:flex-row sm:w-auto">
+        <div class="flex w-full flex-col sm:flex-row sm:items-center justify-end gap-3 sm:w-auto">
+            <div class="inline-flex h-10 items-center gap-2 px-3.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl shadow-sm">
+                <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Total: <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-0.5">{{ $users->total() ?? $users->count() }} Akun</span>
+                </span>
+            </div>
+            
             <a href="{{ route('owner.branches.index') }}"
-               class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+               class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1m-1 4h1m-1 4h1m5-4h1m-1 4h1"></path></svg>
                 Kelola Cabang
             </a>
+            
             <a href="{{ route('owner.users.create') }}"
-               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
+               class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                 Tambah Pengguna
             </a>
@@ -104,13 +113,13 @@
                     
                     {{-- Disable Button --}}
                     @if(!$user->deleted_at)
-                    <form action="{{ route('owner.users.destroy', $user->id) }}" method="POST" class="flex-1 flex">
-                        @csrf @method('DELETE')
-                        <button type="submit" onclick="return confirm('Yakin ingin menonaktifkan user ini?')" 
+                    <div class="flex-1 flex">
+                        <button type="button" 
+                                @click="openUserDestroy('{{ route('owner.users.destroy', $user->id) }}', '{{ addslashes($user->name) }}')"
                                 class="w-full flex items-center justify-center py-3.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors outline-none">
                             <span class="text-[11px] font-black uppercase tracking-[0.15em]">Matikan</span>
                         </button>
-                    </form>
+                    </div>
                     @endif
 
                 </div>
@@ -197,37 +206,33 @@
                                 @endif
                             </td>
 
-                            {{-- Dibuat --}}
+                            {{-- Bergabung --}}
                             <td class="px-6 py-4 text-center text-xs text-slate-400 dark:text-slate-500 font-medium tabular-nums">
                                 {{ $user->created_at->format('d M Y') }}
                             </td>
 
                             {{-- Aksi (Icon Buttons) --}}
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('owner.users.edit', $user->id) }}" title="Edit User"
-                                       class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:text-slate-500 dark:hover:bg-blue-500/10 dark:hover:text-blue-400">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </a>
 
                                     <a href="{{ route('owner.users.reset.form', $user->id) }}" title="Atur Ulang Kata Sandi"
-                                       class="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-all">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:text-slate-500 dark:hover:bg-amber-500/10 dark:hover:text-amber-400">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                                     </a>
 
                                     @if(!$user->deleted_at)
-                                    <form action="{{ route('owner.users.destroy', $user->id) }}" method="POST" class="inline-block">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" title="Nonaktifkan User"
-                                                onclick="return confirm('Yakin ingin menonaktifkan user ini?')"
-                                                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                                        </button>
-                                    </form>
+                                    <button type="button" title="Nonaktifkan User"
+                                            @click="openUserDestroy('{{ route('owner.users.destroy', $user->id) }}', '{{ addslashes($user->name) }}')"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-400">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                    </button>
                                     @endif
                                 </div>
                             </td>
-
                         </tr>
                     @empty
                         <tr>
@@ -252,6 +257,39 @@
             </div>
         @endif
     </div>
+
+    {{-- Modal Nonaktifkan User --}}
+    <x-modal id="user-destroy-modal" maxWidth="md" type="danger">
+        <x-slot name="title">Nonaktifkan Pengguna</x-slot>
+        <x-slot name="icon">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </x-slot>
+        <x-slot name="description">
+            Anda yakin ingin menonaktifkan akun pengguna <span class="font-bold text-slate-900 dark:text-white" x-text="userName"></span>? Akun ini tidak akan dapat login atau melakukan transaksi. Anda dapat mengaktifkannya kembali nanti di halaman Arsip Pengguna.
+        </x-slot>
+
+        <form x-bind:action="destroyUrl" method="POST">
+            @csrf
+            @method('DELETE')
+            <div class="pt-2">
+                <label class="sr-only" for="user_destroy_confirmation">Konfirmasi</label>
+                <input type="text" name="destroy_confirmation" id="user_destroy_confirmation" required pattern="NONAKTIF" title="Ketik NONAKTIF" placeholder="Ketik NONAKTIF"
+                       data-uppercase-input
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" />
+            </div>
+            
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'user-destroy-modal')"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto">
+                    Ya, Nonaktifkan
+                </button>
+            </div>
+        </form>
+    </x-modal>
 
 </div>
 @endsection

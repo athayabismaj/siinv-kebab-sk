@@ -100,7 +100,8 @@
                                         <button type="submit"
                                                 title="Hapus kategori"
                                                 aria-label="Hapus kategori {{ $category->name }}"
-                                                onclick="return confirm('Yakin ingin menghapus kategori ini?')"
+                                                data-confirm
+                                                data-confirm-message="Yakin ingin menghapus kategori ini?"
                                                 class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-500/10 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
@@ -143,7 +144,8 @@
                                             <button type="submit"
                                                     title="Hapus kategori"
                                                     aria-label="Hapus kategori {{ $category->name }}"
-                                                    onclick="return confirm('Yakin ingin menghapus kategori ini?')"
+                                                    data-confirm
+                                                    data-confirm-message="Yakin ingin menghapus kategori ini?"
                                                     class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300">
                                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />

@@ -1,3 +1,9 @@
+@import './layouts/app-shell.css';
+@import './components/sidebar.css';
+@import './components/presentation.css';
+@import './pages/admin-dashboard.css';
+@import './pages/auth-login.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

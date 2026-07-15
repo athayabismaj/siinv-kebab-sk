@@ -51,7 +51,7 @@
     </div>
 
     {{-- ================= FILTER SECTION ================= --}}
-    <form method="GET" action="{{ route($routePrefix.'.cashflow') }}" id="filter-form" class="relative z-10 py-2 mb-2">
+    <form method="GET" action="{{ route($routePrefix.'.cashflow') }}" id="filter-form" data-period-filter class="relative z-10 py-2 mb-2">
         <input type="hidden" name="type" id="hidden_type" value="{{ $type }}">
         <input type="hidden" name="date_from" id="hidden_date_from" value="{{ $dateFrom->toDateString() }}">
         <input type="hidden" name="date_to" id="hidden_date_to" value="{{ $dateTo->toDateString() }}">
@@ -60,9 +60,9 @@
 
             {{-- 1. TABS (KIRI) --}}
             <div class="flex rounded-xl bg-white p-1 border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 shrink-0">
-                <button type="button" onclick="changeType('daily')" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
-                <button type="button" onclick="changeType('weekly')" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
-                <button type="button" onclick="changeType('monthly')" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
+                <button type="button" data-period-type="daily" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'daily' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Harian</button>
+                <button type="button" data-period-type="weekly" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'weekly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Mingguan</button>
+                <button type="button" data-period-type="monthly" class="flex-1 lg:flex-none min-w-[90px] rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-all {{ $type === 'monthly' ? 'bg-slate-100 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Bulanan</button>
             </div>
 
             {{-- 2. DATE NAVIGATOR (TENGAH) --}}
@@ -72,7 +72,7 @@
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
                 </a>
 
-                <input type="{{ $inputType }}" value="{{ $inputValue }}" onchange="updateDateRange(this, '{{ $type }}')" 
+                <input type="{{ $inputType }}" value="{{ $inputValue }}" data-period-date data-period-mode="{{ $type }}"
                        max="{{ $inputType === 'month' ? now()->format('Y-m') : now()->toDateString() }}"
                        class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
 
@@ -330,71 +330,4 @@
     </div>
     @endif
 </div>
-
-@push('scripts')
-<script>
-function formatStr(d) {
-    return d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
-}
-
-function resolveWeekRange(dateObj) {
-    let day = dateObj.getDay();
-    let diff = day === 0 ? -6 : 1 - day;
-    let start = new Date(dateObj);
-    start.setDate(dateObj.getDate() + diff);
-    let end = new Date(start);
-    end.setDate(start.getDate() + 6);
-
-    return { from: formatStr(start), to: formatStr(end) };
-}
-
-function changeType(newType) {
-    document.getElementById('hidden_type').value = newType;
-    let d = new Date();
-    let from = '', to = '';
-
-    if (newType === 'daily') {
-        from = to = formatStr(d);
-    } else if (newType === 'weekly') {
-        const range = resolveWeekRange(d);
-        from = range.from;
-        to = range.to;
-    } else {
-        let start = new Date(d.getFullYear(), d.getMonth(), 1);
-        let end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        from = formatStr(start);
-        to = formatStr(end);
-    }
-
-    document.getElementById('hidden_date_from').value = from;
-    document.getElementById('hidden_date_to').value = to;
-    document.getElementById('filter-form').submit();
-}
-
-function updateDateRange(input, type) {
-    let val = input.value;
-    if (!val) return;
-
-    let from = '', to = '';
-
-    if (type === 'daily') {
-        from = to = val;
-    } else if (type === 'weekly') {
-        const range = resolveWeekRange(new Date(val));
-        from = range.from;
-        to = range.to;
-    } else {
-        let parts = val.split('-');
-        let start = new Date(parts[0], parts[1] - 1, 1);
-        let end = new Date(parts[0], parts[1], 0);
-        from = formatStr(start);
-        to = formatStr(end);
-    }
-
-    document.getElementById('hidden_date_from').value = from;
-    document.getElementById('hidden_date_to').value = to;
-    document.getElementById('filter-form').submit();
-}
-</script>
-@endpush
 @endsection

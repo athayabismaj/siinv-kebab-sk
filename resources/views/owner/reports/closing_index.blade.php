@@ -106,8 +106,9 @@
                                 <textarea name="notes" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none shadow-sm" placeholder="Contoh: Stok opname selesai dan sesuai..."></textarea>
                             </div>
 
-                            <button type="submit" 
-                                    onclick="return confirm('Tutup buku {{ $thisMonth->translatedFormat('F Y') }}{{ $usesBranchClosing ? ' untuk cabang ' . ($selectedBranch->name ?? 'terpilih') : '' }} sekarang? Data yang sudah ditutup akan menjadi Snapshot permanen.')"
+                            <button type="submit"
+                                    data-confirm
+                                    data-confirm-message="Tutup buku {{ $thisMonth->translatedFormat('F Y') }}{{ $usesBranchClosing ? ' untuk cabang ' . ($selectedBranch->name ?? 'terpilih') : '' }} sekarang? Data yang sudah ditutup akan menjadi Snapshot permanen."
                                     class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-[13px] font-bold transition-all shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                                 Proses Tutup Buku
@@ -188,7 +189,7 @@
                                     <td class="px-6 py-4 text-right">
                                         <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300">{{ $closing->created_at->format('d M Y') }}</p>
                                         @if($canCancelClosing)
-                                            <form action="{{ route('owner.reports.closing.cancel', $closing) }}" method="POST" class="mt-2" onsubmit="cancelClosing(event, this)">
+                                            <form action="{{ route('owner.reports.closing.cancel', $closing) }}" method="POST" class="mt-2" data-closing-cancel>
                                                 @csrf
                                                 @method('DELETE')
                                                 <input type="hidden" name="confirmation" value="">
@@ -233,57 +234,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    function cancelClosing(event, form) {
-        event.preventDefault();
-        
-        Swal.fire({
-            title: 'Batalkan Tutup Buku?',
-            html: '<p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Ketik <strong>BATALKAN</strong> untuk membatalkan tutup buku periode ini.</p><p class="text-[11px] text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-500/10 p-3 rounded-xl border border-rose-100 dark:border-rose-500/20">Perhatian: Tindakan ini hanya menghapus snapshot, bukan menghapus transaksi asli.</p>',
-            input: 'text',
-            inputPlaceholder: 'Ketik BATALKAN',
-            icon: 'warning',
-            iconColor: '#f43f5e',
-            showCancelButton: true,
-            confirmButtonColor: '#e11d48',
-            confirmButtonText: 'Konfirmasi',
-            cancelButtonText: 'Batal',
-            inputAttributes: {
-                autocapitalize: 'off',
-                autocomplete: 'off'
-            },
-            didOpen: () => {
-                const input = Swal.getInput();
-                if (input) {
-                    input.addEventListener('input', () => {
-                        input.value = input.value.toUpperCase();
-                    });
-                }
-            },
-            customClass: {
-                popup: 'rounded-[2rem] dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl pb-6',
-                title: 'text-xl font-black text-slate-800 dark:text-white pt-2',
-                input: 'rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 dark:text-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 text-center font-black tracking-widest uppercase !mt-6 shadow-sm transition-all',
-                validationMessage: 'rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-[11px] border border-rose-200 dark:border-rose-500/20 mx-8 mt-4 py-3 px-4 flex items-center justify-center',
-                actions: 'mt-6 w-full px-8 flex gap-3',
-                confirmButton: 'rounded-xl px-6 py-2.5 font-bold shadow-sm flex-1',
-                cancelButton: 'rounded-xl px-6 py-2.5 font-bold shadow-sm bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 flex-1 border-0'
-            },
-            preConfirm: (value) => {
-                if (value !== 'BATALKAN') {
-                    Swal.showValidationMessage('Teks tidak cocok. Anda harus mengetik BATALKAN.');
-                    return false;
-                }
-                return value;
-            }
-        }).then((result) => {
-            if (result.isConfirmed && result.value === 'BATALKAN') {
-                form.querySelector('[name=confirmation]').value = result.value;
-                form.submit();
-            }
-        });
-    }
-</script>
-@endpush

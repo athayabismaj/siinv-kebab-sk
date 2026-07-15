@@ -84,13 +84,11 @@
                 Edit
             </a>
             <span class="text-slate-200 dark:text-slate-700">|</span>
-            <form action="{{ route('admin.ingredients.destroy', $ingredient->id) }}" method="POST" class="inline-block">
-                @csrf
-                @method('DELETE')
-                <button type="submit" onclick="return confirm('Nonaktifkan bahan ini?')" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors uppercase tracking-widest">
-                    Nonaktifkan
-                </button>
-            </form>
+            <button type="button" 
+                    @click="openIngredientDestroy('{{ route('admin.ingredients.destroy', $ingredient->id) }}', '{{ addslashes($ingredient->name) }}')" 
+                    class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors uppercase tracking-widest outline-none">
+                Nonaktifkan
+            </button>
         </div>
     </td>
 </tr>

@@ -35,8 +35,14 @@ class PostgreSqlBackupService
         $backupId = (string) Str::uuid();
         $temporaryDirectory = $this->filesystem->temporaryDirectory($backupId);
         $artifactDirectory = $this->filesystem->artifactDirectory($backupId);
-        $temporaryDump = $temporaryDirectory.DIRECTORY_SEPARATOR.'database.dump';
+        $backupFileName = 'SK-'.now()->locale('id')->translatedFormat('d-F-Y').'.dump';
+        $temporaryDump = $temporaryDirectory.DIRECTORY_SEPARATOR.$backupFileName;
         $startedAt = microtime(true);
+        $processDiagnostics = [
+            'process_exit_code' => null,
+            'process_error' => null,
+            'process_output' => null,
+        ];
 
         try {
             File::ensureDirectoryExists($temporaryDirectory);
@@ -54,6 +60,8 @@ class PostgreSqlBackupService
             ], ['PGPASSWORD' => (string) $connection['password']]);
 
             if (! $result->successful() || ! is_file($temporaryDump) || filesize($temporaryDump) === 0) {
+                $processDiagnostics = $this->processDiagnostics($result);
+
                 throw new RuntimeException('Database backup process failed.');
             }
 
@@ -102,6 +110,9 @@ class PostgreSqlBackupService
                 'type' => $type,
                 'result' => 'failed',
                 'exception' => $exception::class,
+                'process_exit_code' => $processDiagnostics['process_exit_code'],
+                'process_error' => $processDiagnostics['process_error'],
+                'process_output' => $processDiagnostics['process_output'],
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
@@ -125,5 +136,27 @@ class PostgreSqlBackupService
         }
 
         return $connection;
+    }
+
+    /** @return array{process_exit_code:int|null,process_error:string|null,process_output:string|null} */
+    private function processDiagnostics(mixed $result): array
+    {
+        return [
+            'process_exit_code' => method_exists($result, 'exitCode') ? $result->exitCode() : null,
+            'process_error' => $this->sanitizeProcessMessage(
+                method_exists($result, 'errorOutput') ? (string) $result->errorOutput() : '',
+            ),
+            'process_output' => $this->sanitizeProcessMessage(
+                method_exists($result, 'output') ? (string) $result->output() : '',
+            ),
+        ];
+    }
+
+    private function sanitizeProcessMessage(string $message): ?string
+    {
+        $message = preg_replace('/\s+/', ' ', trim($message)) ?? '';
+        $message = preg_replace('/password(?:=|\s+)[^\s]+/i', 'password=[redacted]', $message) ?? '';
+
+        return $message === '' ? null : Str::limit($message, 1000);
     }
 }

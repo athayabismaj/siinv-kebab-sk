@@ -27,7 +27,7 @@
                    name="date"
                    value="{{ $activePeriod === 'monthly' ? $activeDate->format('Y-m') : $activeDate->toDateString() }}" 
                    max="{{ $activePeriod === 'monthly' ? now()->format('Y-m') : now()->toDateString() }}"
-                   onchange="this.form.submit()"
+                   data-submit-on-change
                    class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
 
             @if($isNextDisabled)

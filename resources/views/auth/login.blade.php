@@ -6,7 +6,7 @@
     <title>Masuk | Kebab SK</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
-    @vite('resources/css/app.css')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -93,12 +93,11 @@
                                         id="toggle_login_password"
                                         aria-label="Tampilkan password"
                                         aria-pressed="false"
-                                        class="z-10 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-md transition-colors"
-                                        style="position: absolute; right: 1rem; bottom: 0.625rem; display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem;">
-                                    <svg id="login_password_icon_hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: block; width: 1.25rem; height: 1.25rem;">
+                                        class="login-password-toggle z-10 rounded-md text-slate-400 transition-colors hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:text-blue-400">
+                                    <svg id="login_password_icon_hidden" class="login-password-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
                                     </svg>
-                                    <svg id="login_password_icon_visible" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none; width: 1.25rem; height: 1.25rem;">
+                                    <svg id="login_password_icon_visible" class="login-password-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" hidden>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                     </svg>
@@ -114,6 +113,7 @@
 
                         <div class="pt-4">
                             <button type="submit"
+                                    aria-label="Login"
                                     :disabled="submitting"
                                     class="w-full py-3 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/30 flex items-center justify-center">
                                 <span x-show="!submitting">Masuk</span>
@@ -131,40 +131,5 @@
         </div>
     </div>
 
-    <style>
-        #login_password::-ms-reveal,
-        #login_password::-ms-clear {
-            display: none;
-        }
-    </style>
-    <script>
-        function initLoginPasswordToggle() {
-            const input = document.getElementById('login_password');
-            const button = document.getElementById('toggle_login_password');
-            const hiddenIcon = document.getElementById('login_password_icon_hidden');
-            const visibleIcon = document.getElementById('login_password_icon_visible');
-
-            if (!input || !button || !hiddenIcon || !visibleIcon) {
-                return;
-            }
-
-            button.addEventListener('click', function () {
-                const shouldShow = input.type === 'password';
-
-                input.type = shouldShow ? 'text' : 'password';
-                button.setAttribute('aria-pressed', shouldShow ? 'true' : 'false');
-                button.setAttribute('aria-label', shouldShow ? 'Sembunyikan password' : 'Tampilkan password');
-                hiddenIcon.style.display = shouldShow ? 'none' : 'block';
-                visibleIcon.style.display = shouldShow ? 'block' : 'none';
-                input.focus();
-            });
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initLoginPasswordToggle);
-        } else {
-            initLoginPasswordToggle();
-        }
-    </script>
 </body>
 </html>

@@ -77,13 +77,13 @@
 
                 {{-- Date Input --}}
                 @if($type === 'daily')
-                    <input type="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" onchange="if (this.value) window.location.href = '{{ route('owner.analytics.menu', array_filter(['type' => 'daily'])) }}&date=' + encodeURIComponent(this.value)"
+                    <input type="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" data-date-navigation data-base-url="{{ route('owner.analytics.menu', array_filter(['type' => 'daily'])) }}" data-param="date"
                            class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 @elseif($type === 'weekly')
-                    <input type="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" onchange="if (this.value) window.location.href = '{{ route('owner.analytics.menu', array_filter(['type' => 'weekly'])) }}&week_date=' + encodeURIComponent(this.value)"
+                    <input type="date" value="{{ $inputValue }}" max="{{ $today->toDateString() }}" data-date-navigation data-base-url="{{ route('owner.analytics.menu', array_filter(['type' => 'weekly'])) }}" data-param="week_date"
                            class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 @else
-                    <input type="month" value="{{ $inputValue }}" max="{{ $today->format('Y-m') }}" onchange="if (this.value) window.location.href = '{{ route('owner.analytics.menu', array_filter(['type' => 'monthly'])) }}&month=' + encodeURIComponent(this.value)"
+                    <input type="month" value="{{ $inputValue }}" max="{{ $today->format('Y-m') }}" data-date-navigation data-base-url="{{ route('owner.analytics.menu', array_filter(['type' => 'monthly'])) }}" data-param="month"
                            class="h-[38px] w-full flex-1 min-w-0 bg-transparent px-2 text-center text-[13px] font-bold text-slate-700 outline-none cursor-pointer dark:text-slate-200 dark:[color-scheme:dark]">
                 @endif
 
@@ -255,5 +255,4 @@
     </div>
 </div>
 @endsection
-
 

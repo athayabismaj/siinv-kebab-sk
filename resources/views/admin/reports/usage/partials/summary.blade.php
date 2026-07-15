@@ -5,7 +5,7 @@
     $cols = min(max($totalCards, 1), 6);
 @endphp
 
-<div class="grid gap-4 items-start" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
+<div class="app-auto-card-grid grid gap-4 items-start">
     {{-- Item Terpakai --}}
     <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
         <div class="flex items-start justify-between">
