@@ -37,3 +37,16 @@ summary, constraint, dan query-count checkout.
 | QA-004 | Info | Suite default tetap memakai SQLite. | PostgreSQL core diuji terpisah pada database dengan prefix `siinv_fase5b_test_`. | Open - jalankan suite PostgreSQL sebelum rilis PostgreSQL. |
 | QA-005 | Info | Runner `php artisan test --parallel` belum dapat dipakai. | Collision Laravel membutuhkan `brianium/paratest` 7.x, sedangkan dependency tidak dipasang. | Open - keputusan toolchain terpisah; Fase 5B tidak menambah dependency. |
 | QA-006 | Low | Proses PHP mandiri tanpa Laravel ParallelTesting dapat berbagi fake storage. | `Storage::fake()` menambahkan token hanya saat runner Laravel parallel aktif. | Open - jalankan regresi ekspor serial sampai runner resmi tersedia. |
+
+## Pembaruan Fase 5C - 15 Juli 2026
+
+Contract test khusus SIPOS Android ditambahkan untuk auth/logout, branch nullable,
+profil, menu, metode pembayaran, sesi stok, checkout, receipt, riwayat kosong,
+dan unauthorized response. Audit client menemukan dua bug kontrak: branch tidak
+dipertahankan setelah update profil dan logout Android tidak mencabut token
+backend. Keduanya diperbaiki dengan perubahan minimal dan test reproduksi.
+
+Endpoint lama `POST /sessions/{id}/close` terbukti tidak memiliki pemanggil UI
+aktif dan dihapus dari Android. Endpoint aktif tetap
+`POST /daily-stock-sessions/close`. Tidak ada endpoint, schema, formula, atau
+scope cabang backend yang diubah.
