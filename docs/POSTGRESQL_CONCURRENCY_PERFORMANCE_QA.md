@@ -49,10 +49,33 @@ against PostgreSQL. It covers:
 | Restock / adjustment | Inventory actions | Ingredient |
 | Close session | `CloseDailyStockSessionAction` | Session, daily items, ingredients ordered by ID |
 | Summary rebuild | `DailySalesSummaryService` | Database unique constraint plus update/insert recovery |
+| Open daily session | `OpenDailyStockSessionAction` | Existing session row; unique `(session_date, cashier_id)` arbitrates an absent-row race |
 
 The actual PostgreSQL test did not reproduce a deadlock. Checkout still uses a
 short `NOWAIT` ingredient lock, so a busy error remains an intentional bounded
 failure mode instead of an unbounded retry.
+
+## Daily-session opening race
+
+The original open-session flow used `lockForUpdate()` before creating a session.
+That protects an existing row, but it cannot lock a row that does not exist. Two
+real PHP processes could therefore both observe no session and attempt the same
+insert. PostgreSQL accepted the winner and rejected the loser with SQLSTATE
+`23505` on `daily_stock_session_date_cashier_unique`.
+
+`OpenDailyStockSessionAction` now keeps the unique constraint as the database
+arbiter. It catches only a PostgreSQL `23505` produced by an insert into
+`daily_stock_sessions` for that exact constraint. The failed transaction is
+allowed to roll back completely before a new transaction locks and re-reads the
+winner. Other query exceptions and other unique constraints are still thrown.
+There is no retry loop and no advisory lock.
+
+Opening a session currently creates only the session row. The losing process
+therefore creates no opening-stock item, stock log, or other partial side effect.
+The two-process test also verifies that both callers receive the same session ID.
+The focused race test passed 15 consecutive orchestrated runs after the fix. The
+full Laravel suite passed twice at `199 tests / 1203 assertions`; the complete
+PostgreSQL suite passed twice at `11 tests / 61 assertions`.
 
 ## Query-count guard
 
@@ -78,3 +101,5 @@ PostgreSQL child-process tests provide the available real-process coverage.
 - PostgreSQL process tests use a local disposable instance, not a production-sized dataset.
 - The application still has global ingredient records; concurrent cross-session checkout can receive the bounded `NOWAIT` retry message under sustained contention.
 - No multi-server queue, Redis, scheduler, or production load benchmark is included in this phase.
+- If future session-opening side effects are added, they must remain inside the
+  winner's transaction and receive equivalent exact-once process coverage.
