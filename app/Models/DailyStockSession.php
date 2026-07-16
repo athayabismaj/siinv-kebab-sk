@@ -28,7 +28,7 @@ class DailyStockSession extends Model
 
     public function cashier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'cashier_id');
+        return $this->belongsTo(User::class, 'cashier_id')->withTrashed();
     }
 
     public function branch(): BelongsTo
@@ -38,12 +38,12 @@ class DailyStockSession extends Model
 
     public function openedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'opened_by');
+        return $this->belongsTo(User::class, 'opened_by')->withTrashed();
     }
 
     public function closedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'closed_by');
+        return $this->belongsTo(User::class, 'closed_by')->withTrashed();
     }
 
     public function items(): HasMany

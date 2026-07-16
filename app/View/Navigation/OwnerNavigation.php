@@ -29,8 +29,7 @@ class OwnerNavigation extends SidebarNavigation
             ]],
             ['label' => 'Pengaturan', 'items' => [
                 $this->item('Cabang Operasional', 'owner.branches.index', 'owner.branches.*', 'branch'),
-                $this->item('Daftar Pengguna', 'owner.users.index', ['owner.users.index', 'owner.users.create', 'owner.users.edit', 'owner.users.reset.*'], 'users'),
-                $this->item('Arsip Pengguna', 'owner.users.archive', 'owner.users.archive', 'archive'),
+                $this->item('Daftar Pengguna', 'owner.users.index', ['owner.users.index', 'owner.users.create', 'owner.users.edit', 'owner.users.reset.*', 'owner.users.archive'], 'users'),
             ]],
         ];
     }

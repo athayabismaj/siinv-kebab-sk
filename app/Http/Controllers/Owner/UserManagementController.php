@@ -16,8 +16,13 @@ class UserManagementController extends Controller
 {
     private const MANAGED_ROLE_NAMES = ['admin', 'kasir'];
 
-    public function index()
+    public function index(Request $request)
     {
+        $status = Str::lower(trim((string) $request->query('status', 'active')));
+        if (! in_array($status, ['active', 'inactive', 'all'], true)) {
+            $status = 'active';
+        }
+
         $usesBranches = BranchScope::supportsUserBranches();
         $usesBranchAssignments = BranchScope::supportsUserBranchAssignments();
 
@@ -29,12 +34,29 @@ class UserManagementController extends Controller
             $with[] = 'assignedBranches:id,name,code';
         }
 
-        $users = User::query()
-            ->with($with)
-            ->whereHas('role', fn ($q) => $this->whereManagedRole($q))
-            ->paginate(10);
+        $baseQuery = User::withTrashed()
+            ->whereHas('role', fn ($q) => $this->whereManagedRole($q));
 
-        return view('owner.user_management.index', compact('users', 'usesBranches', 'usesBranchAssignments'));
+        $activeCount = (clone $baseQuery)->whereNull('users.deleted_at')->count();
+        $inactiveCount = (clone $baseQuery)->whereNotNull('users.deleted_at')->count();
+        $allCount = (clone $baseQuery)->count();
+
+        $users = (clone $baseQuery)
+            ->with($with)
+            ->when($status === 'active', fn ($query) => $query->whereNull('users.deleted_at'))
+            ->when($status === 'inactive', fn ($query) => $query->whereNotNull('users.deleted_at'))
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('owner.user_management.index', compact(
+            'users',
+            'status',
+            'activeCount',
+            'inactiveCount',
+            'allCount',
+            'usesBranches',
+            'usesBranchAssignments'
+        ));
     }
 
     public function create()
@@ -128,35 +150,48 @@ class UserManagementController extends Controller
             ->with('success', 'Password berhasil direset.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        $request->validate([
+            'destroy_confirmation' => ['required', 'string', 'in:NONAKTIF'],
+        ], [
+            'destroy_confirmation.required' => 'Ketik NONAKTIF untuk mengonfirmasi penonaktifan akun.',
+            'destroy_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik NONAKTIF.',
+        ]);
+
         $this->ensureUserManageable($user);
 
-        $user->delete();
+        DB::transaction(function () use ($user) {
+            ApiToken::query()->where('user_id', $user->id)->delete();
+            $user->delete();
+        });
 
         return redirect()->route('owner.users.index')
-            ->with('success', 'User berhasil dinonaktifkan.');
+            ->with('success', 'Pengguna berhasil dinonaktifkan.');
     }
 
     public function archive()
     {
-        $users = User::onlyTrashed()
-            ->whereHas('role', fn ($q) => $this->whereManagedRole($q))
-            ->with('role')
-            ->paginate(10);
-
-        return view('owner.archives.user', compact('users'));
+        return redirect()->route('owner.users.index', ['status' => 'inactive']);
     }
 
-    public function restore($id)
+    public function restore(Request $request, $id)
     {
+        $request->validate([
+            'restore_confirmation' => ['required', 'string', 'in:AKTIFKAN'],
+        ], [
+            'restore_confirmation.required' => 'Ketik AKTIFKAN untuk mengonfirmasi pengaktifan akun.',
+            'restore_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik AKTIFKAN.',
+        ]);
+
         $user = User::withTrashed()->findOrFail($id);
         $this->ensureUserManageable($user);
+        abort_unless($user->trashed(), 404);
 
-        $user->restore();
+        DB::transaction(fn () => $user->restore());
 
-        return redirect()->route('owner.users.archive')
-            ->with('success', 'User berhasil diaktifkan kembali.');
+        return redirect()->route('owner.users.index', ['status' => 'active'])
+            ->with('success', 'Pengguna berhasil diaktifkan kembali.');
     }
 
     private function storeRules(Request $request): array
@@ -178,8 +213,8 @@ class UserManagementController extends Controller
     {
         $rules = [
             'name' => 'required|string|max:100',
-            'username' => 'required|string|max:100|unique:users,username,' . $user->id,
-            'email' => 'required|email|max:150|unique:users,email,' . $user->id,
+            'username' => 'required|string|max:100|unique:users,username,'.$user->id,
+            'email' => 'required|email|max:150|unique:users,email,'.$user->id,
             'role_id' => 'required|exists:roles,id',
             'password' => 'nullable|min:6',
         ];
