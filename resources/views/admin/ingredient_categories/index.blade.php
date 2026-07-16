@@ -166,10 +166,7 @@
                                 </div>
                                 <p class="mt-4 text-sm font-black text-slate-900 dark:text-white">Belum ada kategori bahan.</p>
                                 <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Tambahkan kategori pertama untuk mulai mengelompokkan bahan baku.</p>
-                                <a href="{{ route('admin.ingredient-categories.create') }}" class="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5" /></svg>
-                                    Tambah Kategori
-                                </a>
+
                             </td>
                         </tr>
                     @endforelse
@@ -177,11 +174,11 @@
             </table>
         </div>
 
-        @include('partials.pagination_simple', [
-            'paginator' => $categories,
-            'label' => 'data',
-        ])
     </section>
 
+    @include('partials.pagination_simple', [
+        'paginator' => $categories,
+        'label' => 'data',
+    ])
 </div>
 @endsection

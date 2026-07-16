@@ -73,7 +73,7 @@
                     <input type="number"
                            name="sort_order"
                            min="0"
-                           value="{{ old('sort_order', $menu->sort_order ?? 0) }}"
+                           value="{{ old('sort_order', isset($menu) ? $menu->sort_order : '') == 0 ? '' : old('sort_order', isset($menu) ? $menu->sort_order : '') }}"
                            class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm tabular-nums">
                     <p class="mt-1.5 text-[11px] font-medium text-slate-500">Angka lebih kecil akan muncul lebih dulu di kasir.</p>
                 </div>

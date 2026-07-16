@@ -1,4 +1,4 @@
-<div x-data="{ openCategory: null }" class="max-w-6xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+<div x-data="{ openCategory: null }" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
     @forelse($categories as $category)
         @if($category->ingredients->count())
             @php

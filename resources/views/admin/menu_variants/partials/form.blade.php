@@ -59,7 +59,7 @@
                                name="cost_price"
                                min="0"
                                required
-                               value="{{ old('cost_price', $menuVariant->cost_price ?? 0) }}"
+                               value="{{ old('cost_price', isset($menuVariant) ? $menuVariant->cost_price : '') == 0 ? '' : old('cost_price', isset($menuVariant) ? $menuVariant->cost_price : '') }}"
                                class="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-900 font-medium shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm tabular-nums">
                     </div>
                     @error('cost_price')
@@ -80,7 +80,7 @@
                                name="sell_price"
                                min="0"
                                required
-                               value="{{ old('sell_price', $menuVariant->sell_price ?? $menuVariant->price ?? 0) }}"
+                               value="{{ old('sell_price', isset($menuVariant) ? ($menuVariant->sell_price ?? $menuVariant->price) : '') == 0 ? '' : old('sell_price', isset($menuVariant) ? ($menuVariant->sell_price ?? $menuVariant->price) : '') }}"
                                class="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-900 font-medium shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm tabular-nums">
                     </div>
                     @error('sell_price')
@@ -96,7 +96,7 @@
                     <input type="number"
                            name="sort_order"
                            min="0"
-                           value="{{ old('sort_order', $menuVariant->sort_order ?? 0) }}"
+                           value="{{ old('sort_order', isset($menuVariant) ? $menuVariant->sort_order : '') == 0 ? '' : old('sort_order', isset($menuVariant) ? $menuVariant->sort_order : '') }}"
                            class="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-blue-500 sm:text-sm tabular-nums">
                     <p class="mt-1.5 text-[11px] font-medium text-slate-500">Angka lebih kecil akan muncul lebih dulu di kasir.</p>
                 </div>

@@ -1,4 +1,4 @@
-<div x-data="{ openMenu: null, openVariant: null }" class="max-w-6xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+<div x-data="{ openMenu: null, openVariant: null }" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
     @forelse($menus as $menu)
         <div class="transition-colors duration-200" :class="openMenu === {{ $menu->id }} ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''">
             <button @click="openMenu === {{ $menu->id }} ? openMenu = null : openMenu = {{ $menu->id }}" class="w-full px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">

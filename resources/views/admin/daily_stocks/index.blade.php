@@ -166,6 +166,100 @@
             $isSessionOpen = $sessionStatus === 'open';
         @endphp
 
+        {{-- ================= PANEL KONTROL SESI ================= --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden mb-6">
+            <div class="p-5 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+                {{-- Info Sesi Kiri --}}
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-full {{ $isSessionOpen ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400' }} flex items-center justify-center font-bold text-lg shrink-0">
+                        {{ strtoupper(substr($session->cashier->name ?? 'U', 0, 1)) }}
+                    </div>
+                    <div>
+                        <h2 class="text-[15px] font-bold text-slate-900 dark:text-white leading-tight">
+                            Sesi #{{ $session->id }} <span class="text-slate-300 dark:text-slate-600 mx-1">|</span> {{ $session->cashier->name ?? '-' }}
+                        </h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                {{ $session->session_date->translatedFormat('d F Y') }}
+                            </span>
+                            <span class="text-slate-300 dark:text-slate-600 text-[10px]">&bull;</span>
+                            @if($isSessionOpen)
+                                <span class="inline-flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span> BUKA
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    DITUTUP
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Tombol Aksi Kanan — Responsif & Modern --}}
+                <div class="grid w-full grid-cols-[1fr_1fr_auto] gap-2.5 sm:flex sm:w-auto sm:flex-row sm:items-center sm:justify-end md:mt-0">
+
+                    @if($isSessionOpen)
+                        {{-- Tambah Bahan --}}
+                        <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]) }}"
+                           class="col-span-1 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-[12px] font-bold text-blue-600 transition hover:bg-blue-100 hover:border-blue-300 active:scale-[0.98] dark:border-blue-900/60 dark:bg-blue-500/10 dark:text-blue-300 sm:w-auto">
+                            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5"></path>
+                            </svg>
+                            <span class="whitespace-nowrap">Tambah Bahan</span>
+                        </a>
+
+                        {{-- Tutup Sesi --}}
+                        <a href="{{ route('admin.daily-stocks.close.form', ['session_id' => $session->id]) }}"
+                           class="col-span-1 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[12px] font-bold text-rose-600 transition hover:bg-rose-100 hover:border-rose-300 active:scale-[0.98] dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300 sm:w-auto">
+                            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M6 18 18 6M6 6l12 12"></path>
+                            </svg>
+                            <span class="whitespace-nowrap">Tutup Sesi</span>
+                        </a>
+                    @elseif(!$isSelectedPastDate)
+                        {{-- Reopen Sesi --}}
+                        <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="col-span-2 sm:w-auto">
+                            @csrf
+                            <input type="hidden" name="session_id" value="{{ $session->id }}">
+                            <button type="submit" class="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-[12px] font-bold text-amber-600 transition hover:bg-amber-100 hover:border-amber-300 active:scale-[0.98] dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-300 sm:w-auto">
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span>Buka Kembali</span>
+                            </button>
+                        </form>
+                    @else
+                        <div class="col-span-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400 sm:w-auto">
+                            <svg class="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.5 10.5V7a4.5 4.5 0 10-9 0v3.5m-.75 0h10.5A1.75 1.75 0 0119 12.25v6A1.75 1.75 0 0117.25 20H6.75A1.75 1.75 0 015 18.25v-6a1.75 1.75 0 011.75-1.75z"></path>
+                            </svg>
+                            <span class="whitespace-nowrap">Sesi Dikunci</span>
+                        </div>
+                    @endif
+
+                    {{-- Reconcile Data --}}
+                    <form method="POST" action="{{ route('admin.daily-stocks.reconcile') }}" class="col-span-1 sm:w-auto">
+                        @csrf
+                        <input type="hidden" name="session_id" value="{{ $session->id }}">
+                        <button type="submit"
+                                title="Reconcile Data"
+                                aria-label="Reconcile Data"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-blue-200 hover:bg-blue-100 hover:text-blue-600 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:border-blue-900/60 dark:hover:bg-blue-500/10 dark:hover:text-blue-300">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M16.5 7.5h3v-3"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M19.2 7.2A7.5 7.5 0 006.3 5.4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M7.5 16.5h-3v3"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M4.8 16.8a7.5 7.5 0 0012.9 1.8"></path>
+                            </svg>
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
         {{-- ================= SUMMARY CARDS ================= --}}
         @php
             $cardCount = count($summary['by_unit'] ?? []) + 2;
@@ -259,99 +353,6 @@
         {{-- ================= KONTEN SESI & TABEL BAHAN ================= --}}
 
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-            
-            {{-- Header Sesi & Tombol Aksi (Sesuai Referensi Gambar) --}}
-            <div class="p-5 md:px-6 md:py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                
-                {{-- Info Sesi Kiri --}}
-                <div class="flex items-center gap-4">
-                    <div class="w-11 h-11 rounded-full {{ $isSessionOpen ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400' }} flex items-center justify-center font-bold text-lg shrink-0">
-                        {{ strtoupper(substr($session->cashier->name ?? 'U', 0, 1)) }}
-                    </div>
-                    <div>
-                        <h2 class="text-[15px] font-bold text-slate-900 dark:text-white leading-tight">
-                            Sesi #{{ $session->id }} <span class="text-slate-300 dark:text-slate-600 mx-1">|</span> {{ $session->cashier->name ?? '-' }}
-                        </h2>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                {{ $session->session_date->translatedFormat('d F Y') }}
-                            </span>
-                            <span class="text-slate-300 dark:text-slate-600 text-[10px]">&bull;</span>
-                            @if($isSessionOpen)
-                                <span class="inline-flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span> BUKA
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-1.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                    DITUTUP
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Tombol Aksi Kanan — Responsif & Modern --}}
-                <div class="grid w-full grid-cols-[1fr_1fr_auto] gap-2.5 sm:flex sm:w-auto sm:flex-row sm:items-center sm:justify-end md:mt-0">
-
-                    @if($isSessionOpen)
-                        {{-- Tambah Bahan --}}
-                        <a href="{{ route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]) }}"
-                           class="col-span-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98] sm:w-auto">
-                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5"></path>
-                            </svg>
-                            <span class="whitespace-nowrap">Tambah Bahan</span>
-                        </a>
-
-                        {{-- Tutup Sesi --}}
-                        <a href="{{ route('admin.daily-stocks.close.form', ['session_id' => $session->id]) }}"
-                           class="col-span-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 text-[13px] font-bold text-amber-700 shadow-sm transition hover:bg-amber-100 active:scale-[0.98] dark:border-amber-700/70 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/15 sm:w-auto">
-                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M6 18 18 6M6 6l12 12"></path>
-                            </svg>
-                            <span class="whitespace-nowrap">Tutup Sesi</span>
-                        </a>
-                    @elseif(!$isSelectedPastDate)
-                        {{-- Reopen Sesi --}}
-                        <form method="POST" action="{{ route('admin.daily-stocks.reopen') }}" class="col-span-2 sm:w-auto">
-                            @csrf
-                            <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-[13px] font-bold text-white shadow-sm transition hover:bg-amber-600 active:scale-[0.98] sm:w-auto">
-                                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                </svg>
-                                <span>Buka Kembali</span>
-                            </button>
-                        </form>
-                    @else
-                        <div class="col-span-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 text-[13px] font-bold text-slate-500 shadow-sm dark:border-slate-700/70 dark:bg-slate-800/50 dark:text-slate-300 dark:shadow-none sm:w-auto">
-                            <svg class="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.5 10.5V7a4.5 4.5 0 10-9 0v3.5m-.75 0h10.5A1.75 1.75 0 0119 12.25v6A1.75 1.75 0 0117.25 20H6.75A1.75 1.75 0 015 18.25v-6a1.75 1.75 0 011.75-1.75z"></path>
-                            </svg>
-                            <span class="whitespace-nowrap">Sesi Dikunci</span>
-                        </div>
-                    @endif
-
-                    {{-- Reconcile Data --}}
-                    <form method="POST" action="{{ route('admin.daily-stocks.reconcile') }}" class="col-span-1 sm:w-auto">
-                        @csrf
-                        <input type="hidden" name="session_id" value="{{ $session->id }}">
-                        <button type="submit"
-                                title="Reconcile Data"
-                                aria-label="Reconcile Data"
-                                class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-blue-800/70 dark:hover:bg-blue-950/30 dark:hover:text-blue-300">
-                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M16.5 7.5h3v-3"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M19.2 7.2A7.5 7.5 0 006.3 5.4"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M7.5 16.5h-3v3"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M4.8 16.8a7.5 7.5 0 0012.9 1.8"></path>
-                            </svg>
-                        </button>
-                    </form>
-
-                </div>
-
-            </div>
 
             {{-- Tabel Daftar Bahan (Responsive) --}}
             <div class="overflow-x-auto">
