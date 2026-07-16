@@ -171,6 +171,52 @@ class VariantAvailabilityApiTest extends TestCase
         $second->assertJsonPath('data.unavailable_reason', 'INSUFFICIENT_STOCK');
     }
 
+    public function test_cashier_menu_catalog_excludes_archived_and_unavailable_restored_menus(): void
+    {
+        [$user, $token] = $this->createKasirWithToken();
+        $adminRole = Role::query()->create(['name' => 'admin']);
+        $admin = User::factory()->create([
+            'role_id' => $adminRole->id,
+            'branch_id' => $this->testBranch()->id,
+        ]);
+        $session = $this->openSession($user->id);
+        $variant = $this->createVariantWithRecipe(requiredQty: 1);
+        $menu = $variant->menu;
+
+        $ingredientId = DB::table('menu_variant_ingredients')
+            ->where('menu_variant_id', $variant->id)
+            ->value('ingredient_id');
+
+        DailyStockItem::query()->create([
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => (int) $ingredientId,
+            'opening_qty' => 10,
+            'remaining_qty' => 10,
+            'used_qty' => 0,
+            'returned_qty' => 0,
+        ]);
+
+        $available = $this->withHeader('Authorization', 'Bearer ' . $token)->getJson('/api/menus');
+        $available->assertOk();
+        $this->assertNotNull(collect(data_get($available->json(), 'data.menus', []))->firstWhere('id', $menu->id));
+
+        $this->actingAs($admin)
+            ->delete(route('admin.menus.destroy', $menu))
+            ->assertRedirect(route('admin.menus.index'));
+
+        $archived = $this->withHeader('Authorization', 'Bearer ' . $token)->getJson('/api/menus');
+        $archived->assertOk();
+        $this->assertNull(collect(data_get($archived->json(), 'data.menus', []))->firstWhere('id', $menu->id));
+
+        Menu::withTrashed()->findOrFail($menu->id)->update(['is_active' => false]);
+        $this->actingAs($admin)
+            ->patch(route('admin.menus.restore', $menu->id));
+
+        $restoredUnavailable = $this->withHeader('Authorization', 'Bearer ' . $token)->getJson('/api/menus');
+        $restoredUnavailable->assertOk();
+        $this->assertNull(collect(data_get($restoredUnavailable->json(), 'data.menus', []))->firstWhere('id', $menu->id));
+    }
+
     /**
      * @return array{User,string}
      */
