@@ -16,7 +16,8 @@ class IngredientController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Ingredient::query()
+        $recordStatus = $this->recordStatus($request);
+        $query = Ingredient::withTrashed()
             ->select([
                 'id',
                 'name',
@@ -29,17 +30,25 @@ class IngredientController extends Controller
                 'selling_price',
                 'cost_price',
                 'created_at',
+                'deleted_at',
             ])
             ->with('category:id,name');
 
         $this->applyIndexFilters($query, $request);
 
+        $activeCount = (clone $query)->whereNull('ingredients.deleted_at')->count();
+        $archivedCount = (clone $query)->whereNotNull('ingredients.deleted_at')->count();
+        $allCount = $activeCount + $archivedCount;
+
         $lowStockCount = (clone $query)
+            ->whereNull('ingredients.deleted_at')
             ->whereColumn('stock', '<=', 'minimum_stock')
             ->count();
 
+        $this->applyRecordStatus($query, $recordStatus);
+        $this->applyLifecycleSorting($query, $recordStatus);
+
         $ingredients = $query
-            ->latest()
             ->paginate(10)
             ->withQueryString();
 
@@ -51,8 +60,20 @@ class IngredientController extends Controller
         );
 
         $categories = $this->categoryOptions();
+        $hasNonLifecycleFilters = $request->filled('search')
+            || $request->filled('category')
+            || $request->filled('has_price');
 
-        return view('admin.ingredients.index', compact('ingredients', 'categories', 'lowStockCount'));
+        return view('admin.ingredients.index', compact(
+            'ingredients',
+            'categories',
+            'lowStockCount',
+            'recordStatus',
+            'activeCount',
+            'archivedCount',
+            'allCount',
+            'hasNonLifecycleFilters',
+        ));
     }
 
     public function create()
@@ -115,30 +136,10 @@ class IngredientController extends Controller
 
     public function archive(Request $request)
     {
-        $query = Ingredient::onlyTrashed()
-            ->select([
-                'id',
-                'name',
-                'category_id',
-                'display_unit',
-                'base_unit',
-                'pack_size',
-                'stock',
-                'minimum_stock',
-                'deleted_at',
-            ])
-            ->with('category:id,name');
-
-        $this->applyArchiveFilters($query, $request);
-
-        $ingredients = $query
-            ->latest('deleted_at')
-            ->paginate(10)
-            ->withQueryString();
-
-        $categories = $this->categoryOptions();
-
-        return view('admin.ingredients.archive', compact('ingredients', 'categories'));
+        return redirect()->route('admin.ingredients.index', array_merge(
+            $request->only(['search', 'category', 'has_price']),
+            ['record_status' => 'archived'],
+        ));
     }
 
     public function restore($id)
@@ -150,7 +151,7 @@ class IngredientController extends Controller
         AdminCache::bumpCatalog();
 
         return redirect()
-            ->route('admin.ingredients.archive')
+            ->route('admin.ingredients.index', ['record_status' => 'active'])
             ->with('success', 'Bahan berhasil diaktifkan kembali.');
     }
 
@@ -207,15 +208,39 @@ class IngredientController extends Controller
         }
     }
 
-    private function applyArchiveFilters($query, Request $request): void
+    private function recordStatus(Request $request): string
     {
-        if ($request->filled('search')) {
-            $this->applyIngredientSearch($query, (string) $request->input('search'));
+        $status = (string) $request->input('record_status', 'active');
+
+        return in_array($status, ['active', 'archived', 'all'], true) ? $status : 'active';
+    }
+
+    private function applyRecordStatus($query, string $recordStatus): void
+    {
+        if ($recordStatus === 'active') {
+            $query->whereNull('ingredients.deleted_at');
+        } elseif ($recordStatus === 'archived') {
+            $query->whereNotNull('ingredients.deleted_at');
+        }
+    }
+
+    private function applyLifecycleSorting($query, string $recordStatus): void
+    {
+        if ($recordStatus === 'active') {
+            $query->orderByDesc('ingredients.created_at')->orderByDesc('ingredients.id');
+            return;
         }
 
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->input('category'));
+        if ($recordStatus === 'archived') {
+            $query->orderByDesc('ingredients.deleted_at')->orderByDesc('ingredients.id');
+            return;
         }
+
+        $query
+            ->orderByRaw('CASE WHEN ingredients.deleted_at IS NULL THEN 0 ELSE 1 END')
+            ->orderByRaw('CASE WHEN ingredients.deleted_at IS NULL THEN ingredients.created_at END DESC')
+            ->orderByRaw('CASE WHEN ingredients.deleted_at IS NOT NULL THEN ingredients.deleted_at END DESC')
+            ->orderByDesc('ingredients.id');
     }
 
     private function applyIngredientSearch($query, string $search): void

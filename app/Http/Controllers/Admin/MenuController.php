@@ -15,7 +15,8 @@ class MenuController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Menu::query()
+        $recordStatus = $this->recordStatus($request);
+        $query = Menu::withTrashed()
             ->select([
                 'id',
                 'category_id',
@@ -24,6 +25,7 @@ class MenuController extends Controller
                 'is_active',
                 'sort_order',
                 'created_at',
+                'deleted_at',
             ])
             ->with(['category:id,name'])
             ->withCount('variants');
@@ -36,13 +38,29 @@ class MenuController extends Controller
             $query->where('category_id', $request->input('category'));
         }
 
+        $activeCount = (clone $query)->whereNull('menus.deleted_at')->count();
+        $archivedCount = (clone $query)->whereNotNull('menus.deleted_at')->count();
+        $allCount = $activeCount + $archivedCount;
+
+        $this->applyRecordStatus($query, $recordStatus);
+        $this->applyLifecycleSorting($query, $recordStatus);
+
         $menus = $query
-            ->orderBy('sort_order')
-            ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.menus.index', compact('menus'));
+        $categories = $this->menuCategoryOptions();
+        $hasNonLifecycleFilters = $request->filled('search') || $request->filled('category');
+
+        return view('admin.menus.index', compact(
+            'menus',
+            'categories',
+            'recordStatus',
+            'activeCount',
+            'archivedCount',
+            'allCount',
+            'hasNonLifecycleFilters',
+        ));
     }
 
     public function create()
@@ -119,35 +137,10 @@ class MenuController extends Controller
 
     public function archive(Request $request)
     {
-        $query = Menu::onlyTrashed()
-            ->select([
-                'id',
-                'category_id',
-                'name',
-                'description',
-                'is_active',
-                'sort_order',
-                'deleted_at',
-            ])
-            ->with(['category:id,name'])
-            ->withCount('variants');
-
-        if ($request->filled('search')) {
-            $this->applyMenuSearch($query, (string) $request->input('search'));
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->input('category'));
-        }
-
-        $menus = $query
-            ->latest('deleted_at')
-            ->paginate(10)
-            ->withQueryString();
-
-        $categories = $this->menuCategoryOptions();
-
-        return view('admin.menus.archive', compact('menus', 'categories'));
+        return redirect()->route('admin.menus.index', array_merge(
+            $request->only(['search', 'category']),
+            ['record_status' => 'archived'],
+        ));
     }
 
     public function restore($id)
@@ -158,7 +151,7 @@ class MenuController extends Controller
         AdminCache::bumpCatalog();
 
         return redirect()
-            ->route('admin.menus.archive')
+            ->route('admin.menus.index', ['record_status' => 'active'])
             ->with('success', 'Menu berhasil diaktifkan kembali.');
     }
 
@@ -206,5 +199,40 @@ class MenuController extends Controller
         $query->where('name', 'like', '%' . $search . '%');
     }
 
-}
+    private function recordStatus(Request $request): string
+    {
+        $status = (string) $request->input('record_status', 'active');
 
+        return in_array($status, ['active', 'archived', 'all'], true) ? $status : 'active';
+    }
+
+    private function applyRecordStatus(Builder $query, string $recordStatus): void
+    {
+        if ($recordStatus === 'active') {
+            $query->whereNull('menus.deleted_at');
+        } elseif ($recordStatus === 'archived') {
+            $query->whereNotNull('menus.deleted_at');
+        }
+    }
+
+    private function applyLifecycleSorting(Builder $query, string $recordStatus): void
+    {
+        if ($recordStatus === 'active') {
+            $query->orderBy('menus.sort_order')->orderByDesc('menus.created_at')->orderByDesc('menus.id');
+            return;
+        }
+
+        if ($recordStatus === 'archived') {
+            $query->orderByDesc('menus.deleted_at')->orderByDesc('menus.id');
+            return;
+        }
+
+        $query
+            ->orderByRaw('CASE WHEN menus.deleted_at IS NULL THEN 0 ELSE 1 END')
+            ->orderByRaw('CASE WHEN menus.deleted_at IS NULL THEN menus.sort_order END ASC')
+            ->orderByRaw('CASE WHEN menus.deleted_at IS NULL THEN menus.created_at END DESC')
+            ->orderByRaw('CASE WHEN menus.deleted_at IS NOT NULL THEN menus.deleted_at END DESC')
+            ->orderByDesc('menus.id');
+    }
+
+}
