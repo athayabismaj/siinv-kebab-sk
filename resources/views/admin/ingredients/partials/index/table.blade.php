@@ -1,14 +1,17 @@
 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-            <h2 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">{{ match($recordStatus) { 'archived' => 'Bahan Diarsipkan', 'all' => 'Semua Bahan', default => 'Bahan Aktif' } }}</h2>
+            <h2 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Daftar Bahan Baku</h2>
             @if(method_exists($ingredients, 'total'))
                 <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-400 dark:text-slate-500">
                     {{ $ingredients->total() }} bahan
                 </span>
             @endif
         </div>
-
+        <a href="{{ route('admin.ingredients.create') }}" class="inline-flex items-center justify-center gap-1.5 px-4 h-8 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            Tambah Bahan
+        </a>
     </div>
 
     <div class="overflow-x-auto">
@@ -16,7 +19,7 @@
             <thead class="hidden md:table-header-group text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                 <tr>
                     <th class="px-6 py-4">Bahan & Kategori</th>
-                    <th class="px-6 py-4">Status / Stok</th>
+                    <th class="px-6 py-4">Status & Progres Stok</th>
                     <th class="px-6 py-4 text-right">Aksi</th>
                 </tr>
             </thead>
@@ -30,15 +33,7 @@
                             <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-3 border border-slate-100 dark:border-slate-700">
                                 <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                             </div>
-                            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                                @if($hasNonLifecycleFilters)
-                                    Tidak ada bahan yang cocok dengan filter.
-                                @elseif($recordStatus === 'archived')
-                                    Belum ada bahan yang diarsipkan.
-                                @else
-                                    Belum ada data bahan baku.
-                                @endif
-                            </p>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Belum ada data bahan baku.</p>
                         </td>
                     </tr>
                 @endforelse

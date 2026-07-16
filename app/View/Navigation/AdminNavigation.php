@@ -30,6 +30,9 @@ class AdminNavigation extends SidebarNavigation
                 $this->item('Laporan Stok Harian', 'admin.reports.daily-stock', ['admin.reports.daily-stock', 'admin.reports.daily-stock.export'], 'cube'),
                 $this->item('Pengeluaran Ops.', 'admin.reports.cashflow', ['admin.reports.cashflow', 'admin.reports.cashflow.*'], 'money'),
             ]],
+            ['label' => 'Arsip Data', 'items' => [
+                $this->item('Daftar Arsip', 'admin.ingredients.archive', ['admin.ingredients.archive', 'admin.menus.archive'], 'archive'),
+            ]],
         ];
     }
 }

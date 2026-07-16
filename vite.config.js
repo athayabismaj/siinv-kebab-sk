@@ -7,6 +7,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/css/pages/admin-archive.css',
                 'resources/css/pages/admin-transaction-detail.css',
                 'resources/css/pages/daily-stock-report.css',
                 'resources/css/pages/daily-stock-transfer.css',

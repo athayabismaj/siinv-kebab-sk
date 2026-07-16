@@ -1,5 +1,4 @@
 <form method="GET" x-data x-ref="filterForm" class="flex flex-col sm:flex-row gap-3 w-full relative z-10 py-2 mb-2">
-    <input type="hidden" name="record_status" value="{{ $recordStatus }}">
     <div class="flex-1 relative flex items-center w-full rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900">
         <svg class="w-4 h-4 text-slate-400 absolute left-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z"/>
