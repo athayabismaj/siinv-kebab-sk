@@ -8,16 +8,6 @@
     $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
     $currentStockPcs = (float) $ingredient->stock;
     $currentDisplayStock = $isPackMode ? ($currentStockPcs / $packSize) : (float) $ingredient->converted_stock;
-@extends('layouts.app')
-
-@section('title', 'Restok Bahan')
-
-@section('content')
-@php
-    $isPackMode = ($ingredient->display_unit ?? '') === 'pcs' && (int) ($ingredient->pack_size ?? 1) > 1;
-    $packSize = max(1, (int) ($ingredient->pack_size ?? 1));
-    $currentStockPcs = (float) $ingredient->stock;
-    $currentDisplayStock = $isPackMode ? ($currentStockPcs / $packSize) : (float) $ingredient->converted_stock;
     $displayUnit = $isPackMode ? 'pack' : $ingredient->display_unit;
     $selectedInputUnit = old('input_unit', $isPackMode ? 'pack' : $displayUnit);
 @endphp
