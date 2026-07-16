@@ -3,37 +3,14 @@
 @section('title', 'Detail Transaksi')
 
 @section('content')
+@inject('transactionPresenter', 'App\View\Presenters\TransactionPresenter')
 @php
     $routePrefix = 'owner.transactions';
-    $statusRaw = strtolower(trim((string) ($transaction->status ?? 'success')));
-    $isVoid = $statusRaw === 'void';
-    $isSuccess = $statusRaw === 'success';
-    $isPaid = (float) $transaction->paid_amount >= (float) $transaction->total_amount;
-    $paymentMethodLabel = in_array(strtolower(trim((string) ($transaction->paymentMethod->name ?? ''))), ['cash', 'tunai'], true)
-        ? 'Tunai'
-        : (($transaction->paymentMethod->name ?? null) ?: '-');
-    $voidReasonLabel = match (strtolower(trim((string) $transaction->void_reason))) {
-        'restock', 'kembali_stok', 'kembali stok' => 'Kembali ke Stok',
-        'waste' => 'Bahan Terbuang',
-        'input_error' => 'Kesalahan Input',
-        'customer_cancel' => 'Pembatalan Pesanan',
-        'other', 'lainnya' => 'Lainnya',
-        default => null,
-    };
-    $statusLabel = $isVoid ? 'Dibatalkan' : ($isSuccess ? 'Berhasil' : ucwords(str_replace('_', ' ', strtolower((string) $transaction->status))));
-    $statusHaloClass = $isVoid
-        ? 'bg-amber-500/5 dark:bg-amber-400/5'
-        : ($isSuccess ? 'bg-emerald-500/5 dark:bg-emerald-400/5' : 'bg-red-500/5 dark:bg-red-400/5');
-    $statusIconWrapClass = $isVoid
-        ? 'bg-amber-50 dark:bg-amber-900/20'
-        : ($isSuccess ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20');
-    $statusIconClass = $isVoid
-        ? 'text-amber-600 dark:text-amber-400'
-        : ($isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400');
-    $statusBadgeClass = $isVoid
-        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-        : ($isSuccess ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400');
-    $statusDotClass = $isVoid ? 'bg-amber-500' : ($isSuccess ? 'bg-emerald-500' : 'bg-red-500');
+    $transactionPresentation = $transactionPresenter->present(
+        $transaction->status,
+        $transaction->paymentMethod->name ?? null,
+        $transaction->void_reason
+    );
 @endphp
 
 <div class="w-full space-y-8">
@@ -45,7 +22,7 @@
         breadcrumb-child="Detail Transaksi">
         
         <div class="flex items-center gap-2">
-            <span class="hidden sm:inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{{ $statusLabel }}</span>
+            <span class="hidden sm:inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{{ $transactionPresentation->statusLabel }}</span>
             <button data-print-page
                     class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
@@ -62,21 +39,21 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {{-- Status Transaksi --}}
         <div class="relative bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 overflow-hidden group">
-            <div class="absolute -top-10 -right-10 w-32 h-32 {{ $statusHaloClass }} rounded-full blur-3xl"></div>
+            <div class="absolute -top-10 -right-10 w-32 h-32 {{ $transactionPresentation->haloClass }} rounded-full blur-3xl"></div>
             <div class="relative flex flex-col items-center text-center">
-                <div class="w-12 h-12 rounded-2xl {{ $statusIconWrapClass }} flex items-center justify-center mb-4">
-                    @if($isVoid)
-                        <svg class="w-6 h-6 {{ $statusIconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
-                    @elseif($isSuccess)
-                        <svg class="w-6 h-6 {{ $statusIconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="w-12 h-12 rounded-2xl {{ $transactionPresentation->iconWrapClass }} flex items-center justify-center mb-4">
+                    @if($transactionPresentation->isVoid)
+                        <svg class="w-6 h-6 {{ $transactionPresentation->iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
+                    @elseif($transactionPresentation->isSuccess)
+                        <svg class="w-6 h-6 {{ $transactionPresentation->iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     @else
-                        <svg class="w-6 h-6 {{ $statusIconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <svg class="w-6 h-6 {{ $transactionPresentation->iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     @endif
                 </div>
                 <p class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">Status</p>
-                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full {{ $statusBadgeClass }} text-xs font-bold">
-                    <span class="w-1.5 h-1.5 rounded-full {{ $statusDotClass }} animate-pulse"></span>
-                    {{ $statusLabel }}
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full {{ $transactionPresentation->detailBadgeClass }} text-xs font-bold">
+                    <span class="w-1.5 h-1.5 rounded-full {{ $transactionPresentation->detailDotClass }} animate-pulse"></span>
+                    {{ $transactionPresentation->statusLabel }}
                 </span>
             </div>
         </div>
@@ -102,7 +79,7 @@
                     <svg class="w-6 h-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                 </div>
                 <p class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">Pembayaran</p>
-                <p class="text-base font-black text-slate-900 dark:text-white tracking-tight">{{ $paymentMethodLabel }}</p>
+                <p class="text-base font-black text-slate-900 dark:text-white tracking-tight">{{ $transactionPresentation->paymentLabel }}</p>
             </div>
         </div>
 
@@ -122,7 +99,7 @@
         </div>
     </div>
 
-    @if($isVoid)
+    @if($transactionPresentation->isVoid)
         <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-start gap-3">
@@ -132,7 +109,7 @@
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Status Pembatalan</p>
                         <h2 class="mt-1 text-lg font-black text-slate-900 dark:text-white">Transaksi Dibatalkan</h2>
-                        <p class="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Alasan: {{ $voidReasonLabel ?? 'Belum tercatat' }}</p>
+                        <p class="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Alasan: {{ $transactionPresentation->voidReasonLabel ?? 'Belum tercatat' }}</p>
                         <p class="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300">Transaksi ini telah dibatalkan dan tidak dihitung dalam omzet penjualan.</p>
                     </div>
                 </div>
@@ -310,10 +287,10 @@
     <div class="mb-4 border-b pb-4">
         <table class="w-full text-sm">
             <tr><td class="py-1 font-semibold w-32">Kasir</td><td>: {{ $transaction->user->name ?? '-' }}</td></tr>
-            <tr><td class="py-1 font-semibold">Metode Pembayaran</td><td>: {{ $paymentMethodLabel }}</td></tr>
-            <tr><td class="py-1 font-semibold">Status</td><td>: {{ $statusLabel }}</td></tr>
-            @if($isVoid)
-                <tr><td class="py-1 font-semibold">Alasan Pembatalan</td><td>: {{ $voidReasonLabel ?? 'Belum tercatat' }}</td></tr>
+            <tr><td class="py-1 font-semibold">Metode Pembayaran</td><td>: {{ $transactionPresentation->paymentLabel }}</td></tr>
+            <tr><td class="py-1 font-semibold">Status</td><td>: {{ $transactionPresentation->statusLabel }}</td></tr>
+            @if($transactionPresentation->isVoid)
+                <tr><td class="py-1 font-semibold">Alasan Pembatalan</td><td>: {{ $transactionPresentation->voidReasonLabel ?? 'Belum tercatat' }}</td></tr>
                 <tr><td class="py-1 font-semibold">Dibatalkan Oleh</td><td>: {{ $transaction->voidedBy->name ?? '-' }}</td></tr>
                 <tr><td class="py-1 font-semibold">Waktu Pembatalan</td><td>: {{ $transaction->voided_at?->translatedFormat('d F Y, H:i') ?? '-' }}</td></tr>
             @endif

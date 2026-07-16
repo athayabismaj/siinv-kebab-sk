@@ -1,9 +1,4 @@
-@php
-    $transactionPaymentLabel = function ($name) {
-        $value = trim((string) $name);
-        return in_array(strtolower($value), ['cash', 'tunai'], true) ? 'Tunai' : ($value !== '' ? $value : '-');
-    };
-@endphp
+@inject('transactionPresenter', 'App\View\Presenters\TransactionPresenter')
 
 @forelse($groupedTransactions as $group)
     <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -16,7 +11,7 @@
                 <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
                     <p class="font-semibold text-slate-800 dark:text-white break-all">{{ $trx->transaction_code }}</p>
                     <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Kasir</span><span class="font-medium text-right">{{ $trx->user->name ?? '-' }}</span></p>
-                    <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Pembayaran</span><span class="font-medium text-right">{{ $transactionPaymentLabel($trx->paymentMethod->name ?? null) }}</span></p>
+                    <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Pembayaran</span><span class="font-medium text-right">{{ $transactionPresenter->paymentLabel($trx->paymentMethod->name ?? null) }}</span></p>
                     <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Total</span><span class="font-semibold text-right">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</span></p>
                     <p class="flex justify-between text-sm gap-2"><span class="text-slate-500">Waktu</span><span class="font-medium text-right">{{ $trx->created_at->copy()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->format('d M Y H:i') }}</span></p>
                     <a href="{{ route('admin.transactions.show', $trx->id) }}" class="inline-block text-sm text-blue-600 hover:underline">Lihat Detail</a>
@@ -41,7 +36,7 @@
                         <tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td class="px-6 py-4 font-medium">{{ $trx->transaction_code }}</td>
                             <td class="px-6 py-4 text-slate-500">{{ $trx->user->name ?? '-' }}</td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-md bg-slate-100 dark:bg-slate-800">{{ $transactionPaymentLabel($trx->paymentMethod->name ?? null) }}</span></td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-md bg-slate-100 dark:bg-slate-800">{{ $transactionPresenter->paymentLabel($trx->paymentMethod->name ?? null) }}</span></td>
                             <td class="px-6 py-4 font-medium">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
                             <td class="px-6 py-4 text-slate-500">{{ $trx->created_at->copy()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->format('d M Y H:i') }}</td>
                             <td class="px-6 py-4 text-right">

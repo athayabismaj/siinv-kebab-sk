@@ -7,25 +7,9 @@
 @endsection
 
 @section('content')
+@inject('stockSessionPresenter', 'App\View\Presenters\StockSessionPresenter')
 @php
-    $stockStatusKey = $dailyStockStatus['key'] ?? 'not_opened';
-    $sessionTone = match ($stockStatusKey) {
-        'closed' => [
-            'dot' => 'bg-emerald-500',
-            'text' => 'text-emerald-700 dark:text-emerald-300',
-            'badge' => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-300',
-        ],
-        'open' => [
-            'dot' => 'bg-amber-500',
-            'text' => 'text-amber-700 dark:text-amber-300',
-            'badge' => 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-300',
-        ],
-        default => [
-            'dot' => 'bg-slate-400',
-            'text' => 'text-slate-700 dark:text-slate-300',
-            'badge' => 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
-        ],
-    };
+    $sessionPresentation = $stockSessionPresenter->present($dailyStockStatus['key'] ?? null, $dailyStockStatus['label'] ?? null);
 @endphp
 
 <div class="admin-dashboard space-y-4">
@@ -121,14 +105,14 @@
                         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Status Sesi Stok</p>
                         <div class="mt-2.5 flex items-center gap-2">
                             <span class="relative flex h-2.5 w-2.5">
-                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 {{ $sessionTone['dot'] }}"></span>
-                                <span class="relative inline-flex h-2.5 w-2.5 rounded-full {{ $sessionTone['dot'] }}"></span>
+                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 {{ $sessionPresentation->dotClass }}"></span>
+                                <span class="relative inline-flex h-2.5 w-2.5 rounded-full {{ $sessionPresentation->dotClass }}"></span>
                             </span>
-                            <h2 class="text-lg font-black tracking-tight {{ $sessionTone['text'] }}">{{ $dailyStockStatus['label'] ?? 'Belum Dibuka' }}</h2>
+                            <h2 class="text-lg font-black tracking-tight {{ $sessionPresentation->textClass }}">{{ $sessionPresentation->label }}</h2>
                         </div>
                         <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{{ $dailyStockStatus['description'] ?? 'Belum ada sesi stok harian.' }}</p>
                     </div>
-                    <span class="rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest {{ $sessionTone['badge'] }}">Hari Ini</span>
+                    <span class="rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest {{ $sessionPresentation->badgeClass }}">Hari Ini</span>
                 </div>
 
                 <div class="admin-dashboard-session-metrics mt-5 divide-x divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:divide-slate-700/80 dark:border-slate-700/80 dark:bg-slate-800/30">

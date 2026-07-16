@@ -7,23 +7,14 @@
 @endpush
 
 @section('content')
+@inject('transactionPresenter', 'App\View\Presenters\TransactionPresenter')
 @php
     $routePrefix = 'admin.transactions';
-    $statusRaw = strtolower(trim((string) ($transaction->status ?? 'success')));
-    $isVoid = $statusRaw === 'void';
-    $isSuccess = $statusRaw === 'success';
-    $statusLabel = $isVoid ? 'Dibatalkan' : ($isSuccess ? 'Berhasil' : ucwords(str_replace('_', ' ', strtolower((string) $transaction->status))));
-    $paymentMethodLabel = in_array(strtolower(trim((string) ($transaction->paymentMethod->name ?? ''))), ['cash', 'tunai'], true)
-        ? 'Tunai'
-        : (($transaction->paymentMethod->name ?? null) ?: '-');
-    $voidReasonLabel = match (strtolower(trim((string) $transaction->void_reason))) {
-        'restock', 'kembali_stok', 'kembali stok' => 'Kembali ke Stok',
-        'waste' => 'Bahan Terbuang',
-        'input_error' => 'Kesalahan Input',
-        'customer_cancel' => 'Pembatalan Pesanan',
-        'other', 'lainnya' => 'Lainnya',
-        default => null,
-    };
+    $transactionPresentation = $transactionPresenter->present(
+        $transaction->status,
+        $transaction->paymentMethod->name ?? null,
+        $transaction->void_reason
+    );
     $totalQty = (int) $transaction->details->sum('quantity');
 @endphp
 
@@ -35,8 +26,8 @@
         
         <div class="flex items-center gap-2">
             <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                <span class="h-1.5 w-1.5 rounded-full {{ $isVoid ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
-                {{ $statusLabel }}
+                <span class="h-1.5 w-1.5 rounded-full {{ $transactionPresentation->detailDotClass }}"></span>
+                {{ $transactionPresentation->statusLabel }}
             </span>
             <span class="font-mono text-sm font-bold text-slate-500 dark:text-slate-400 break-all mr-2">{{ $transaction->transaction_code }}</span>
             <button type="button" data-print-page
@@ -70,7 +61,7 @@
             <div class="relative z-10 flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <p class="transaction-detail-label">Pembayaran</p>
-                    <p class="transaction-detail-value">{{ $paymentMethodLabel }}</p>
+                    <p class="transaction-detail-value">{{ $transactionPresentation->paymentLabel }}</p>
                     <p class="mt-1 text-xs font-semibold text-slate-400">pembayaran transaksi</p>
                 </div>
                 <span class="transaction-detail-icon">
@@ -106,7 +97,7 @@
         </article>
     </section>
 
-    @if($isVoid)
+    @if($transactionPresentation->isVoid)
         <section class="transaction-detail-void p-4 sm:p-5">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-start gap-3">
@@ -117,7 +108,7 @@
                         <p class="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">Status Pembatalan</p>
                         <h2 class="mt-1 text-xl font-black text-slate-900 dark:text-white">Transaksi Dibatalkan</h2>
                         <p class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
-                            {{ $voidReasonLabel ? 'Alasan: '.$voidReasonLabel : 'Alasan pembatalan belum tercatat.' }}
+                            {{ $transactionPresentation->voidReasonLabel ? 'Alasan: '.$transactionPresentation->voidReasonLabel : 'Alasan pembatalan belum tercatat.' }}
                         </p>
                         <p class="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300">Transaksi ini telah dibatalkan dan tidak dihitung dalam omzet penjualan.</p>
                     </div>

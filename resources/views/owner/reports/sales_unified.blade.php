@@ -3,6 +3,7 @@
 @section('title', 'Laporan Penjualan')
 
 @section('content')
+@inject('transactionPresenter', 'App\View\Presenters\TransactionPresenter')
 @php
     $type = $type ?? 'daily';
     $paymentSummary = $paymentSummary ?? [
@@ -253,13 +254,7 @@
         <div class="md:hidden p-4 space-y-4 bg-slate-50/30 dark:bg-slate-800/10" id="transaction-card-list">
             @forelse($salesTransactions as $transaction)
                 @php
-                    $statusRaw = strtolower((string) ($transaction->status ?? 'success'));
-                    $isCanceled = $statusRaw === 'void';
-                    $statusLabel = $isCanceled ? 'Dibatalkan' : 'Berhasil';
-                    $paymentMethodRaw = trim((string) ($transaction->payment_method_name ?? ''));
-                    $paymentMethodLabel = str_contains(strtolower($paymentMethodRaw), 'cash') || str_contains(strtolower($paymentMethodRaw), 'tunai')
-                        ? 'Tunai'
-                        : ($paymentMethodRaw !== '' ? $paymentMethodRaw : '-');
+                    $transactionPresentation = $transactionPresenter->present($transaction->status ?? null, $transaction->payment_method_name ?? null, null);
                 @endphp
                 <article class="transaction-mobile-card rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all hover:border-slate-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
                     <div class="flex items-start justify-between gap-3 border-b border-dashed border-slate-100 pb-3 dark:border-slate-800">
@@ -269,9 +264,9 @@
                                 {{ \Carbon\Carbon::parse($transaction->created_at)->translatedFormat('d M Y') }} - {{ \Carbon\Carbon::parse($transaction->created_at)->format('H:i') }}
                             </p>
                         </div>
-                        <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black {{ $isCanceled ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25' }}">
-                            <span class="h-1.5 w-1.5 rounded-full {{ $isCanceled ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
-                            {{ $statusLabel }}
+                        <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black {{ $transactionPresentation->badgeClass }}">
+                            <span class="h-1.5 w-1.5 rounded-full {{ $transactionPresentation->dotClass }}"></span>
+                            {{ $transactionPresentation->statusLabel }}
                         </span>
                     </div>
 
@@ -282,7 +277,7 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="uppercase tracking-wider">Metode</span>
-                            <span class="font-bold text-slate-700 dark:text-slate-200">{{ $paymentMethodLabel }}</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">{{ $transactionPresentation->paymentLabel }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="uppercase tracking-wider">Item</span>
@@ -323,13 +318,7 @@
                 <tbody id="transaction-table-body">
                     @forelse($salesTransactions as $transaction)
                         @php
-                            $statusRaw = strtolower((string) ($transaction->status ?? 'success'));
-                            $isCanceled = $statusRaw === 'void';
-                            $statusLabel = $isCanceled ? 'Dibatalkan' : 'Berhasil';
-                            $paymentMethodRaw = trim((string) ($transaction->payment_method_name ?? ''));
-                            $paymentMethodLabel = str_contains(strtolower($paymentMethodRaw), 'cash') || str_contains(strtolower($paymentMethodRaw), 'tunai')
-                                ? 'Tunai'
-                                : ($paymentMethodRaw !== '' ? $paymentMethodRaw : '-');
+                            $transactionPresentation = $transactionPresenter->present($transaction->status ?? null, $transaction->payment_method_name ?? null, null);
                         @endphp
                         <tr class="border-b border-dashed border-slate-100 last:border-none hover:bg-slate-50/80 transition-colors dark:border-slate-800/60 dark:hover:bg-slate-800/40">
                             <td class="px-5 py-4 font-mono text-xs font-bold text-slate-700 dark:text-slate-200">{{ $transaction->transaction_code ?? '-' }}</td>
@@ -338,15 +327,15 @@
                                 <p class="mt-0.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">{{ \Carbon\Carbon::parse($transaction->created_at)->format('H:i') }}</p>
                             </td>
                             <td class="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ $transaction->cashier_name ?? '-' }}</td>
-                            <td class="px-5 py-4 text-slate-500 dark:text-slate-400">{{ $paymentMethodLabel }}</td>
+                            <td class="px-5 py-4 text-slate-500 dark:text-slate-400">{{ $transactionPresentation->paymentLabel }}</td>
                             <td class="px-5 py-4 text-center">
                                 <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ number_format((float) $transaction->item_count, 0, ',', '.') }}</span>
                             </td>
                             <td class="px-5 py-4 text-right font-black text-slate-900 dark:text-white">Rp {{ number_format((float) $transaction->total_amount, 0, ',', '.') }}</td>
                             <td class="px-5 py-4 text-center">
-                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black {{ $isCanceled ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25' }}">
-                                    <span class="h-1.5 w-1.5 rounded-full {{ $isCanceled ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
-                                    {{ $statusLabel }}
+                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black {{ $transactionPresentation->badgeClass }}">
+                                    <span class="h-1.5 w-1.5 rounded-full {{ $transactionPresentation->dotClass }}"></span>
+                                    {{ $transactionPresentation->statusLabel }}
                                 </span>
                             </td>
                         </tr>

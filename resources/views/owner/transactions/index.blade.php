@@ -1,34 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
+@inject('transactionPresenter', 'App\View\Presenters\TransactionPresenter')
 @php
     $routePrefix = 'owner.transactions';
-    $transactionPaymentLabel = function ($name) {
-        $value = trim((string) $name);
-        return in_array(strtolower($value), ['cash', 'tunai'], true) ? 'Tunai' : ($value !== '' ? $value : '-');
-    };
-    $transactionVoidReasonLabel = function ($reason) {
-        return match (strtolower(trim((string) $reason))) {
-            'restock', 'kembali_stok', 'kembali stok' => 'Kembali ke Stok',
-            'waste' => 'Bahan Terbuang',
-            'input_error' => 'Kesalahan Input',
-            'customer_cancel' => 'Pembatalan Pesanan',
-            'other', 'lainnya' => 'Lainnya',
-            default => null,
-        };
-    };
-    $transactionStatusLabel = function ($status, bool $isVoid, bool $isSuccess) {
-        if ($isVoid) {
-            return 'Dibatalkan';
-        }
-
-        if ($isSuccess) {
-            return 'Berhasil';
-        }
-
-        return ucwords(str_replace('_', ' ', strtolower((string) $status)));
-    };
-
     $hasActiveFilters = request()->filled('search')
         || request()->filled('user_id')
         || request()->filled('date_from')
@@ -264,42 +239,21 @@
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
                         @foreach($items as $trx)
                             @php
-                                $statusRaw = strtolower(trim((string) ($trx->status ?? 'success')));
-                                $isSuccess = $statusRaw === 'success';
-                                $isVoid = $statusRaw === 'void';
-                                $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount;
-                                $voidReasonLabel = $transactionVoidReasonLabel($trx->void_reason);
-                                $statusLabel = $transactionStatusLabel($trx->status, $isVoid, $isSuccess);
-                                $badgeClass = $isVoid
-                                    ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25'
-                                    : ($isSuccess ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/25');
-                                $statusDotClass = $isVoid ? 'bg-amber-500' : ($isSuccess ? 'bg-emerald-500' : 'bg-rose-500');
+                                $transactionPresentation = $transactionPresenter->present($trx->status, $trx->paymentMethod->name ?? null, $trx->void_reason);
                             @endphp
                             <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/35">
                                 <td class="px-5 py-4">
-                                    <span class="font-mono text-xs font-black text-slate-800 dark:text-white {{ !$isSuccess ? 'line-through opacity-60' : '' }}">{{ $trx->transaction_code }}</span>
+                                    <span class="font-mono text-xs font-black text-slate-800 dark:text-white {{ !$transactionPresentation->isSuccess ? 'line-through opacity-60' : '' }}">{{ $trx->transaction_code }}</span>
                                 </td>
                                 <td class="px-5 py-4">
                                     <span class="font-semibold text-slate-600 dark:text-slate-300">{{ $trx->user->name ?? '-' }}</span>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $transactionPaymentLabel($trx->paymentMethod->name ?? null) }}</span>
+                                    <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $transactionPresentation->paymentLabel }}</span>
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black {{ $badgeClass }}">
-                                            <span class="h-1.5 w-1.5 rounded-full {{ $statusDotClass }}"></span>
-                                            <span>{{ $statusLabel }}</span>
-                                        </span>
-                                        @if($isVoid)
-                                            <details class="relative inline-block">
-                                                <summary class="app-details-summary flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-900" title="Lihat alasan pembatalan">!</summary>
-                                                <div class="absolute left-0 top-full z-30 mt-2 w-48 rounded-xl border border-amber-100 bg-white p-3 text-left shadow-xl shadow-slate-900/10 dark:border-amber-500/20 dark:bg-slate-900 dark:shadow-black/30">
-                                                    <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">Alasan Pembatalan</p>
-                                                    <p class="mt-1 text-xs font-bold text-slate-700 dark:text-slate-100">{{ $voidReasonLabel ?: 'Alasan belum tercatat' }}</p>
-                                                </div>
-                                            </details>
-                                        @endif
+                                        <x-transaction.status-badge :presentation="$transactionPresentation" alignment="left" />
                                     </div>
                                 </td>
                                 <td class="px-5 py-4 text-center">
@@ -319,34 +273,13 @@
             <div class="md:hidden p-4 space-y-3">
                 @foreach($items as $trx)
                     @php
-                        $statusRaw = strtolower(trim((string) ($trx->status ?? 'success')));
-                        $isSuccess = $statusRaw === 'success';
-                        $isVoid = $statusRaw === 'void';
-                        $isPaid = (float) $trx->paid_amount >= (float) $trx->total_amount;
-                        $voidReasonLabel = $transactionVoidReasonLabel($trx->void_reason);
-                        $statusLabel = $transactionStatusLabel($trx->status, $isVoid, $isSuccess);
-                        $badgeClass = $isVoid
-                            ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25'
-                            : ($isSuccess ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/25');
-                        $statusDotClass = $isVoid ? 'bg-amber-500' : ($isSuccess ? 'bg-emerald-500' : 'bg-rose-500');
+                        $transactionPresentation = $transactionPresenter->present($trx->status, $trx->paymentMethod->name ?? null, $trx->void_reason);
                     @endphp
                     <div class="transaction-monitor-mobile-card rounded-xl p-4">
                         <div class="flex items-start justify-between gap-2">
-                            <p class="font-mono text-xs font-black break-all text-slate-800 dark:text-white {{ !$isSuccess ? 'line-through opacity-60' : '' }}">{{ $trx->transaction_code }}</p>
+                            <p class="font-mono text-xs font-black break-all text-slate-800 dark:text-white {{ !$transactionPresentation->isSuccess ? 'line-through opacity-60' : '' }}">{{ $trx->transaction_code }}</p>
                             <span class="inline-flex shrink-0 items-center gap-1.5">
-                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black {{ $badgeClass }}">
-                                    <span class="h-1.5 w-1.5 rounded-full {{ $statusDotClass }}"></span>
-                                    <span>{{ $statusLabel }}</span>
-                                </span>
-                                @if($isVoid)
-                                    <details class="relative inline-block">
-                                        <summary class="app-details-summary flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-900" title="Lihat alasan pembatalan">!</summary>
-                                        <div class="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-amber-100 bg-white p-3 text-left shadow-xl shadow-slate-900/10 dark:border-amber-500/20 dark:bg-slate-900 dark:shadow-black/30">
-                                            <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">Alasan Pembatalan</p>
-                                            <p class="mt-1 text-xs font-bold text-slate-700 dark:text-slate-100">{{ $voidReasonLabel ?: 'Alasan belum tercatat' }}</p>
-                                        </div>
-                                    </details>
-                                @endif
+                                <x-transaction.status-badge :presentation="$transactionPresentation" alignment="right" />
                             </span>
                         </div>
                         <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -356,7 +289,7 @@
                             </div>
                             <div class="rounded-lg bg-white/70 p-2 dark:bg-slate-900/40">
                                 <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Pembayaran</p>
-                                <p class="mt-1 font-bold text-slate-700 dark:text-slate-200">{{ $transactionPaymentLabel($trx->paymentMethod->name ?? null) }}</p>
+                                <p class="mt-1 font-bold text-slate-700 dark:text-slate-200">{{ $transactionPresentation->paymentLabel }}</p>
                             </div>
                             <div class="rounded-lg bg-white/70 p-2 dark:bg-slate-900/40">
                                 <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Waktu</p>

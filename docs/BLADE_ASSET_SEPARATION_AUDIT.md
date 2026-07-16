@@ -344,3 +344,58 @@ refactor(ui): extract flash alert variants and named icons
 test(views): add Blade presentation characterization coverage
 docs(frontend): document Blade asset separation audit
 ```
+
+## PHP Presentation Second Pass
+
+This pass removes repeated transaction and stock-session presentation rules from
+Blade without moving business decisions, queries, authorization, or branch
+resolution into the view layer.
+
+| Surface | Before | After | Behavior changed |
+| --- | --- | --- | --- |
+| Admin/owner transaction index | Repeated status, payment, void-reason closures and desktop/mobile class maps | `TransactionPresenter` plus shared status/void components | No |
+| Admin/owner transaction detail | Separate status/payment labels and detail color maps | One immutable `TransactionPresentation` per transaction | No for valid statuses; unknown statuses now consistently use the existing danger vocabulary |
+| Owner sales report | Report-specific payment and status conditionals | Shared transaction presenter | No |
+| Admin/owner dashboard session state | Duplicate open/closed/default tone arrays | `StockSessionPresenter` | No |
+
+The presenter classes are stateless scalar mappers. They do not access models,
+relationships, requests, sessions, authentication, cache, or the database. Blade
+components only render values already resolved by the presenter.
+
+PHP intentionally left local in Blade is limited to one-use view composition,
+such as KPI item arrays, filter defaults, quantity totals, critical-stock flags,
+and one presenter call per rendered record. These blocks do not duplicate domain
+rules and extracting them would add indirection without a reusable contract.
+
+### Second-pass protection
+
+- Unit tests cover success, void, unknown status, payment labels, void reasons,
+  detail/index CSS vocabulary, and session-state tones.
+- Feature characterization covers admin/owner transaction list and detail views,
+  owner sales reporting, desktop/mobile duplicate markup, and print/filter hooks.
+- A static source guard prevents transaction closures, old mapper variables, and
+  the unsupported `@php(...)` shorthand from returning to the migrated views.
+- No endpoint, payload, response shape, controller query, eager loading, policy,
+  branch scope, export lifecycle, or Android contract changed.
+
+| Second-pass check | Result |
+| --- | --- |
+| Transaction presenter unit test | `4 passed`, `58 assertions` |
+| Stock-session presenter unit test | `1 passed`, `12 assertions` |
+| View characterization and source guard | `7 passed`, `179 assertions` |
+| Blade clear/cache | PASS |
+| Vite production build | PASS, 76 modules transformed |
+| Full Laravel regression run 1 | `206 passed`, `1367 assertions`, `0 failed` |
+| Full Laravel regression run 2 | `206 passed`, `1367 assertions`, `0 failed` |
+| PostgreSQL disposable run 1 | `11 passed`, `61 assertions`, `0 failed` |
+| PostgreSQL disposable run 2 | `11 passed`, `61 assertions`, `0 failed` |
+| Disposable PostgreSQL databases remaining | `0` |
+| Public browser smoke | PASS at `1280x720`, no horizontal overflow or console warning/error |
+
+Authenticated visual comparison remains manual because this pass did not use or
+change local account credentials. The routed characterization tests render the
+admin and owner dashboards, transaction lists/details, and owner sales report.
+
+The professional export renderer and other self-contained export templates still
+contain presentation PHP. They remain deferred because their rendering contract
+and memory behavior are separate from normal web Blade pages.
