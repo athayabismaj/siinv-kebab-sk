@@ -2,15 +2,15 @@
 
 namespace App\Actions\Sales;
 
+use App\DTOs\CashierOperationalContext;
 use App\Models\Branch;
-use App\Models\DailyStockSession;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\Analytics\DailySalesSummaryService;
 use App\Services\StockService;
 use App\Services\VariantAvailabilityService;
-use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +22,7 @@ class CheckoutTransactionAction
     public function __construct(
         private readonly VariantAvailabilityService $variantAvailabilityService,
         private readonly DailySalesSummaryService $dailySalesSummaryService,
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
     ) {
     }
 
@@ -45,12 +46,37 @@ class CheckoutTransactionAction
                 DB::statement("SET LOCAL statement_timeout = '12s'");
             }
 
-            $draft = $this->buildCheckoutDraft($validated, $cashierId);
+            $cashier = User::query()->findOrFail($cashierId);
+            $operationalContext = $this->operationalContextResolver->resolve(
+                $cashier,
+                ['items:daily_stock_session_id,ingredient_id,remaining_qty'],
+            );
+            if ($operationalContext->ambiguous) {
+                return [
+                    'ok' => false,
+                    'status' => 409,
+                    'message' => 'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+                ];
+            }
+            if (! $operationalContext->session) {
+                return [
+                    'ok' => false,
+                    'status' => 409,
+                    'message' => 'Transaksi gagal diproses. Periksa stok harian dan data transaksi lalu coba lagi.',
+                ];
+            }
+
+            $draft = $this->buildCheckoutDraft($validated, $cashierId, $operationalContext);
             if (! $draft['ok']) {
                 return $draft;
             }
 
-            $result = $this->createTransaction($cashierId, $draft, $validated['note'] ?? null);
+            $result = $this->createTransaction(
+                $cashierId,
+                $draft,
+                $validated['note'] ?? null,
+                $operationalContext,
+            );
             $branch = Branch::query()->findOrFail($result['branch_id']);
             $this->dailySalesSummaryService->rebuildForDate($branch, $result['occurred_at']);
 
@@ -66,7 +92,11 @@ class CheckoutTransactionAction
     /**
      * @return array{ok:bool,status?:int,message?:string,data?:array<string,mixed>,payment_method?:PaymentMethod,line_items?:array<int,array<string,mixed>>,total_amount?:float,paid_amount?:float}
      */
-    private function buildCheckoutDraft(array $validated, int $cashierId): array
+    private function buildCheckoutDraft(
+        array $validated,
+        int $cashierId,
+        CashierOperationalContext $operationalContext,
+    ): array
     {
         $lineItems = [];
         $totalAmount = 0.0;
@@ -108,7 +138,12 @@ class CheckoutTransactionAction
             }
 
             $qty = (int) $item['qty'];
-            $availability = $this->variantAvailabilityService->evaluateSingleForCheckout($variant, $cashierId, $qty);
+            $availability = $this->variantAvailabilityService->evaluateSingleForCheckout(
+                $variant,
+                $cashierId,
+                $qty,
+                operationalContext: $operationalContext,
+            );
 
             if (! ($availability['is_available'] ?? false)) {
                 return [
@@ -166,24 +201,23 @@ class CheckoutTransactionAction
      * @param array{payment_method:PaymentMethod,line_items:array<int,array<string,mixed>>,total_amount:float,paid_amount:float} $draft
      * @return array<string,mixed>
      */
-    private function createTransaction(int $cashierId, array $draft, ?string $note): array
+    private function createTransaction(
+        int $cashierId,
+        array $draft,
+        ?string $note,
+        CashierOperationalContext $operationalContext,
+    ): array
     {
         $now = now(config('app.timezone', 'Asia/Jakarta'));
-        $cashier = User::query()->with('branch:id,name,code')->find($cashierId);
-        $branchId = BranchScope::userBranchId($cashier);
-        $branch = $cashier?->branch ?: Branch::query()->find($branchId, ['id', 'name', 'code']);
+        $branchId = $operationalContext->operationalBranchId();
+        $branch = $branchId ? Branch::query()->find($branchId, ['id', 'name', 'code']) : null;
 
-        if (! $branchId || ! $branch) {
-            throw new RuntimeException('Cabang kasir tidak ditemukan. Transaksi tidak dapat diproses.');
+        if (! $branchId || ! $branch || ! $operationalContext->session) {
+            throw new RuntimeException('Sesi stok harian kasir belum dibuka. Transaksi tidak dapat diproses.');
         }
 
         $transactionCode = $this->generateTransactionCode($now, $branchId, (string) $branch->code);
-        $activeSessionId = DailyStockSession::query()
-            ->where('cashier_id', $cashierId)
-            ->where('branch_id', $branchId)
-            ->whereDate('session_date', $now->toDateString())
-            ->whereRaw("LOWER(TRIM(status)) = 'open'")
-            ->value('id');
+        $activeSessionId = $operationalContext->sessionId();
 
         $transactionId = DB::table('transactions')->insertGetId([
             'transaction_code' => $transactionCode,

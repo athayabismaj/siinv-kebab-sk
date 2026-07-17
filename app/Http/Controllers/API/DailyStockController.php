@@ -5,9 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\CloseDailyStockSessionRequest;
-use App\Models\DailyStockSession;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\DailyStockService;
-use App\Support\BranchScope;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +16,8 @@ class DailyStockController extends Controller
     use ApiResponse;
 
     public function __construct(
-        private readonly DailyStockService $dailyStockService
+        private readonly DailyStockService $dailyStockService,
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
     ) {}
 
     public function index(Request $request)
@@ -27,10 +27,16 @@ class DailyStockController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $session = $this->openSessionForCashier(
-            (int) $user->id,
-            BranchScope::userBranchId($user)
-        );
+        $context = $this->operationalContextResolver->resolve($user, ['items.ingredient']);
+        if ($context->ambiguous) {
+            return $this->errorResponse(
+                'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+                null,
+                409,
+            );
+        }
+
+        $session = $context->session;
 
         if (! $session) {
             return $this->successResponse('Sesi stok harian belum dibuka oleh admin hari ini.', [
@@ -48,15 +54,8 @@ class DailyStockController extends Controller
             $baseValue = (float) $item->opening_qty;
             $remainingBase = (float) $item->remaining_qty;
             $unit = strtolower((string) $ingredient->display_unit);
-
-            // Konversi base unit (misal gram) ke display unit (kg) jika perlu
-            if (in_array($unit, ['kg', 'l'], true)) {
-                $qty = round($baseValue / 1000, 2);
-                $remainingQty = round($remainingBase / 1000, 2);
-            } else {
-                $qty = round($baseValue, 2);
-                $remainingQty = round($remainingBase, 2);
-            }
+            $qty = round(IngredientUnit::toDisplay($unit, $baseValue), 2);
+            $remainingQty = round(IngredientUnit::toDisplay($unit, $remainingBase), 2);
 
             return [
                 'ingredient_id' => $ingredient->id,
@@ -81,10 +80,16 @@ class DailyStockController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $session = $this->openSessionForCashier(
-            (int) $user->id,
-            BranchScope::userBranchId($user)
-        );
+        $context = $this->operationalContextResolver->resolve($user, ['items.ingredient']);
+        if ($context->ambiguous) {
+            return $this->errorResponse(
+                'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+                null,
+                409,
+            );
+        }
+
+        $session = $context->session;
 
         if (! $session) {
             return $this->errorResponse('Tidak ada sesi stok harian yang aktif untuk ditutup.', null, 404);
@@ -124,15 +129,10 @@ class DailyStockController extends Controller
             }
 
             $ingredient = $item->ingredient;
-            $unit = strtolower((string) $ingredient->display_unit);
-
-            // Kasir menginput dalam display unit (kg, l, pcs),
-            // DailyStockService mengharapkan nilai base unit (g, ml, pcs)
-            if (in_array($unit, ['kg', 'l'], true)) {
-                $remainingByIngredient[$ingredientId] = round($displayNumeric * 1000, 2);
-            } else {
-                $remainingByIngredient[$ingredientId] = $displayNumeric;
-            }
+            $remainingByIngredient[$ingredientId] = round(
+                IngredientUnit::toBase((string) $ingredient->display_unit, $displayNumeric),
+                2,
+            );
         }
 
         if (empty($remainingByIngredient)) {
@@ -145,7 +145,7 @@ class DailyStockController extends Controller
                 $remainingByIngredient,
                 $user->id,
                 $request->input('notes'),
-                BranchScope::userBranchId($user)
+                (int) $session->branch_id,
             );
 
             return $this->successResponse('Sesi stok harian berhasil ditutup.', [
@@ -202,15 +202,4 @@ class DailyStockController extends Controller
         return is_numeric($normalized) ? (float) $normalized : null;
     }
 
-    private function openSessionForCashier(int $cashierId, ?int $branchId): ?DailyStockSession
-    {
-        return DailyStockSession::query()
-            ->with(['items.ingredient'])
-            ->where('cashier_id', $cashierId)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
-            ->whereRaw("LOWER(TRIM(status)) = 'open'")
-            ->latest('session_date')
-            ->latest('id')
-            ->first();
-    }
 }

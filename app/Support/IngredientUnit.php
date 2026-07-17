@@ -12,6 +12,14 @@ class IngredientUnit
         };
     }
 
+    public static function toDisplay(string $unit, float $value): float
+    {
+        return match (strtolower(trim($unit))) {
+            'kg', 'l' => $value / 1000,
+            default => $value,
+        };
+    }
+
     public static function baseUnit(string $displayUnit): string
     {
         return match (strtolower(trim($displayUnit))) {

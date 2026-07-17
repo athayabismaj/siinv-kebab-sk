@@ -6,6 +6,7 @@ use App\Actions\Sales\CheckoutTransactionAction;
 use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\StoreTransactionRequest;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\ApiTransactionService;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
@@ -24,6 +25,7 @@ class TransactionController extends Controller
     public function __construct(
         private readonly ApiTransactionService $transactionService,
         private readonly CheckoutTransactionAction $checkoutTransactionAction,
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
     ) {
     }
 
@@ -38,7 +40,7 @@ class TransactionController extends Controller
             $userId,
             $request->input('date'),
             (int) $request->input('per_page', 15),
-            $this->branchIdFor($request->user())
+            $this->ownedTransactionBranchIdFor($request->user())
         );
 
         $data = $transactions->map(fn ($transaction) => [
@@ -72,7 +74,7 @@ class TransactionController extends Controller
             $transactionKey,
             $userId,
             $canReadAllUsers,
-            $this->branchIdFor($user)
+            $this->ownedTransactionBranchIdFor($user)
         );
         if (! $transaction) {
             return $this->errorResponse('Transaksi tidak ditemukan.', null, 404);
@@ -93,10 +95,19 @@ class TransactionController extends Controller
             return $this->unauthorizedResponse();
         }
 
+        $branch = $this->reportingBranchFor($request->user());
+        if ($branch['conflict']) {
+            return $this->errorResponse(
+                'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+                null,
+                409,
+            );
+        }
+
         $summary = $this->transactionService->getRevenueSummary(
             $userId,
             $request->input('date'),
-            $this->branchIdFor($request->user())
+            $branch['branch_id'],
         );
 
         return $this->successResponse('Berhasil mengambil ringkasan pendapatan', $summary);
@@ -109,10 +120,19 @@ class TransactionController extends Controller
             return $this->unauthorizedResponse();
         }
 
+        $branch = $this->reportingBranchFor($request->user());
+        if ($branch['conflict']) {
+            return $this->errorResponse(
+                'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+                null,
+                409,
+            );
+        }
+
         $trend = $this->transactionService->getRevenueTrend(
             $userId,
             $request->input('date'),
-            $this->branchIdFor($request->user())
+            $branch['branch_id'],
         );
 
         return $this->successResponse('Berhasil mengambil tren pendapatan', $trend);
@@ -150,7 +170,9 @@ class TransactionController extends Controller
                 Log::error('Gagal memproses transaksi kasir.', [
                     'operation' => 'checkout',
                     'user_id' => $userId,
-                    'branch_id' => $this->branchIdFor($request->user()),
+                    'branch_id' => $request->user()
+                        ? BranchScope::userBranchId($request->user())
+                        : null,
                     'exception' => get_class($e),
                 ]);
             } catch (Throwable) {
@@ -182,15 +204,40 @@ class TransactionController extends Controller
         return (int) optional($request->user())->id;
     }
 
-    private function branchIdFor(mixed $user): ?int
+    private function ownedTransactionBranchIdFor(mixed $user): int|array|null
     {
         $roleName = strtolower(trim((string) optional(optional($user)->role)->name));
+
+        if ($roleName === 'kasir' && $user) {
+            return BranchScope::assignedBranchIds($user);
+        }
 
         if (in_array($roleName, ['owner', 'superadmin', 'developer'], true)) {
             return null;
         }
 
         return $user ? BranchScope::userBranchId($user) : null;
+    }
+
+    /**
+     * @return array{branch_id:?int,conflict:bool}
+     */
+    private function reportingBranchFor(mixed $user): array
+    {
+        $roleName = strtolower(trim((string) optional(optional($user)->role)->name));
+        if ($roleName === 'kasir' && $user) {
+            $context = $this->operationalContextResolver->resolve($user);
+
+            return [
+                'branch_id' => $context->operationalBranchId() ?? BranchScope::userBranchId($user),
+                'conflict' => $context->ambiguous,
+            ];
+        }
+
+        return [
+            'branch_id' => $this->ownedTransactionBranchIdFor($user),
+            'conflict' => false,
+        ];
     }
 
     private function formatCreatedAt(mixed $createdAt): string

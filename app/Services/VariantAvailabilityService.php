@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\DTOs\CashierOperationalContext;
 use App\Models\DailyStockSession;
 use App\Models\MenuVariant;
+use App\Models\User;
+use App\Services\Api\CashierOperationalContextResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -14,6 +17,12 @@ class VariantAvailabilityService
     public const REASON_INGREDIENT_NOT_TRANSFERRED = 'INGREDIENT_NOT_TRANSFERRED';
     public const REASON_INSUFFICIENT_STOCK = 'INSUFFICIENT_STOCK';
     public const REASON_MANUAL_DISABLED = 'MANUAL_DISABLED';
+    public const REASON_SESSION_CONFLICT = 'SESSION_CONFLICT';
+
+    public function __construct(
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
+    ) {
+    }
 
     /**
      * @param Collection<int, MenuVariant> $variants
@@ -34,32 +43,43 @@ class VariantAvailabilityService
     /**
      * @return array<string, mixed>
      */
-    public function evaluateSingleForCheckout(MenuVariant $variant, int $cashierId, float $qty, ?Carbon $businessTime = null): array
+    public function evaluateSingleForCheckout(
+        MenuVariant $variant,
+        int $cashierId,
+        float $qty,
+        ?Carbon $businessTime = null,
+        ?CashierOperationalContext $operationalContext = null,
+    ): array
     {
-        $context = $this->buildSessionContext($cashierId, $businessTime);
+        $context = $this->buildSessionContext($cashierId, $businessTime, $operationalContext);
 
         return $this->evaluateVariantWithContext($variant, $context, $qty);
     }
 
     /**
-     * @return array{date:string,session:?DailyStockSession,stock_by_ingredient:array<int, float>}
+     * @return array{date:string,session:?DailyStockSession,stock_by_ingredient:array<int, float>,ambiguous:bool}
      */
-    private function buildSessionContext(int $cashierId, ?Carbon $businessTime = null): array
-    {
-        $clock = ($businessTime ? $businessTime->copy() : now('Asia/Jakarta'))
-            ->setTimezone('Asia/Jakarta')
-            ->startOfDay();
-        $sessionDate = $clock->toDateString();
-
-        $session = null;
-        if ($cashierId > 0) {
-            $session = DailyStockSession::query()
-                ->with('items:daily_stock_session_id,ingredient_id,remaining_qty')
-                ->where('cashier_id', $cashierId)
-                ->whereDate('session_date', $sessionDate)
-                ->whereRaw("LOWER(TRIM(status)) = 'open'")
-                ->first();
+    private function buildSessionContext(
+        int $cashierId,
+        ?Carbon $businessTime = null,
+        ?CashierOperationalContext $operationalContext = null,
+    ): array {
+        if (! $operationalContext && $cashierId > 0) {
+            $cashier = User::query()->find($cashierId);
+            if ($cashier) {
+                $operationalContext = $this->operationalContextResolver->resolve(
+                    $cashier,
+                    ['items:daily_stock_session_id,ingredient_id,remaining_qty'],
+                    $businessTime,
+                );
+            }
         }
+
+        $sessionDate = $operationalContext?->sessionDate
+            ?? ($businessTime ? $businessTime->copy() : now(config('app.timezone', 'Asia/Jakarta')))
+                ->setTimezone(config('app.timezone', 'Asia/Jakarta'))
+                ->toDateString();
+        $session = $operationalContext?->session;
 
         $stockByIngredient = [];
         foreach ($session?->items ?? [] as $item) {
@@ -70,11 +90,12 @@ class VariantAvailabilityService
             'date' => $sessionDate,
             'session' => $session,
             'stock_by_ingredient' => $stockByIngredient,
+            'ambiguous' => (bool) ($operationalContext?->ambiguous ?? false),
         ];
     }
 
     /**
-     * @param array{date:string,session:?DailyStockSession,stock_by_ingredient:array<int, float>} $context
+     * @param array{date:string,session:?DailyStockSession,stock_by_ingredient:array<int, float>,ambiguous:bool} $context
      * @return array<string, mixed>
      */
     private function evaluateVariantWithContext(MenuVariant $variant, array $context, float $qty): array
@@ -105,6 +126,14 @@ class VariantAvailabilityService
             return [
                 'is_available' => false,
                 'unavailable_reason' => self::REASON_MANUAL_DISABLED,
+                'required_ingredients' => $requiredIngredients,
+            ];
+        }
+
+        if ($context['ambiguous']) {
+            return [
+                'is_available' => false,
+                'unavailable_reason' => self::REASON_SESSION_CONFLICT,
                 'required_ingredients' => $requiredIngredients,
             ];
         }
@@ -150,4 +179,3 @@ class VariantAvailabilityService
         ];
     }
 }
-

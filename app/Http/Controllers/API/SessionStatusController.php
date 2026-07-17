@@ -3,25 +3,31 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\DailyStockSession;
-use App\Support\BranchScope;
+use App\Services\Api\CashierOperationalContextResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SessionStatusController extends Controller
 {
+    public function __construct(
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
+    ) {
+    }
+
     public function currentStatus(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $context = $this->operationalContextResolver->resolve($request->user());
 
-        // Query efisien: index-friendly, limit 1, tanpa eager load yang tidak perlu
-        $session = DailyStockSession::where('cashier_id', $userId)
-            ->when(BranchScope::userBranchId($request->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
-            ->whereRaw("LOWER(TRIM(status)) = 'open'")
-            ->orderByDesc('created_at')
-            ->first(['id', 'status', 'opened_at', 'session_date']);
+        if ($context->ambiguous) {
+            return response()->json([
+                'active' => false,
+                'message' => 'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+            ], 409);
+        }
 
-        if (!$session) {
+        $session = $context->session;
+
+        if (! $session) {
             return response()->json([
                 'active' => false,
                 'message' => 'Tidak ada sesi aktif untuk user ini.',
@@ -31,9 +37,9 @@ class SessionStatusController extends Controller
         return response()->json([
             'active' => true,
             'data' => [
-                'session_id'   => $session->id,
-                'status'       => $session->status,
-                'opened_at'    => $session->opened_at,
+                'session_id' => $session->id,
+                'status' => $session->status,
+                'opened_at' => $session->opened_at,
                 'session_date' => $session->session_date,
             ],
         ], 200);

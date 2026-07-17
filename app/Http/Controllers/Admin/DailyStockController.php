@@ -717,12 +717,7 @@ class DailyStockController extends Controller
 
     private function toDisplayQuantity(Ingredient $ingredient, float $baseValue): float
     {
-        $unit = strtolower((string) $ingredient->display_unit);
-        if (in_array($unit, ['kg', 'l'], true)) {
-            return round($baseValue / 1000, 2);
-        }
-
-        return round($baseValue, 2);
+        return round(IngredientUnit::toDisplay((string) $ingredient->display_unit, $baseValue), 2);
     }
 
     /**

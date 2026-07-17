@@ -11,7 +11,9 @@ use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\StockLog;
 use App\Models\Transaction;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\Analytics\DailySalesSummaryService;
+use App\Support\AdminCache;
 use App\Support\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -21,6 +23,7 @@ class VoidTransactionAction
 {
     public function __construct(
         private readonly DailySalesSummaryService $dailySalesSummaryService,
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
     ) {
     }
 
@@ -42,7 +45,7 @@ class VoidTransactionAction
                 throw new \Exception('Unauthorized: Anda tidak memiliki otoritas untuk mem-void transaksi ini pada sesi kasir tersebut.');
             }
 
-            return DB::transaction(function () use ($requestDto, $transaction) {
+            $newDrawerBalance = DB::transaction(function () use ($requestDto, $transaction) {
                 $lockedTransaction = Transaction::whereKey($requestDto->transactionId)->lockForUpdate()->firstOrFail();
                 $lockedSession = DailyStockSession::whereKey($requestDto->currentSessionId)->lockForUpdate()->firstOrFail();
 
@@ -139,6 +142,16 @@ class VoidTransactionAction
                     ->where('daily_stock_session_id', $lockedSession->id)
                     ->sum('total_amount');
             });
+
+            AdminCache::bumpCatalog();
+            AdminCache::bumpTransactions();
+            AdminCache::bumpDailyStock();
+            AdminCache::bumpUsage();
+            AdminCache::bumpCashflow();
+            AdminCache::bumpDashboard();
+            AdminCache::bumpStock();
+
+            return $newDrawerBalance;
         } catch (\Throwable $exception) {
             Cache::forget($idempotencyKey);
 
@@ -148,6 +161,19 @@ class VoidTransactionAction
 
     private function authorizeActor($actor, Transaction $transaction, int|string $currentSessionId): bool
     {
+        $roleName = strtolower((string) optional($actor->role)->name);
+
+        if ($roleName === 'kasir') {
+            $context = $this->operationalContextResolver->resolve($actor);
+
+            return (int) $actor->id === (int) $transaction->user_id
+                && ! $context->ambiguous
+                && $context->sessionId() !== null
+                && $context->sessionId() === (int) $currentSessionId
+                && $transaction->daily_stock_session_id !== null
+                && (int) $transaction->daily_stock_session_id === (int) $currentSessionId;
+        }
+
         $scopedBranchId = BranchScope::scopedBranchIdFor($actor);
         if ($scopedBranchId && (int) $transaction->branch_id !== (int) $scopedBranchId) {
             return false;
@@ -158,12 +184,10 @@ class VoidTransactionAction
             return false;
         }
 
-        $roleName = strtolower((string) optional($actor->role)->name);
-
         if (in_array($roleName, ['owner', 'admin'], true)) {
             return true;
         }
 
-        return $roleName === 'kasir' && (int) $actor->id === (int) $transaction->user_id;
+        return false;
     }
 }

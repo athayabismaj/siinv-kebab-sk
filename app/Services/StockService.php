@@ -110,5 +110,6 @@ class StockService
         AdminCache::bumpStock();
         AdminCache::bumpUsage();
         AdminCache::bumpDailyStock();
+        AdminCache::bumpCatalog();
     }
 }

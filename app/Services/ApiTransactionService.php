@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DailyTarget;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Schema;
 
 class ApiTransactionService
 {
-    public function getHistory(int $userId, ?string $date, int $perPage = 15, ?int $branchId = null): LengthAwarePaginator
+    public function getHistory(int $userId, ?string $date, int $perPage = 15, int|array|null $branchId = null): LengthAwarePaginator
     {
         $query = $this->baseUserTransactionQuery($userId, $date, $branchId)
             ->leftJoin('transaction_details as td', 'td.transaction_id', '=', 't.id')
@@ -30,9 +31,9 @@ class ApiTransactionService
         return $query->paginate($perPage);
     }
 
-    public function getTransactionDetail(string $transactionKey, int $userId, bool $canReadAll = false, ?int $branchId = null): ?array
+    public function getTransactionDetail(string $transactionKey, int $userId, bool $canReadAll = false, int|array|null $branchId = null): ?array
     {
-        $transaction = Transaction::query()
+        $transactionQuery = Transaction::query()
             ->with([
                 'paymentMethod:id,name',
                 'details.menu:id,name',
@@ -43,9 +44,9 @@ class ApiTransactionService
                 fn ($query) => $query->where('id', (int) $transactionKey),
                 fn ($query) => $query->where('transaction_code', $transactionKey),
             )
-            ->when(! $canReadAll, fn ($query) => $query->where('user_id', $userId))
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
-            ->first();
+            ->when(! $canReadAll, fn ($query) => $query->where('user_id', $userId));
+        $this->applyBranchScope($transactionQuery, $branchId);
+        $transaction = $transactionQuery->first();
 
         if (! $transaction) {
             return null;
@@ -178,13 +179,11 @@ class ApiTransactionService
         return $result;
     }
 
-    private function baseUserTransactionQuery(int $userId, ?string $date, ?int $branchId = null): Builder
+    private function baseUserTransactionQuery(int $userId, ?string $date, int|array|null $branchId = null): Builder
     {
         $query = DB::table('transactions as t')->where('t.user_id', $userId);
 
-        if ($branchId) {
-            $query->where('t.branch_id', $branchId);
-        }
+        $this->applyBranchScope($query, $branchId, 't.branch_id');
 
         if (! empty($date)) {
             $start = Carbon::parse($date)->startOfDay();
@@ -193,6 +192,23 @@ class ApiTransactionService
         }
 
         return $query;
+    }
+
+    private function applyBranchScope(
+        Builder|EloquentBuilder $query,
+        int|array|null $branchId,
+        string $column = 'branch_id',
+    ): void {
+        if (is_array($branchId)) {
+            $branchIds = array_values(array_unique(array_filter(array_map('intval', $branchId))));
+            $query->whereIn($column, $branchIds === [] ? [-1] : $branchIds);
+
+            return;
+        }
+
+        if (($branchId ?? 0) > 0) {
+            $query->where($column, (int) $branchId);
+        }
     }
 
     private function resolveDateOrNow(?string $dateInput): Carbon

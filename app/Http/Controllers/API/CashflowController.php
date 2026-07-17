@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\API\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\CashflowEntry;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
 use Illuminate\Http\Request;
@@ -12,6 +13,11 @@ use Illuminate\Http\Request;
 class CashflowController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly CashierOperationalContextResolver $operationalContextResolver,
+    ) {
+    }
 
     public function storeExpense(Request $request)
     {
@@ -37,6 +43,20 @@ class CashflowController extends Controller
         $entryDate = $canUseCustomDate
             ? ($validated['entry_date'] ?? now()->toDateString())
             : now()->toDateString();
+        $branchId = BranchScope::userBranchId($user);
+
+        if ($roleName === 'kasir') {
+            $context = $this->operationalContextResolver->resolve($user);
+            if ($context->ambiguous) {
+                return $this->errorResponse(
+                    'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
+                    null,
+                    409,
+                );
+            }
+
+            $branchId = $context->operationalBranchId() ?? $branchId;
+        }
 
         $entry = CashflowEntry::query()->create([
             'entry_date' => $entryDate,
@@ -45,7 +65,7 @@ class CashflowController extends Controller
             'source' => (string) $validated['source'],
             'note' => $validated['note'] ?? null,
             'created_by' => (int) $user->id,
-            'branch_id' => BranchScope::userBranchId($user),
+            'branch_id' => $branchId,
         ]);
 
         AdminCache::bumpCashflow();
