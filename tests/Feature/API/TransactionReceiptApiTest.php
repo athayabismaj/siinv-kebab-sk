@@ -42,6 +42,7 @@ class TransactionReceiptApiTest extends TestCase
     public function test_cashier_can_fetch_transaction_receipt_by_transaction_code(): void
     {
         [$cashier, $token] = $this->createUserWithToken('kasir');
+        $cashier->branch->update(['address' => 'Jl. Kampus UMK, Kudus']);
         [$transaction] = $this->createTransactionWithDetail($cashier);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
@@ -50,7 +51,48 @@ class TransactionReceiptApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.transaction_code', $transaction->transaction_code)
+            ->assertJsonPath('data.branch.id', $transaction->branch_id)
+            ->assertJsonPath('data.branch.address', 'Jl. Kampus UMK, Kudus')
             ->assertJsonCount(1, 'data.items');
+    }
+
+    public function test_receipt_uses_transaction_branch_instead_of_requesting_users_branch(): void
+    {
+        $transactionBranch = Branch::query()->where('code', 'default')->firstOrFail();
+        $transactionBranch->update(['address' => 'Alamat Cabang Transaksi']);
+        $requestingUserBranch = Branch::query()->create([
+            'name' => 'Cabang Pengguna Lain',
+            'code' => 'other',
+            'address' => 'Alamat Cabang Pengguna',
+            'is_active' => true,
+        ]);
+
+        [, $token] = $this->createUserWithToken('owner', $requestingUserBranch);
+        [$cashier] = $this->createUserWithToken('kasir', $transactionBranch);
+        [$transaction] = $this->createTransactionWithDetail($cashier, $transactionBranch);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/transactions/' . $transaction->transaction_code . '/receipt')
+            ->assertOk()
+            ->assertJsonPath('data.branch.id', $transactionBranch->id)
+            ->assertJsonPath('data.branch.name', $transactionBranch->name)
+            ->assertJsonPath('data.branch.address', 'Alamat Cabang Transaksi');
+
+        $this->assertNotSame('Alamat Cabang Pengguna', $response->json('data.branch.address'));
+    }
+
+    public function test_receipt_keeps_null_transaction_branch_address_safe(): void
+    {
+        $branch = Branch::query()->where('code', 'default')->firstOrFail();
+        $branch->update(['address' => null]);
+        [$cashier, $token] = $this->createUserWithToken('kasir', $branch);
+        [$transaction] = $this->createTransactionWithDetail($cashier, $branch);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/transactions/' . $transaction->transaction_code . '/receipt')
+            ->assertOk()
+            ->assertJsonPath('data.branch.id', $branch->id)
+            ->assertJsonPath('data.branch.address', null);
     }
 
     public function test_cashier_cannot_fetch_another_cashiers_transaction_detail(): void

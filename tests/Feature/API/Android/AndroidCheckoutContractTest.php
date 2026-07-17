@@ -24,6 +24,7 @@ class AndroidCheckoutContractTest extends TestCase
     public function test_checkout_returns_typed_transaction_and_receipt_fields(): void
     {
         [$cashier, $token, $branch] = $this->createCashierWithToken();
+        $branch->update(['address' => 'Jl. Kampus UMK, Kudus']);
         [$variant, $ingredient] = $this->createSellableVariant();
         $payment = PaymentMethod::query()->create(['name' => 'Cash']);
         $this->openSession($cashier, $branch, $ingredient);
@@ -42,6 +43,9 @@ class AndroidCheckoutContractTest extends TestCase
                 ->whereType('message', 'string')
                 ->whereType('data.transaction_id', 'integer')
                 ->whereType('data.transaction_code', 'string')
+                ->where('data.branch.id', $branch->id)
+                ->where('data.branch.name', $branch->name)
+                ->where('data.branch.address', 'Jl. Kampus UMK, Kudus')
                 ->whereType('data.created_at', 'string')
                 ->where('data.payment_method.id', $payment->id)
                 ->where('data.payment_method.name', 'Cash')
@@ -59,6 +63,8 @@ class AndroidCheckoutContractTest extends TestCase
             ->getJson('/api/transactions/'.$transactionId.'/receipt')
             ->assertOk()
             ->assertJsonPath('data.transaction_code', $response->json('data.transaction_code'))
+            ->assertJsonPath('data.branch.id', $branch->id)
+            ->assertJsonPath('data.branch.address', 'Jl. Kampus UMK, Kudus')
             ->assertJsonPath('data.items.0.menu_name', 'Kebab Fixture')
             ->assertJsonPath('data.items.0.variant_name', 'Mini');
     }

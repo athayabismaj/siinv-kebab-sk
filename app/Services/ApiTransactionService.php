@@ -36,6 +36,7 @@ class ApiTransactionService
         $transactionQuery = Transaction::query()
             ->with([
                 'paymentMethod:id,name',
+                'branch:id,name,address',
                 'details.menu:id,name',
                 'details.menuVariant:id,name',
             ])
@@ -63,6 +64,11 @@ class ApiTransactionService
             'total_amount' => round((float) $transaction->total_amount, 2),
             'paid_amount' => round((float) $transaction->paid_amount, 2),
             'change_amount' => round((float) $transaction->change_amount, 2),
+            'branch' => $transaction->branch ? [
+                'id' => (int) $transaction->branch->id,
+                'name' => (string) $transaction->branch->name,
+                'address' => $transaction->branch->address,
+            ] : null,
             'items' => $transaction->details
                 ->map(fn ($detail) => [
                     'menu_name' => $detail->menu?->name,

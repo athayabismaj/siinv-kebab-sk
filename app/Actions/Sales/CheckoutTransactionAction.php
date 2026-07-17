@@ -210,7 +210,7 @@ class CheckoutTransactionAction
     {
         $now = now(config('app.timezone', 'Asia/Jakarta'));
         $branchId = $operationalContext->operationalBranchId();
-        $branch = $branchId ? Branch::query()->find($branchId, ['id', 'name', 'code']) : null;
+        $branch = $branchId ? Branch::query()->find($branchId, ['id', 'name', 'code', 'address']) : null;
 
         if (! $branchId || ! $branch || ! $operationalContext->session) {
             throw new RuntimeException('Sesi stok harian kasir belum dibuka. Transaksi tidak dapat diproses.');
@@ -277,6 +277,11 @@ class CheckoutTransactionAction
             'paid_amount' => round($draft['paid_amount'], 2),
             'change_amount' => round($draft['paid_amount'] - $draft['total_amount'], 2),
             'branch_id' => $branchId,
+            'branch' => [
+                'id' => (int) $branch->id,
+                'name' => (string) $branch->name,
+                'address' => $branch->address,
+            ],
             'occurred_at' => $now,
         ];
     }
