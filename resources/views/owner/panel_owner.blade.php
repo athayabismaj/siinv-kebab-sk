@@ -19,7 +19,7 @@
 <div class="owner-dashboard space-y-4">
     <x-page-header 
         title="Dashboard Owner" 
-        subtitle="Pantau performa penjualan, target, stok, dan transaksi dari satu tempat." 
+        subtitle="Pantau performa penjualan, stok, dan transaksi dari satu tempat."
         breadcrumb-parent="Owner" 
         breadcrumb-child="Ringkasan Bisnis">
         
@@ -57,7 +57,6 @@
         @foreach([
             ['label' => 'Omzet Hari Ini', 'value' => 'Rp ' . number_format($todayRevenue, 0, ',', '.'), 'note' => number_format($todayTransactionsCount) . ' transaksi', 'icon' => 'revenue'],
             ['label' => 'Selisih Hari Ini', 'value' => 'Rp ' . number_format($todayNetProfit, 0, ',', '.'), 'note' => 'omzet dikurangi pengeluaran tercatat', 'icon' => 'profit', 'success' => $todayNetProfit >= 0, 'danger' => $todayNetProfit < 0],
-            ['label' => 'Target Hari Ini', 'value' => $targetProgress . '%', 'note' => 'Rp ' . number_format($targetRevenue, 0, ',', '.'), 'icon' => 'target'],
             ['label' => 'Pengeluaran Hari Ini', 'value' => 'Rp ' . number_format($todayExpenseTotal, 0, ',', '.'), 'note' => number_format($todayExpenseCount) . ' catatan', 'icon' => 'expense', 'danger' => true],
         ] as $metric)
             <article class="group flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-slate-300/80 dark:border-slate-800/80 dark:bg-slate-900 dark:hover:border-slate-700">
@@ -66,8 +65,6 @@
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8M5 12a7 7 0 1114 0 7 7 0 01-14 0z"></path></svg>
                     @elseif($metric['icon'] === 'profit')
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                    @elseif($metric['icon'] === 'target')
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"></path></svg>
                     @else
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a5 5 0 00-10 0v2M5 9h14l-1 11H6L5 9zm7 4v3"></path></svg>
                     @endif
@@ -106,7 +103,7 @@
             <div class="flex h-full flex-col p-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Target & Sesi Stok</p>
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Status Sesi Stok</p>
                         <div class="mt-2.5 flex items-center gap-2">
                             <span class="relative flex h-2.5 w-2.5">
                                 <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 {{ $sessionPresentation->dotClass }}"></span>
@@ -119,24 +116,7 @@
                     <span class="rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest {{ $sessionPresentation->badgeClass }}">Hari Ini</span>
                 </div>
 
-                <div class="mt-5 rounded-xl border border-slate-200/80 p-4 dark:border-slate-700/80">
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Progress Target</p>
-                            <p class="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-white">{{ $targetProgress }}%</p>
-                        </div>
-                        <a href="{{ route('owner.targets.index') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/80">Atur</a>
-                    </div>
-                    <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800/60">
-                        <div class="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000" style="width: {{ $targetProgress }}%"></div>
-                    </div>
-                    <div class="mt-2.5 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                        <span>Rp {{ number_format($todayRevenue, 0, ',', '.') }}</span>
-                        <span>Rp {{ number_format($targetRevenue, 0, ',', '.') }}</span>
-                    </div>
-                </div>
-
-                <div class="owner-dashboard-session-metrics mt-4 divide-x divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:divide-slate-700/80 dark:border-slate-700/80 dark:bg-slate-800/30">
+                <div class="owner-dashboard-session-metrics mt-5 divide-x divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:divide-slate-700/80 dark:border-slate-700/80 dark:bg-slate-800/30">
                     @foreach([
                         ['label' => 'Total', 'value' => $dailyStockStatus['total_sessions'] ?? 0],
                         ['label' => 'Aktif', 'value' => $dailyStockStatus['open_sessions'] ?? 0],
@@ -153,7 +133,6 @@
                     @foreach([
                         ['route' => route('owner.reports.sales'), 'label' => 'Penjualan', 'path' => 'M9 17v-6m4 6V7m4 10v-4M5 21h14'],
                         ['route' => route('owner.transactions.index'), 'label' => 'Transaksi', 'path' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
-                        ['route' => route('owner.targets.index'), 'label' => 'Target', 'path' => 'M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z'],
                         ['route' => route('owner.reports.cashflow'), 'label' => 'Pengeluaran', 'path' => 'M17 9V7a5 5 0 00-10 0v2M5 9h14l-1 11H6L5 9zm7 4v3'],
                     ] as $shortcut)
                         <a href="{{ $shortcut['route'] }}" class="group flex h-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-blue-500/50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400">

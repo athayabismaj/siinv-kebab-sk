@@ -301,7 +301,8 @@ class AndroidOperationalBranchContractTest extends TestCase
             ->getJson('/api/revenue/summary?date='.now('Asia/Jakarta')->toDateString())
             ->assertOk()
             ->assertJsonPath('data.total_revenue', 25000)
-            ->assertJsonPath('data.total_count', 1);
+            ->assertJsonPath('data.total_count', 1)
+            ->assertJsonMissingPath('data.target_revenue');
     }
 
     public function test_catalog_is_refreshed_when_checkout_consumes_the_last_daily_stock(): void

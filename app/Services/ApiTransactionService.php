@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\DailyTarget;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -107,53 +106,11 @@ class ApiTransactionService
             ->first()
             ?->name;
 
-        $targetRevenue = 0.0;
-        $targetTransactions = 0;
-
-        if (Schema::hasTable('daily_targets')) {
-            $targetQuery = DailyTarget::query()
-                ->whereDate('target_date', '<=', $selectedDate)
-                ->orderByDesc('target_date');
-
-            if (Schema::hasColumn('daily_targets', 'branch_id')) {
-                if ($branchId) {
-                    $targetQuery->where('branch_id', $branchId);
-                }
-            }
-
-            $target = $targetQuery->first(['target_revenue', 'target_transactions']);
-            $targetRevenue = (float) ($target->target_revenue ?? 0);
-            $targetTransactions = (int) ($target->target_transactions ?? 0);
-        }
-
-        $revenueAchievedPct = $targetRevenue > 0
-            ? round(($totalRevenue / $targetRevenue) * 100, 1)
-            : 0.0;
-        $transactionAchievedPct = $targetTransactions > 0
-            ? round(($totalCount / $targetTransactions) * 100, 1)
-            : 0.0;
-
         return [
             'date' => $selectedDate,
             'total_revenue' => $totalRevenue,
             'total_count' => $totalCount,
             'dominant_item_name' => $dominantItemName,
-            'target_revenue' => $targetRevenue,
-            'target_count' => $targetTransactions,
-            'target_achieved_pct' => $revenueAchievedPct,
-            'target_count_achieved_pct' => $transactionAchievedPct,
-            'target_harian' => $targetRevenue,
-            'target_transactions' => $targetTransactions,
-            'target_percentage' => $revenueAchievedPct,
-            'target_progress_percent' => $revenueAchievedPct,
-            'achievement_percentage' => $revenueAchievedPct,
-            'transaction_target_percentage' => $transactionAchievedPct,
-            'target' => [
-                'revenue' => $targetRevenue,
-                'transactions' => $targetTransactions,
-                'revenue_achieved_pct' => $revenueAchievedPct,
-                'transactions_achieved_pct' => $transactionAchievedPct,
-            ],
         ];
     }
 

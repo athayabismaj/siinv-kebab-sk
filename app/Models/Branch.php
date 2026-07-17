@@ -40,8 +40,4 @@ class Branch extends Model
         return $this->hasMany(DailyStockSession::class);
     }
 
-    public function dailyTargets(): HasMany
-    {
-        return $this->hasMany(DailyTarget::class);
-    }
 }

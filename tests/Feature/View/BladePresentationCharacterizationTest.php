@@ -220,7 +220,6 @@ class BladePresentationCharacterizationTest extends TestCase
         }
 
         $passwordSource = (string) file_get_contents(resource_path('views/owner/user_management/partials/form.blade.php'));
-        $targetSource = (string) file_get_contents(resource_path('views/owner/targets/daily.blade.php'));
         $closingSource = (string) file_get_contents(resource_path('views/owner/reports/closing_index.blade.php'));
         $salesSource = (string) file_get_contents(resource_path('views/owner/reports/sales_unified.blade.php'));
         $closeSessionSource = (string) file_get_contents(resource_path('views/admin/daily_stocks/close.blade.php'));
@@ -229,7 +228,6 @@ class BladePresentationCharacterizationTest extends TestCase
 
         $this->assertStringContainsString('data-password-toggle', $passwordSource);
         $this->assertStringNotContainsString('onclick="togglePassword(', $passwordSource);
-        $this->assertStringContainsString('data-clear-zero-input', $targetSource);
         $this->assertStringContainsString('data-closing-cancel', $closingSource);
         $this->assertStringNotContainsString('onsubmit="cancelClosing(', $closingSource);
         $this->assertStringContainsString('data-date-navigation', $salesSource);

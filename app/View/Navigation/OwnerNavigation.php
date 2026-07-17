@@ -20,7 +20,6 @@ class OwnerNavigation extends SidebarNavigation
                 $this->item('Laporan Pemakaian', 'owner.reports.usage', ['owner.reports.usage', 'owner.reports.usage.export'], 'report'),
             ]],
             ['label' => 'Performa & Analisis', 'items' => [
-                $this->item('Target Harian', 'owner.targets.index', 'owner.targets.*', 'clock'),
                 $this->item('Analisis Menu', 'owner.analytics.menu', 'owner.analytics.menu', 'trend'),
             ]],
             ['label' => 'Keuangan', 'items' => [
