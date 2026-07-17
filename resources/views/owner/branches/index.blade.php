@@ -9,7 +9,6 @@
 @section('content')
 <div class="space-y-8" x-data="{
         toggleUrl: '',
-        destroyUrl: '',
         branchName: '',
         openBranchDeactivate(url, name) {
             this.toggleUrl = url;
@@ -20,11 +19,6 @@
             this.toggleUrl = url;
             this.branchName = name;
             $dispatch('open-modal', 'branch-activate-modal');
-        },
-        openBranchDestroy(url, name) {
-            this.destroyUrl = url;
-            this.branchName = name;
-            $dispatch('open-modal', 'branch-destroy-modal');
         }
     }">
     <x-page-header 
@@ -147,12 +141,6 @@
                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                             </button>
                                         @endif
-                                        <button type="button"
-                                                @click="openBranchDestroy('{{ route('owner.branches.destroy', $branch) }}', '{{ addslashes($branch->name) }}')"
-                                                class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-500/10 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15"
-                                                title="Hapus cabang">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5"></path></svg>
-                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -202,11 +190,6 @@
                                     Aktifkan
                                 </button>
                             @endif
-                            <button type="button"
-                                    @click="openBranchDestroy('{{ route('owner.branches.destroy', $branch) }}', '{{ addslashes($branch->name) }}')"
-                                    class="inline-flex w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5"></path></svg>
-                            </button>
                         </div>
                     </div>
                 @empty
@@ -301,42 +284,6 @@
                         :disabled="input.toLowerCase() !== branchName.toLowerCase()"
                         class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
                     Ya, Aktifkan
-                </button>
-            </div>
-        </form>
-    </x-modal>
-
-    <x-modal id="branch-destroy-modal" maxWidth="md" type="danger">
-        <x-slot name="title">Hapus Cabang</x-slot>
-        <x-slot name="icon">
-            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        </x-slot>
-        <x-slot name="description">
-            Anda yakin ingin menghapus cabang <span class="font-bold text-slate-900 dark:text-white" x-text="branchName"></span>? Cabang tidak dapat dihapus jika sudah digunakan untuk transaksi atau data pengguna.
-        </x-slot>
-
-        <form x-bind:action="destroyUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'branch-destroy-modal') input = ''">
-            @csrf
-            @method('DELETE')
-            <div class="pt-2">
-                <label class="sr-only" for="branch_destroy_confirmation">Konfirmasi</label>
-                <input type="text" name="destroy_confirmation" id="branch_destroy_confirmation" 
-                       x-model="input"
-                       placeholder="Ketik 'hapus' untuk konfirmasi"
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
-                       autocomplete="off"
-                       @keydown.enter.prevent="if(input.toLowerCase() === 'hapus') $el.closest('form').submit()" />
-            </div>
-            
-            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" @click="$dispatch('close-modal', 'branch-destroy-modal')"
-                        class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
-                    Batal
-                </button>
-                <button type="submit"
-                        :disabled="input.toLowerCase() !== 'hapus'"
-                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                    Ya, Hapus
                 </button>
             </div>
         </form>

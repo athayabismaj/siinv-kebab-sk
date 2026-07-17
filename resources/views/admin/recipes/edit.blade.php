@@ -11,7 +11,7 @@
 
     <x-page-header 
         title="Edit Resep Varian - {{ $variant->menu?->name }} - {{ $variant->name }}" 
-        subtitle="Tentukan komposisi bahan baku untuk varian ini. Biarkan kosong &quot;0&quot; jika bahan tidak digunakan." 
+        subtitle="Tentukan komposisi bahan baku untuk varian ini. Biarkan kosong '0' jika bahan tidak digunakan." 
         breadcrumb-parent="Manajemen Resep" 
         breadcrumb-child="Edit Resep">
         
