@@ -22,7 +22,7 @@ class BranchController extends Controller
             ]);
         }
 
-        $status = request('status', 'all');
+        $status = request('status', 'active');
 
         $query = Branch::query()
             ->withCount([
