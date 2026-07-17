@@ -96,6 +96,7 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
             Route::get('/{branch}/edit', [BranchController::class, 'edit'])->name('edit');
             Route::put('/{branch}', [BranchController::class, 'update'])->name('update');
             Route::patch('/{branch}/toggle', [BranchController::class, 'toggle'])->name('toggle');
+            Route::delete('/{branch}', [BranchController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('users')->name('users.')->group(function () {

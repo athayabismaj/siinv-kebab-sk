@@ -42,25 +42,24 @@ class PostgreSqlBackupService
             'process_exit_code' => null,
             'process_error' => null,
             'process_output' => null,
+            'artifact_state' => null,
         ];
 
         try {
             File::ensureDirectoryExists($temporaryDirectory);
 
-            $result = $this->processes->run([
-                (string) config('backup.pg_dump_path'),
-                '--format=custom',
-                '--no-owner',
-                '--no-privileges',
-                '--file', $temporaryDump,
-                '--host', (string) $connection['host'],
-                '--port', (string) $connection['port'],
-                '--username', (string) $connection['username'],
-                (string) $connection['database'],
-            ], ['PGPASSWORD' => (string) $connection['password']]);
+            // Keep the output location absolute and ready before pg_dump starts.
+            File::ensureDirectoryExists(dirname($temporaryDump));
 
-            if (! $result->successful() || ! is_file($temporaryDump) || filesize($temporaryDump) === 0) {
-                $processDiagnostics = $this->processDiagnostics($result);
+            $result = $this->processes->run(
+                $this->dumpCommand($connection, $temporaryDump),
+                ['PGPASSWORD' => (string) $connection['password']],
+            );
+
+            $artifactState = $this->artifactState($temporaryDump);
+
+            if (! $result->successful() || $artifactState !== 'ready') {
+                $processDiagnostics = $this->processDiagnostics($result, $artifactState);
 
                 throw new RuntimeException('Database backup process failed.');
             }
@@ -103,6 +102,10 @@ class PostgreSqlBackupService
                 'manifest' => $manifest,
             ];
         } catch (\Throwable $exception) {
+            if ($processDiagnostics['process_error'] === null) {
+                $processDiagnostics['process_error'] = $this->sanitizeProcessMessage($exception->getMessage());
+            }
+
             $this->filesystem->deleteDirectory($temporaryDirectory);
 
             Log::warning('Database backup failed.', [
@@ -113,6 +116,7 @@ class PostgreSqlBackupService
                 'process_exit_code' => $processDiagnostics['process_exit_code'],
                 'process_error' => $processDiagnostics['process_error'],
                 'process_output' => $processDiagnostics['process_output'],
+                'artifact_state' => $processDiagnostics['artifact_state'],
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
@@ -138,8 +142,33 @@ class PostgreSqlBackupService
         return $connection;
     }
 
-    /** @return array{process_exit_code:int|null,process_error:string|null,process_output:string|null} */
-    private function processDiagnostics(mixed $result): array
+    /** @param array<string, mixed> $connection @return array<int, string> */
+    private function dumpCommand(array $connection, string $temporaryDump): array
+    {
+        return [
+            (string) config('backup.pg_dump_path'),
+            '--format=custom',
+            '--no-owner',
+            '--no-privileges',
+            '--file', $temporaryDump,
+            '--host', (string) $connection['host'],
+            '--port', (string) $connection['port'],
+            '--username', (string) $connection['username'],
+            (string) $connection['database'],
+        ];
+    }
+
+    private function artifactState(string $temporaryDump): string
+    {
+        if (! is_file($temporaryDump)) {
+            return 'missing';
+        }
+
+        return filesize($temporaryDump) > 0 ? 'ready' : 'empty';
+    }
+
+    /** @return array{process_exit_code:int|null,process_error:string|null,process_output:string|null,artifact_state:string} */
+    private function processDiagnostics(mixed $result, string $artifactState): array
     {
         return [
             'process_exit_code' => method_exists($result, 'exitCode') ? $result->exitCode() : null,
@@ -149,13 +178,15 @@ class PostgreSqlBackupService
             'process_output' => $this->sanitizeProcessMessage(
                 method_exists($result, 'output') ? (string) $result->output() : '',
             ),
+            'artifact_state' => $artifactState,
         ];
     }
 
     private function sanitizeProcessMessage(string $message): ?string
     {
+        $message = preg_replace('/\b(PGPASSWORD|password)\s*=\s*(?:"[^"]*"|\'[^\']*\'|\S+)/i', '$1=[redacted]', $message) ?? '';
+        $message = preg_replace('#(postgres(?:ql)?://[^:\s/]+:)[^@\s/]+(@)#i', '$1[redacted]$2', $message) ?? '';
         $message = preg_replace('/\s+/', ' ', trim($message)) ?? '';
-        $message = preg_replace('/password(?:=|\s+)[^\s]+/i', 'password=[redacted]', $message) ?? '';
 
         return $message === '' ? null : Str::limit($message, 1000);
     }

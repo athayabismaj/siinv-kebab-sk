@@ -97,6 +97,40 @@ class RestoreGuardTest extends TestCase
         }
     }
 
+    public function test_uploaded_dump_is_verified_without_requiring_a_manifest_and_is_restored_only_to_a_disposable_database(): void
+    {
+        $artifact = $this->storageRoot.DIRECTORY_SEPARATOR.'uploaded.dump';
+        File::put($artifact, 'uploaded-dump-content');
+        $runner = new PostgreSqlProcessRunner(fn () => Process::result());
+
+        $this->restoreService($runner)->drillUploaded($artifact);
+
+        $commands = $runner->commands();
+
+        $this->assertCount(5, $commands);
+        $this->assertContains('--list', $commands[0]);
+        $this->assertStringContainsString('siinv_restore_test_', implode(' ', $commands[1]));
+        $this->assertStringContainsString('DROP DATABASE', implode(' ', $commands[4]));
+    }
+
+    public function test_uploaded_dump_is_validated_then_restored_to_the_configured_application_database(): void
+    {
+        $artifact = $this->storageRoot.DIRECTORY_SEPARATOR.'uploaded.dump';
+        File::put($artifact, 'uploaded-dump-content');
+        $runner = new PostgreSqlProcessRunner(fn () => Process::result());
+
+        $this->restoreService($runner)->restoreUploadedToApplication($artifact);
+
+        $commands = $runner->commands();
+
+        $this->assertCount(3, $commands);
+        $this->assertContains('--list', $commands[0]);
+        $this->assertContains('--clean', $commands[1]);
+        $this->assertContains('--if-exists', $commands[1]);
+        $this->assertContains('application_database', $commands[1]);
+        $this->assertStringContainsString("to_regclass('public.migrations')", implode(' ', $commands[2]));
+    }
+
     private function validArtifact(): string
     {
         $directory = $this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'artifact-safe';

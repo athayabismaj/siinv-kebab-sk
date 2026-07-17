@@ -127,6 +127,41 @@ class BranchController extends Controller
         );
     }
 
+    public function destroy(Request $request, Branch $branch)
+    {
+        $request->validate([
+            'destroy_confirmation' => ['required', 'string', 'in:hapus'],
+        ], [
+            'destroy_confirmation.required' => 'Ketik hapus untuk mengonfirmasi.',
+            'destroy_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik hapus.',
+        ]);
+
+        $hasRelations = DB::table('users')->where('branch_id', $branch->id)->exists()
+            || DB::table('transactions')->where('branch_id', $branch->id)->exists()
+            || DB::table('daily_stock_sessions')->where('branch_id', $branch->id)->exists()
+            || DB::table('stock_logs')->where('branch_id', $branch->id)->exists()
+            || DB::table('cashflow_entries')->where('branch_id', $branch->id)->exists()
+            || DB::table('waste_logs')->where('branch_id', $branch->id)->exists();
+
+        if ($hasRelations) {
+            return back()->withErrors([
+                'error' => 'Cabang tidak bisa dihapus karena memiliki data transaksi, stok, atau pengguna.'
+            ]);
+        }
+
+        if ($this->activeBranchCount() <= 1 && $branch->is_active) {
+            return back()->withErrors([
+                'error' => 'Minimal harus ada satu cabang aktif.'
+            ]);
+        }
+
+        $branch->delete();
+
+        return redirect()
+            ->route('owner.branches.index')
+            ->with('success', 'Cabang berhasil dihapus.');
+    }
+
     private function validateBranch(Request $request, ?Branch $branch = null): array
     {
         if ($request->filled('code')) {

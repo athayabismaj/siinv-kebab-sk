@@ -109,6 +109,31 @@ class BackupWorkflowTest extends TestCase
         }
     }
 
+    public function test_failed_dump_diagnostics_keep_postgresql_context_but_redact_password_values(): void
+    {
+        Log::spy();
+        $secret = 'sensitive-pg-password';
+        $runner = new PostgreSqlProcessRunner(
+            fn () => Process::result('', "pg_dump: error: password authentication failed\nPGPASSWORD={$secret}", 1),
+        );
+
+        try {
+            $this->backupService($runner)->create('manual');
+            $this->fail('Backup failure must be surfaced.');
+        } catch (RuntimeException) {
+            Log::shouldHaveReceived('warning')
+                ->once()
+                ->with('Database backup failed.', \Mockery::on(function (array $context) use ($secret): bool {
+                    $error = (string) ($context['process_error'] ?? '');
+
+                    return str_contains($error, 'password authentication failed')
+                        && str_contains($error, 'PGPASSWORD=[redacted]')
+                        && ! str_contains($error, $secret)
+                        && ($context['artifact_state'] ?? null) === 'missing';
+                }));
+        }
+    }
+
     public function test_empty_dump_is_rejected_and_not_published(): void
     {
         $runner = new PostgreSqlProcessRunner(function (array $command) {

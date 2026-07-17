@@ -76,6 +76,87 @@ class PostgreSqlRestoreService
         return $result;
     }
 
+    public function drillUploaded(string $artifactPath): void
+    {
+        $connection = $this->connection();
+        $this->assertRestoreEnvironment();
+        $this->assertUploadedArtifact($artifactPath);
+
+        $environment = ['PGPASSWORD' => (string) $connection['password']];
+
+        // Validate the uploaded archive before PostgreSQL creates a disposable database.
+        $this->runOrFail([
+            (string) config('backup.pg_restore_path'),
+            '--list',
+            $artifactPath,
+        ], $environment);
+
+        $targetDatabase = (string) config('backup.restore_database_prefix').Str::lower(Str::random(20));
+        $this->assertTargetDatabase($targetDatabase, $connection);
+        $databaseCreated = false;
+
+        try {
+            $this->runOrFail([
+                (string) config('backup.psql_path'),
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', (string) config('backup.maintenance_database'),
+                '--set', 'ON_ERROR_STOP=1',
+                '--command', 'CREATE DATABASE '.$this->quoteIdentifier($targetDatabase).' OWNER '.$this->quoteIdentifier((string) $connection['username']),
+            ], $environment);
+            $databaseCreated = true;
+
+            $this->runOrFail([
+                (string) config('backup.pg_restore_path'),
+                '--exit-on-error',
+                '--no-owner',
+                '--no-privileges',
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', $targetDatabase,
+                $artifactPath,
+            ], $environment);
+
+            $this->runOrFail([
+                (string) config('backup.psql_path'),
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', $targetDatabase,
+                '--set', 'ON_ERROR_STOP=1',
+                '--command', "SELECT to_regclass('public.migrations') IS NOT NULL",
+            ], $environment);
+        } finally {
+            if ($databaseCreated) {
+                $this->dropDisposableDatabase($targetDatabase);
+            }
+        }
+    }
+
+    public function restoreToApplication(string $artifactPath): void
+    {
+        $connection = $this->connection();
+        $this->assertRestoreEnvironment();
+        $manifest = $this->manifests->verify($artifactPath);
+
+        if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom' || ($manifest['encrypted'] ?? false) === true) {
+            throw new RuntimeException('Backup artifact is not supported for restore.');
+        }
+
+        $this->restoreArchiveToApplication($artifactPath, $connection);
+    }
+
+    public function restoreUploadedToApplication(string $artifactPath): void
+    {
+        $connection = $this->connection();
+        $this->assertRestoreEnvironment();
+        $this->assertUploadedArtifact($artifactPath);
+
+        $this->restoreArchiveToApplication($artifactPath, $connection);
+    }
+
     public function dropDisposableDatabase(string $targetDatabase): void
     {
         $connection = $this->connection();
@@ -111,6 +192,50 @@ class PostgreSqlRestoreService
         if (! in_array((string) config('app.env'), $allowedEnvironments, true)) {
             throw new RuntimeException('Restore is not permitted in this environment.');
         }
+    }
+
+    private function assertUploadedArtifact(string $artifactPath): void
+    {
+        if (! is_file($artifactPath) || is_link($artifactPath) || filesize($artifactPath) <= 0) {
+            throw new RuntimeException('Uploaded backup artifact is not valid.');
+        }
+    }
+
+    /** @param array<string, mixed> $connection */
+    private function restoreArchiveToApplication(string $artifactPath, array $connection): void
+    {
+        $environment = ['PGPASSWORD' => (string) $connection['password']];
+
+        // Validate the archive before changing the active application database.
+        $this->runOrFail([
+            (string) config('backup.pg_restore_path'),
+            '--list',
+            $artifactPath,
+        ], $environment);
+
+        $this->runOrFail([
+            (string) config('backup.pg_restore_path'),
+            '--clean',
+            '--if-exists',
+            '--exit-on-error',
+            '--no-owner',
+            '--no-privileges',
+            '--host', (string) $connection['host'],
+            '--port', (string) $connection['port'],
+            '--username', (string) $connection['username'],
+            '--dbname', (string) $connection['database'],
+            $artifactPath,
+        ], $environment);
+
+        $this->runOrFail([
+            (string) config('backup.psql_path'),
+            '--host', (string) $connection['host'],
+            '--port', (string) $connection['port'],
+            '--username', (string) $connection['username'],
+            '--dbname', (string) $connection['database'],
+            '--set', 'ON_ERROR_STOP=1',
+            '--command', "SELECT to_regclass('public.migrations') IS NOT NULL",
+        ], $environment);
     }
 
     /** @param array<int, string> $command @param array<string, string> $environment */

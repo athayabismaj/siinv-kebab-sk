@@ -80,6 +80,23 @@ class PostgreSqlBackupRestoreDrillTest extends TestCase
         }
     }
 
+    public function test_uploaded_dump_is_verified_with_a_disposable_restore_drill_without_requiring_the_internal_manifest(): void
+    {
+        $filesystem = new BackupFilesystem();
+        $manifests = new BackupManifestService();
+        $runner = new PostgreSqlProcessRunner();
+        $backup = (new PostgreSqlBackupService($filesystem, $manifests, $runner))->create('integration-upload-drill');
+        $uploadPath = $filesystem->path('backups/.tmp/uploaded-backup.dump');
+        File::ensureDirectoryExists(dirname($uploadPath));
+        File::copy($backup['file_path'], $uploadPath);
+
+        $before = $this->disposableDatabases();
+
+        (new PostgreSqlRestoreService($filesystem, $manifests, $runner))->drillUploaded($uploadPath);
+
+        $this->assertSame($before, $this->disposableDatabases());
+    }
+
     private function pdo(string $database): PDO
     {
         return new PDO(
@@ -88,5 +105,16 @@ class PostgreSqlBackupRestoreDrillTest extends TestCase
             (string) env('FASE4D_PG_PASSWORD'),
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
         );
+    }
+
+    /** @return array<int, string> */
+    private function disposableDatabases(): array
+    {
+        $statement = $this->pdo((string) config('backup.maintenance_database'))->prepare(
+            'SELECT datname FROM pg_database WHERE datname LIKE ? ORDER BY datname',
+        );
+        $statement->execute([(string) config('backup.restore_database_prefix').'%']);
+
+        return $statement->fetchAll(PDO::FETCH_COLUMN);
     }
 }

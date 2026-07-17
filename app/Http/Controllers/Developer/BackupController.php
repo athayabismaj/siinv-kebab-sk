@@ -7,10 +7,12 @@ use App\Models\BackupHistory;
 use App\Services\Backup\PostgreSqlBackupService;
 use App\Services\Backup\PostgreSqlRestoreService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BackupController extends Controller
@@ -77,7 +79,7 @@ class BackupController extends Controller
         return response()->download($filePath, basename((string) $backup->file_name));
     }
 
-    public function restore(Request $request, $id, PostgreSqlRestoreService $restoreService)
+    public function restore(Request $request, $id, PostgreSqlRestoreService $restoreService, PostgreSqlBackupService $backupService)
     {
         if (! $this->hasRestoreConfirmation($request)) {
             return redirect()->back()->with('error', 'Restore dibatalkan. Ketik RESTORE untuk mengonfirmasi proses restore database.');
@@ -91,12 +93,12 @@ class BackupController extends Controller
         }
 
         try {
-            $restoreService->drill($filePath);
+            $this->restoreApplication($backupService, fn () => $restoreService->restoreToApplication($filePath));
 
-            return redirect()->back()->with('success', 'Verifikasi restore pada database sementara berhasil. Database aplikasi tidak diubah.');
+            return redirect()->back()->with('success', 'Database berhasil dipulihkan dari file backup.');
         } catch (\Throwable $exception) {
-            Log::warning('Developer backup restore drill failed.', [
-                'operation' => 'restore_drill',
+            Log::warning('Developer backup restore failed.', [
+                'operation' => 'restore',
                 'backup_id' => $backup->id,
                 'exception' => $exception::class,
             ]);
@@ -105,7 +107,7 @@ class BackupController extends Controller
         }
     }
 
-    public function restoreUpload(Request $request)
+    public function restoreUpload(Request $request, PostgreSqlRestoreService $restoreService, PostgreSqlBackupService $backupService)
     {
         $request->validate([
             'backup_file' => ['required', 'file', 'max:'.self::MAX_RESTORE_UPLOAD_KB],
@@ -128,12 +130,72 @@ class BackupController extends Controller
             return redirect()->back()->with('error', 'File restore ditolak karena tipe file tidak sesuai.');
         }
 
-        return redirect()->back()->with('error', 'File backup tidak valid atau tidak dapat dibaca.');
+        $uploadDirectory = trim((string) config('backup.temporary_directory'), '/').'/restore-upload-'.Str::uuid();
+        $uploadPath = Storage::disk((string) config('backup.disk'))->path($file->storeAs(
+            $uploadDirectory,
+            'database.'.$extension,
+            (string) config('backup.disk'),
+        ));
+
+        try {
+            $this->restoreApplication($backupService, fn () => $restoreService->restoreUploadedToApplication($uploadPath));
+
+            return redirect()->back()->with('success', 'Database berhasil dipulihkan dari file backup yang diunggah.');
+        } catch (\Throwable $exception) {
+            Log::warning('Developer uploaded backup restore failed.', [
+                'operation' => 'restore_upload',
+                'exception' => $exception::class,
+            ]);
+
+            return redirect()->back()->with('error', 'File backup tidak valid atau tidak dapat dibaca.');
+        } finally {
+            Storage::disk((string) config('backup.disk'))->deleteDirectory($uploadDirectory);
+        }
     }
 
     private function hasRestoreConfirmation(Request $request): bool
     {
         return strtolower(trim((string) $request->input('restore_confirmation'))) === self::RESTORE_CONFIRMATION;
+    }
+
+    /** @param callable():void $restore */
+    private function restoreApplication(PostgreSqlBackupService $backupService, callable $restore): void
+    {
+        $wasInMaintenanceMode = app()->isDownForMaintenance();
+
+        $snapshot = $backupService->create('pre_restore');
+
+        if (! $wasInMaintenanceMode && Artisan::call('down') !== 0) {
+            throw new \RuntimeException('Unable to enable maintenance mode for restore.');
+        }
+
+        try {
+            $restore();
+
+            if (Artisan::call('migrate', ['--force' => true]) !== 0) {
+                throw new \RuntimeException('Unable to migrate the restored database.');
+            }
+
+            BackupHistory::query()->create([
+                'file_name' => basename($snapshot['file_path']),
+                'file_path' => $snapshot['file_path'],
+                'file_size' => $snapshot['manifest']['size_bytes'],
+                'status' => 'success',
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Throwable $exception) {
+            Log::critical('Database restore failed after a pre-restore snapshot was created.', [
+                'operation' => 'restore',
+                'pre_restore_backup' => basename($snapshot['file_path']),
+                'exception' => $exception::class,
+            ]);
+
+            throw $exception;
+        } finally {
+            if (! $wasInMaintenanceMode) {
+                Artisan::call('up');
+            }
+        }
     }
 
     private function isAllowedBackupPath(string $filePath): bool
