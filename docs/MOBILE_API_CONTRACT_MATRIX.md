@@ -9,8 +9,10 @@ resource API, dan test kontrak Laravel. Android harus mengikuti kontrak ini.
 - Prefix endpoint: `/api/`.
 - Endpoint terproteksi memakai `Authorization: Bearer <token>` dan
   `Accept: application/json`.
-- Cabang operasional berasal dari relasi user/token di backend. Android tidak
-  boleh mengirim `branch_id` untuk memilih cabang lain.
+- Cabang yang boleh diakses berasal dari cabang utama dan penugasan aktif user.
+  Untuk kasir, cabang operasional aktual berasal dari sesi stok harian aktif
+  milik kasir pada tanggal bisnis aplikasi. Android tidak boleh mengirim
+  `branch_id` untuk memilih cabang lain.
 - Nominal uang adalah integer JSON dan dipetakan ke Kotlin `Long`.
 - ID, jumlah, page, dan count adalah integer.
 - Field opsional dapat bernilai `null`; client tidak boleh mengarang nilai.
@@ -44,10 +46,19 @@ resource API, dan test kontrak Laravel. Android harus mengikuti kontrak ini.
 
 ## Branch context
 
-Backend menentukan cabang dari user yang memiliki token. `branch` pada login
-dan profil boleh `null`, atau berisi `id`, `name`, dan `code`. Android menyimpan
-nilai itu untuk state dan tampilan, tetapi tidak menggunakannya untuk menembus
-isolasi cabang backend. Token user lain tetap tidak boleh dipakai.
+Backend membangun daftar cabang yang diizinkan dari `users.branch_id` sebagai
+cabang utama/fallback dan penugasan cabang aktif pada `branch_user`. Untuk
+operasi kasir yang memiliki sesi harian, `daily_stock_sessions.branch_id`
+menjadi cabang operasional aktual. Satu resolver yang sama digunakan oleh
+status sesi, stok harian, tutup sesi, katalog/ketersediaan, checkout,
+pengeluaran, dan ringkasan omzet.
+
+`branch` pada login dan profil tetap merepresentasikan cabang utama user dan
+boleh `null`, atau berisi `id`, `name`, dan `code`. Field tersebut tidak berubah
+menjadi cabang sesi. Android menyimpannya untuk state/tampilan, tetapi tidak
+menggunakannya untuk authorization dan tidak mengirim `branch_id` pada request
+operasional. Riwayat dan receipt kasir dapat membaca transaksi milik kasir pada
+seluruh cabang yang masih diizinkan. Token atau sesi user lain tetap ditolak.
 
 ## Daily Stock Session
 
@@ -58,6 +69,13 @@ isolasi cabang backend. Token user lain tetap tidak boleh dipakai.
   checkout harus fail-closed sampai status berhasil dimuat ulang.
 - Pembukaan sesi dilakukan admin melalui web. Android tidak mempunyai endpoint
   open-session.
+- Status sesi dan stok harian wajib menunjuk `session_id` yang sama.
+- Hanya sesi berstatus buka pada tanggal bisnis aplikasi yang digunakan; sesi
+  lama yang belum tertutup tidak dipilih sebagai sesi hari ini.
+- Jika data rusak menghasilkan lebih dari satu sesi valid, backend gagal aman
+  dengan `409` dan tidak memilih sesi secara arbitrer.
+- Stok `kg` dan `l` dikirim dalam display unit dengan desimal tetap terjaga;
+  nilai dasar tetap disimpan dalam `g` dan `ml`.
 
 ## Checkout dan idempotensi
 
