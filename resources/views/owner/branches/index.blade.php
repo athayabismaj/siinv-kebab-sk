@@ -7,20 +7,25 @@
 @endsection
 
 @section('content')
-<div class="space-y-8">
+<div class="space-y-8" x-data="{
+        toggleUrl: '',
+        branchName: '',
+        openBranchDeactivate(url, name) {
+            this.toggleUrl = url;
+            this.branchName = name;
+            $dispatch('open-modal', 'branch-deactivate-modal');
+        },
+        openBranchActivate(url, name) {
+            this.toggleUrl = url;
+            this.branchName = name;
+            $dispatch('open-modal', 'branch-activate-modal');
+        }
+    }">
     <x-page-header 
         title="Manajemen Cabang" 
         subtitle="Kelola daftar cabang yang digunakan untuk memetakan admin, kasir, transaksi, sesi stok harian, dan laporan operasional." 
         breadcrumb-parent="Owner" 
         breadcrumb-child="Cabang">
-        
-        @if(!($migrationMissing ?? false))
-            <a href="{{ route('owner.branches.create') }}"
-               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 shrink-0">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-                Tambah Cabang
-            </a>
-        @endif
     </x-page-header>
 
     @if($migrationMissing ?? false)
@@ -31,53 +36,42 @@
             </p>
         </div>
     @else
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {{-- Total Cabang --}}
-            <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Total Cabang</p>
-                        <p class="mt-2 text-[28px] leading-none font-black text-slate-900 tabular-nums dark:text-white">{{ $summary['total'] ?? $branches->total() }}</p>
-                    </div>
-                    <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    </span>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
-                    <span>seluruh cabang terdaftar</span>
-                </div>
-            </div>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <nav class="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-900 sm:inline-grid sm:min-w-[420px]" aria-label="Filter status cabang">
+                @foreach([
+                    'active' => ['label' => 'Aktif', 'count' => $activeCount ?? 0],
+                    'inactive' => ['label' => 'Nonaktif', 'count' => $inactiveCount ?? 0],
+                    'all' => ['label' => 'Semua', 'count' => $totalCount ?? 0],
+                ] as $filter => $item)
+                    <a href="{{ route('owner.branches.index', ['status' => $filter]) }}"
+                       @class([
+                           'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold transition-colors',
+                           'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400' => ($status ?? 'all') === $filter,
+                           'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' => ($status ?? 'all') !== $filter,
+                       ])>
+                        {{ $item['label'] }}
+                        <span @class([
+                            'rounded-md px-1.5 py-0.5 text-[10px] tabular-nums',
+                            'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300' => ($status ?? 'all') === $filter,
+                            'bg-slate-200/70 text-slate-500 dark:bg-slate-700 dark:text-slate-300' => ($status ?? 'all') !== $filter,
+                        ])>{{ $item['count'] }}</span>
+                    </a>
+                @endforeach
+            </nav>
 
-            {{-- Cabang Aktif --}}
-            <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Cabang Aktif</p>
-                        <p class="mt-2 text-[28px] leading-none font-black text-emerald-600 tabular-nums dark:text-emerald-400">{{ $summary['active'] ?? 0 }}</p>
-                    </div>
-                    <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-emerald-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="flex w-full flex-col sm:flex-row sm:items-center justify-end gap-3 sm:w-auto">
+                <div class="inline-flex h-10 items-center gap-2 px-3.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl shadow-sm">
+                    <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        Total: <span class="text-slate-900 dark:text-white normal-case tracking-normal ml-0.5">{{ $branches->total() ?? $branches->count() }} Cabang</span>
                     </span>
                 </div>
-                <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
-                    <span>cabang beroperasi normal</span>
-                </div>
-            </div>
-
-            {{-- Cabang Nonaktif --}}
-            <div class="relative overflow-hidden border border-slate-200 rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-slate-300 transition-all dark:bg-slate-900 dark:border-slate-800">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-[11px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">Cabang Nonaktif</p>
-                        <p class="mt-2 text-[28px] leading-none font-black text-slate-600 tabular-nums dark:text-slate-400">{{ $summary['inactive'] ?? 0 }}</p>
-                    </div>
-                    <span class="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,1)] dark:bg-slate-800 dark:shadow-[inset_0_0_0_1px_rgba(51,65,85,1)]">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </span>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-[11px] font-semibold text-slate-500 dark:border-slate-700/60 dark:text-slate-400">
-                    <span>cabang sedang tidak beroperasi</span>
-                </div>
+                
+                <a href="{{ route('owner.branches.create') }}"
+                   class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    Tambah Cabang
+                </a>
             </div>
         </div>
 
@@ -132,23 +126,21 @@
                                            title="Edit cabang">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                         </a>
-                                        <form action="{{ route('owner.branches.toggle', $branch) }}" method="POST">
-                                            @csrf
-                                            @method('PATCH')
-                                            @if($branch->is_active)
-                                                <button type="submit"
-                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
-                                                        title="Nonaktifkan Cabang">
-                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                                                </button>
-                                            @else
-                                                <button type="submit"
-                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
-                                                        title="Aktifkan Cabang">
-                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                </button>
-                                            @endif
-                                        </form>
+                                        @if($branch->is_active)
+                                            <button type="button"
+                                                    @click="openBranchDeactivate('{{ route('owner.branches.toggle', $branch) }}', '{{ addslashes($branch->name) }}')"
+                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
+                                                    title="Nonaktifkan Cabang">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                            </button>
+                                        @else
+                                            <button type="button"
+                                                    @click="openBranchActivate('{{ route('owner.branches.toggle', $branch) }}', '{{ addslashes($branch->name) }}')"
+                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
+                                                    title="Aktifkan Cabang">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -185,13 +177,19 @@
                         <div class="mt-4 flex gap-2">
                             <a href="{{ route('owner.branches.edit', $branch) }}"
                                class="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-center text-xs font-black text-white">Edit</a>
-                            <form action="{{ route('owner.branches.toggle', $branch) }}" method="POST" class="flex-1">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                                    {{ $branch->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                            @if($branch->is_active)
+                                <button type="button" 
+                                        @click="openBranchDeactivate('{{ route('owner.branches.toggle', $branch) }}', '{{ addslashes($branch->name) }}')"
+                                        class="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                    Nonaktifkan
                                 </button>
-                            </form>
+                            @else
+                                <button type="button" 
+                                        @click="openBranchActivate('{{ route('owner.branches.toggle', $branch) }}', '{{ addslashes($branch->name) }}')"
+                                        class="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                    Aktifkan
+                                </button>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -219,5 +217,76 @@
             </div>
         @endif
     @endif
+
+    <x-modal id="branch-deactivate-modal" maxWidth="md" type="danger">
+        <x-slot name="title">Nonaktifkan Cabang</x-slot>
+        <x-slot name="icon">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </x-slot>
+        <x-slot name="description">
+            Anda yakin ingin menonaktifkan cabang <span class="font-bold text-slate-900 dark:text-white" x-text="branchName"></span>? Cabang ini tidak akan muncul pada pilihan form. Cabang dapat diaktifkan kembali melalui filter Nonaktif.
+        </x-slot>
+
+        <form x-bind:action="toggleUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'branch-deactivate-modal') input = ''">
+            @csrf
+            @method('PATCH')
+            <div class="pt-2">
+                <label class="sr-only" for="branch_deactivate_confirmation">Konfirmasi</label>
+                <input type="text" name="deactivate_confirmation" id="branch_deactivate_confirmation" 
+                       x-model="input"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       autocomplete="off"
+                       x-bind:placeholder="'Ketik \'' + branchName + '\' untuk konfirmasi'"
+                       @keydown.enter.prevent="if(input.toLowerCase() === branchName.toLowerCase()) $el.closest('form').submit()" />
+            </div>
+            
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'branch-deactivate-modal')"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit"
+                        :disabled="input.toLowerCase() !== branchName.toLowerCase()"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Ya, Nonaktifkan
+                </button>
+            </div>
+        </form>
+    </x-modal>
+
+    <x-modal id="branch-activate-modal" maxWidth="md" type="success">
+        <x-slot name="title">Aktifkan Cabang</x-slot>
+        <x-slot name="icon">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </x-slot>
+        <x-slot name="description">
+            Anda yakin ingin mengaktifkan cabang <span class="font-bold text-slate-900 dark:text-white" x-text="branchName"></span>? Cabang ini akan tersedia kembali pada pilihan form dan operasional harian.
+        </x-slot>
+
+        <form x-bind:action="toggleUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'branch-activate-modal') input = ''">
+            @csrf
+            @method('PATCH')
+            <div class="pt-2">
+                <label class="sr-only" for="branch_activate_confirmation">Konfirmasi</label>
+                <input type="text" name="activate_confirmation" id="branch_activate_confirmation" 
+                       x-model="input"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500" 
+                       autocomplete="off"
+                       x-bind:placeholder="'Ketik \'' + branchName + '\' untuk konfirmasi'"
+                       @keydown.enter.prevent="if(input.toLowerCase() === branchName.toLowerCase()) $el.closest('form').submit()" />
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'branch-activate-modal')"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit"
+                        :disabled="input.toLowerCase() !== branchName.toLowerCase()"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Ya, Aktifkan
+                </button>
+            </div>
+        </form>
+    </x-modal>
 </div>
 @endsection

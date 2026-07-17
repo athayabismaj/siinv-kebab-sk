@@ -229,6 +229,59 @@ class AndroidOperationalBranchContractTest extends TestCase
         $this->assertSame(1, CashflowEntry::query()->count());
     }
 
+    public function test_cashier_expense_uses_operational_branch_and_owner_filters_it_by_branch(): void
+    {
+        [$primaryBranch, $operationalBranch, $admin, $cashier] = $this->createAssignedCashier();
+        $this->openOperationalSession($admin, $cashier, $operationalBranch);
+        $token = $this->createApiTokenFor($cashier);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/cashflow/expenses', [
+                'amount' => 7500,
+                'source' => 'Belanja operasional UMK',
+                'branch_id' => $primaryBranch->id,
+            ])
+            ->assertCreated();
+
+        $entryId = (int) $response->json('data.id');
+        $this->assertDatabaseHas('cashflow_entries', [
+            'id' => $entryId,
+            'created_by' => $cashier->id,
+            'branch_id' => $operationalBranch->id,
+            'type' => 'expense',
+            'amount' => 7500,
+        ]);
+        $this->assertDatabaseMissing('cashflow_entries', [
+            'id' => $entryId,
+            'branch_id' => $primaryBranch->id,
+        ]);
+
+        $ownerRole = Role::query()->firstOrCreate(['name' => 'owner']);
+        $owner = User::factory()->create([
+            'role_id' => $ownerRole->id,
+            'branch_id' => $primaryBranch->id,
+        ]);
+        $filters = [
+            'type' => 'daily',
+            'date' => now('Asia/Jakarta')->toDateString(),
+        ];
+
+        $this->actingAs($owner)
+            ->get(route('owner.reports.cashflow', $filters + ['branch_id' => $operationalBranch->id]))
+            ->assertOk()
+            ->assertViewHas('entries', fn ($entries): bool => $entries->contains('id', $entryId));
+
+        $this->actingAs($owner)
+            ->get(route('owner.reports.cashflow', $filters + ['branch_id' => $primaryBranch->id]))
+            ->assertOk()
+            ->assertViewHas('entries', fn ($entries): bool => ! $entries->contains('id', $entryId));
+
+        $this->actingAs($owner)
+            ->get(route('owner.reports.cashflow', $filters + ['branch_id' => 0]))
+            ->assertOk()
+            ->assertViewHas('entries', fn ($entries): bool => $entries->contains('id', $entryId));
+    }
+
     public function test_revenue_summary_uses_the_current_operational_branch_only(): void
     {
         [$primaryBranch, $operationalBranch, $admin, $cashier] = $this->createAssignedCashier();

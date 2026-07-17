@@ -331,25 +331,29 @@
             Ketik <b class="text-slate-900 dark:text-white">AKTIFKAN</b> untuk mengonfirmasi pengaktifan kembali akun owner ini.
         </x-slot>
 
-        <form :action="restoreUrl" method="POST" id="form-owner-restore">
+        <form :action="restoreUrl" method="POST" id="form-owner-restore" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'owner-restore-modal') input = ''">
             @csrf
             @method('PATCH')
             <div class="pt-2">
                 <label class="sr-only" for="owner_restore_confirmation">Konfirmasi</label>
-                <input type="text" name="restore_confirmation" id="owner_restore_confirmation" required pattern="AKTIFKAN" title="Ketik AKTIFKAN" placeholder="Ketik AKTIFKAN"
-                       data-uppercase-input
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500" />
+                <input type="text" name="restore_confirmation" id="owner_restore_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'aktifkan' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'aktifkan') $el.closest('form').submit()" />
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'owner-restore-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit" 
+                        :disabled="input.toLowerCase() !== 'aktifkan'"
+                        class="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Ya, Aktifkan
+                </button>
             </div>
         </form>
-
-        <x-slot name="footer">
-            <button type="button" @click="$dispatch('close-modal', 'owner-restore-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
-                Batal
-            </button>
-            <button type="submit" form="form-owner-restore" class="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto">
-                Ya, Aktifkan
-            </button>
-        </x-slot>
     </x-modal>
 
     <x-modal id="owner-destroy-modal" maxWidth="md" type="danger">
@@ -363,25 +367,29 @@
             Ketik <b class="text-slate-900 dark:text-white">NONAKTIF</b> untuk mengonfirmasi penonaktifan akun owner ini.
         </x-slot>
 
-        <form :action="destroyUrl" method="POST" id="form-owner-destroy">
+        <form :action="destroyUrl" method="POST" id="form-owner-destroy" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'owner-destroy-modal') input = ''">
             @csrf
             @method('DELETE')
             <div class="pt-2">
                 <label class="sr-only" for="owner_destroy_confirmation">Konfirmasi</label>
-                <input type="text" name="destroy_confirmation" id="owner_destroy_confirmation" required pattern="NONAKTIF" title="Ketik NONAKTIF" placeholder="Ketik NONAKTIF"
-                       data-uppercase-input
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" />
+                <input type="text" name="destroy_confirmation" id="owner_destroy_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'nonaktif' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'nonaktif') $el.closest('form').submit()" />
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'owner-destroy-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit" 
+                        :disabled="input.toLowerCase() !== 'nonaktif'"
+                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Ya, Nonaktifkan
+                </button>
             </div>
         </form>
-
-        <x-slot name="footer">
-            <button type="button" @click="$dispatch('close-modal', 'owner-destroy-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
-                Batal
-            </button>
-            <button type="submit" form="form-owner-destroy" class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto">
-                Ya, Nonaktifkan
-            </button>
-        </x-slot>
     </x-modal>
 
 </div>

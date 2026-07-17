@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class BackupController extends Controller
 {
     private const MAX_RESTORE_UPLOAD_KB = 102400;
-    private const RESTORE_CONFIRMATION = 'RESTORE';
+    private const RESTORE_CONFIRMATION = 'restore';
     private const UPLOAD_RESTORE_EXTENSIONS = ['backup', 'dump'];
     private const RESTORE_UPLOAD_MIMES = [
         'application/octet-stream',
@@ -133,7 +133,7 @@ class BackupController extends Controller
 
     private function hasRestoreConfirmation(Request $request): bool
     {
-        return strtoupper(trim((string) $request->input('restore_confirmation'))) === self::RESTORE_CONFIRMATION;
+        return strtolower(trim((string) $request->input('restore_confirmation'))) === self::RESTORE_CONFIRMATION;
     }
 
     private function isAllowedBackupPath(string $filePath): bool

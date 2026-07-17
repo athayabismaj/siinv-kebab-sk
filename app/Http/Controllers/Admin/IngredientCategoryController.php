@@ -56,8 +56,14 @@ class IngredientCategoryController extends Controller
             ->with('success', 'Kategori berhasil diperbarui.');
     }
 
-    public function destroy(IngredientCategory $ingredientCategory)
+    public function destroy(Request $request, IngredientCategory $ingredientCategory)
     {
+        $request->validate([
+            'destroy_confirmation' => ['required', 'string', 'in:hapus'],
+        ], [
+            'destroy_confirmation.required' => 'Ketik hapus untuk mengonfirmasi.',
+            'destroy_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik hapus.',
+        ]);
         // Cegah hapus jika masih dipakai
         if ($ingredientCategory->ingredients()->exists()) {
             return back()->withErrors([

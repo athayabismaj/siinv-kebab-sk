@@ -22,14 +22,23 @@ class BranchController extends Controller
             ]);
         }
 
-        $branches = Branch::query()
+        $status = request('status', 'all');
+
+        $query = Branch::query()
             ->withCount([
                 'transactions',
                 'dailyStockSessions',
             ])
             ->orderByDesc('is_active')
-            ->orderBy('name')
-            ->paginate(10);
+            ->orderBy('name');
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $branches = $query->paginate(10);
 
         $branches->getCollection()->transform(function (Branch $branch) {
             $branch->operational_users_count = $this->operationalUserCount($branch);
@@ -37,14 +46,22 @@ class BranchController extends Controller
             return $branch;
         });
 
+        $totalCount = (int) Branch::query()->count();
+        $activeCount = (int) Branch::query()->where('is_active', true)->count();
+        $inactiveCount = (int) Branch::query()->where('is_active', false)->count();
+
         return view('owner.branches.index', [
             'branches' => $branches,
             'migrationMissing' => false,
             'summary' => [
-                'total' => (int) Branch::query()->count(),
-                'active' => (int) Branch::query()->where('is_active', true)->count(),
-                'inactive' => (int) Branch::query()->where('is_active', false)->count(),
+                'total' => $totalCount,
+                'active' => $activeCount,
+                'inactive' => $inactiveCount,
             ],
+            'status' => $status,
+            'totalCount' => $totalCount,
+            'activeCount' => $activeCount,
+            'inactiveCount' => $inactiveCount,
         ]);
     }
 

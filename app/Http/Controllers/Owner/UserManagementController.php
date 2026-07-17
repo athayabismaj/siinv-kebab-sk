@@ -153,10 +153,10 @@ class UserManagementController extends Controller
     public function destroy(Request $request, User $user)
     {
         $request->validate([
-            'destroy_confirmation' => ['required', 'string', 'in:NONAKTIF'],
+            'destroy_confirmation' => ['required', 'string', 'in:nonaktif'],
         ], [
-            'destroy_confirmation.required' => 'Ketik NONAKTIF untuk mengonfirmasi penonaktifan akun.',
-            'destroy_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik NONAKTIF.',
+            'destroy_confirmation.required' => 'Ketik nonaktif untuk mengonfirmasi penonaktifan akun.',
+            'destroy_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik nonaktif.',
         ]);
 
         $this->ensureUserManageable($user);
@@ -178,10 +178,10 @@ class UserManagementController extends Controller
     public function restore(Request $request, $id)
     {
         $request->validate([
-            'restore_confirmation' => ['required', 'string', 'in:AKTIFKAN'],
+            'restore_confirmation' => ['required', 'string', 'in:aktifkan'],
         ], [
-            'restore_confirmation.required' => 'Ketik AKTIFKAN untuk mengonfirmasi pengaktifan akun.',
-            'restore_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik AKTIFKAN.',
+            'restore_confirmation.required' => 'Ketik aktifkan untuk mengonfirmasi pengaktifan akun.',
+            'restore_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik aktifkan.',
         ]);
 
         $user = User::withTrashed()->findOrFail($id);

@@ -321,7 +321,7 @@
             Pilih file backup (.dump/.backup) dan ketik <b class="text-slate-900 dark:text-white">RESTORE</b> untuk melanjutkan.
         </x-slot>
 
-        <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" id="form-restore-manual">
+        <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" id="form-restore-manual" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'restore-manual-modal') input = ''">
             @csrf
             <div class="space-y-4 pt-2">
                 <div>
@@ -331,21 +331,25 @@
                 </div>
                 <div>
                     <label class="sr-only" for="restore_confirmation">Konfirmasi</label>
-                    <input type="text" name="restore_confirmation" id="restore_confirmation" required pattern="RESTORE" title="Ketik RESTORE" placeholder="Ketik RESTORE"
-                           data-uppercase-input
-                           class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" />
+                    <input type="text" name="restore_confirmation" id="restore_confirmation" 
+                           x-model="input"
+                           placeholder="Ketik 'restore' untuk konfirmasi"
+                           class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                           autocomplete="off"
+                           @keydown.enter.prevent="if(input.toLowerCase() === 'restore') $el.closest('form').submit()" />
                 </div>
             </div>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'restore-manual-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit" 
+                        :disabled="input.toLowerCase() !== 'restore'"
+                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Mulai Restore
+                </button>
+            </div>
         </form>
-
-        <x-slot name="footer">
-            <button type="button" @click="$dispatch('close-modal', 'restore-manual-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
-                Batal
-            </button>
-            <button type="submit" form="form-restore-manual" class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto">
-                Mulai Restore
-            </button>
-        </x-slot>
     </x-modal>
 
     <x-modal id="restore-riwayat-modal" maxWidth="md" type="warning">
@@ -361,24 +365,28 @@
             <span class="mt-3 block">Ketik <b class="text-slate-900 dark:text-white">RESTORE</b> untuk melanjutkan.</span>
         </x-slot>
 
-        <form :action="restoreUrl" method="POST" id="form-restore-riwayat">
+        <form :action="restoreUrl" method="POST" id="form-restore-riwayat" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'restore-riwayat-modal') input = ''">
             @csrf
             <div class="pt-2">
                 <label class="sr-only" for="restore_riwayat_confirmation">Konfirmasi</label>
-                <input type="text" name="restore_confirmation" id="restore_riwayat_confirmation" required pattern="RESTORE" title="Ketik RESTORE" placeholder="Ketik RESTORE"
-                       data-uppercase-input
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" />
+                <input type="text" name="restore_confirmation" id="restore_riwayat_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'restore' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'restore') $el.closest('form').submit()" />
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'restore-riwayat-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit" 
+                        :disabled="input.toLowerCase() !== 'restore'"
+                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Mulai Restore
+                </button>
             </div>
         </form>
-
-        <x-slot name="footer">
-            <button type="button" @click="$dispatch('close-modal', 'restore-riwayat-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
-                Batal
-            </button>
-            <button type="submit" form="form-restore-riwayat" class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto">
-                Mulai Restore
-            </button>
-        </x-slot>
     </x-modal>
 
     <!-- Hidden form for Swal file upload -->

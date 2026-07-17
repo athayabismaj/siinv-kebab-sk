@@ -69,8 +69,14 @@ class MenuCategoryController extends Controller
             ->with('success', 'Kategori menu berhasil diperbarui.');
     }
 
-    public function destroy(MenuCategory $menuCategory)
+    public function destroy(Request $request, MenuCategory $menuCategory)
     {
+        $request->validate([
+            'destroy_confirmation' => ['required', 'string', 'in:hapus'],
+        ], [
+            'destroy_confirmation.required' => 'Ketik hapus untuk mengonfirmasi.',
+            'destroy_confirmation.in' => 'Konfirmasi tidak sesuai. Ketik hapus.',
+        ]);
         if ($menuCategory->menus()->exists()) {
             return back()->withErrors([
                 'error' => 'Kategori tidak bisa dihapus karena masih digunakan.'

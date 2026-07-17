@@ -41,14 +41,17 @@
             Anda yakin ingin menonaktifkan bahan baku <span class="font-bold text-slate-900 dark:text-white" x-text="ingredientName"></span>? Data akan berstatus diarsipkan dan tidak dapat dipilih pada resep baru.
         </x-slot>
 
-        <form x-bind:action="destroyUrl" method="POST">
+        <form x-bind:action="destroyUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'ingredient-destroy-modal') input = ''">
             @csrf
             @method('DELETE')
             <div class="pt-2">
                 <label class="sr-only" for="ingredient_destroy_confirmation">Konfirmasi</label>
-                <input type="text" name="destroy_confirmation" id="ingredient_destroy_confirmation" required pattern="NONAKTIF" title="Ketik NONAKTIF" placeholder="Ketik NONAKTIF"
-                       data-uppercase-input
-                       class="uppercase block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" />
+                <input type="text" name="destroy_confirmation" id="ingredient_destroy_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'nonaktif' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'nonaktif') $el.closest('form').submit()" />
             </div>
             
             <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -57,7 +60,8 @@
                     Batal
                 </button>
                 <button type="submit"
-                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto">
+                        :disabled="input.toLowerCase() !== 'nonaktif'"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
                     Ya, Nonaktifkan
                 </button>
             </div>
@@ -73,18 +77,23 @@
             Pulihkan <span class="font-bold text-slate-900 dark:text-white" x-text="ingredientName"></span> agar kembali tersedia pada pengelolaan bahan dan resep.
         </x-slot>
 
-        <form x-bind:action="restoreUrl" method="POST">
+        <form x-bind:action="restoreUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'ingredient-restore-modal') input = ''">
             @csrf
             @method('PATCH')
             <div class="pt-2">
                 <label class="sr-only" for="ingredient_restore_confirmation">Konfirmasi</label>
-                <input type="text" name="restore_confirmation" id="ingredient_restore_confirmation" required pattern="AKTIFKAN" title="Ketik AKTIFKAN" placeholder="Ketik AKTIFKAN"
-                       data-uppercase-input
-                       class="uppercase block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+                <input type="text" name="restore_confirmation" id="ingredient_restore_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'aktifkan' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'aktifkan') $el.closest('form').submit()" />
             </div>
             <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button type="button" @click="$dispatch('close-modal', 'ingredient-restore-modal')" class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">Batal</button>
-                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto">Pulihkan Bahan</button>
+                <button type="submit" 
+                        :disabled="input.toLowerCase() !== 'aktifkan'"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">Pulihkan Bahan</button>
             </div>
         </form>
     </x-modal>

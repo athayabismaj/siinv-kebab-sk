@@ -30,7 +30,31 @@
         subtitle="Kelola akun admin dan kasir, termasuk akses cabang serta status aktifnya."
         breadcrumb-parent="Owner" 
         breadcrumb-child="Pengguna">
-        
+    </x-page-header>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <nav class="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-900 sm:inline-grid sm:min-w-[420px]" aria-label="Filter status pengguna">
+            @foreach([
+                'active' => ['label' => 'Aktif', 'count' => $activeCount],
+                'inactive' => ['label' => 'Nonaktif', 'count' => $inactiveCount],
+                'all' => ['label' => 'Semua', 'count' => $allCount],
+            ] as $filter => $item)
+                <a href="{{ route('owner.users.index', ['status' => $filter]) }}"
+                   @class([
+                       'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold transition-colors',
+                       'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400' => $status === $filter,
+                       'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' => $status !== $filter,
+                   ])>
+                    {{ $item['label'] }}
+                    <span @class([
+                        'rounded-md px-1.5 py-0.5 text-[10px] tabular-nums',
+                        'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300' => $status === $filter,
+                        'bg-slate-200/70 text-slate-500 dark:bg-slate-700 dark:text-slate-300' => $status !== $filter,
+                    ])>{{ $item['count'] }}</span>
+                </a>
+            @endforeach
+        </nav>
+
         <div class="flex w-full flex-col sm:flex-row sm:items-center justify-end gap-3 sm:w-auto">
             <div class="inline-flex h-10 items-center gap-2 px-3.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl shadow-sm">
                 <span class="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
@@ -51,29 +75,7 @@
                 Tambah Pengguna
             </a>
         </div>
-    </x-page-header>
-
-    <nav class="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-900 sm:inline-grid sm:min-w-[420px]" aria-label="Filter status pengguna">
-        @foreach([
-            'active' => ['label' => 'Aktif', 'count' => $activeCount],
-            'inactive' => ['label' => 'Nonaktif', 'count' => $inactiveCount],
-            'all' => ['label' => 'Semua', 'count' => $allCount],
-        ] as $filter => $item)
-            <a href="{{ route('owner.users.index', ['status' => $filter]) }}"
-               @class([
-                   'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold transition-colors',
-                   'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400' => $status === $filter,
-                   'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' => $status !== $filter,
-               ])>
-                {{ $item['label'] }}
-                <span @class([
-                    'rounded-md px-1.5 py-0.5 text-[10px] tabular-nums',
-                    'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300' => $status === $filter,
-                    'bg-slate-200/70 text-slate-500 dark:bg-slate-700 dark:text-slate-300' => $status !== $filter,
-                ])>{{ $item['count'] }}</span>
-            </a>
-        @endforeach
-    </nav>
+    </div>
 
     <div class="grid grid-cols-1 gap-4 sm:hidden">
         @forelse($users as $user)
@@ -320,14 +322,17 @@
             Anda yakin ingin menonaktifkan akun pengguna <span class="font-bold text-slate-900 dark:text-white" x-text="userName"></span>? Akun ini tidak akan dapat login atau melakukan transaksi. Akun dapat diaktifkan kembali melalui filter Nonaktif.
         </x-slot>
 
-        <form x-bind:action="destroyUrl" method="POST">
+        <form x-bind:action="destroyUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'user-destroy-modal') input = ''">
             @csrf
             @method('DELETE')
             <div class="pt-2">
                 <label class="sr-only" for="user_destroy_confirmation">Konfirmasi</label>
-                <input type="text" name="destroy_confirmation" id="user_destroy_confirmation" required pattern="NONAKTIF" title="Ketik NONAKTIF" placeholder="Ketik NONAKTIF"
-                       data-uppercase-input
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" />
+                <input type="text" name="destroy_confirmation" id="user_destroy_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'nonaktif' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'nonaktif') $el.closest('form').submit()" />
             </div>
             
             <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -336,7 +341,8 @@
                     Batal
                 </button>
                 <button type="submit"
-                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto">
+                        :disabled="input.toLowerCase() !== 'nonaktif'"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
                     Ya, Nonaktifkan
                 </button>
             </div>
@@ -352,14 +358,17 @@
             Akun <span class="font-bold text-slate-900 dark:text-white" x-text="userName"></span> akan dapat login kembali dengan kata sandi dan akses cabang sebelumnya.
         </x-slot>
 
-        <form x-bind:action="restoreUrl" method="POST">
+        <form x-bind:action="restoreUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'user-restore-modal') input = ''">
             @csrf
             @method('PATCH')
             <div class="pt-2">
                 <label class="sr-only" for="user_restore_confirmation">Konfirmasi</label>
-                <input type="text" name="restore_confirmation" id="user_restore_confirmation" required pattern="AKTIFKAN" title="Ketik AKTIFKAN" placeholder="Ketik AKTIFKAN"
-                       data-uppercase-input
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm uppercase shadow-sm placeholder:text-slate-400 placeholder:normal-case focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500" />
+                <input type="text" name="restore_confirmation" id="user_restore_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'aktifkan' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'aktifkan') $el.closest('form').submit()" />
             </div>
             <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button type="button" @click="$dispatch('close-modal', 'user-restore-modal')"
@@ -367,7 +376,8 @@
                     Batal
                 </button>
                 <button type="submit"
-                        class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto">
+                        :disabled="input.toLowerCase() !== 'aktifkan'"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
                     Ya, Aktifkan
                 </button>
             </div>

@@ -7,7 +7,7 @@
 @section('title', 'Kategori Menu')
 
 @section('content')
-<div class="w-full space-y-6 overflow-x-hidden pb-10">
+<div class="w-full space-y-6 overflow-x-hidden pb-10" x-data="{ categoryName: '', destroyUrl: '' }">
 
     <x-page-header 
         title="Kategori Menu" 
@@ -106,20 +106,15 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L8.25 18.402 4.5 19.5l1.098-3.75L16.862 4.487z" />
                                         </svg>
                                     </a>
-                                    <form action="{{ route('admin.menu-categories.destroy', $category->id) }}" method="POST" class="inline-block">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                title="Hapus kategori"
-                                                aria-label="Hapus kategori {{ $category->name }}"
-                                                data-confirm
-                                                data-confirm-message="Yakin ingin menghapus kategori menu ini?"
-                                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-500/10 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
-                                            </svg>
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            @click="$dispatch('open-modal', 'category-destroy-modal'); categoryName = '{{ addslashes($category->name) }}'; destroyUrl = '{{ route('admin.menu-categories.destroy', $category->id) }}'"
+                                            title="Hapus kategori"
+                                            aria-label="Hapus kategori {{ $category->name }}"
+                                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-500/10 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -155,20 +150,15 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L8.25 18.402 4.5 19.5l1.098-3.75L16.862 4.487z" />
                                             </svg>
                                         </a>
-                                        <form action="{{ route('admin.menu-categories.destroy', $category->id) }}" method="POST" class="inline-block">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                    title="Hapus kategori"
-                                                    aria-label="Hapus kategori {{ $category->name }}"
-                                                    data-confirm
-                                                    data-confirm-message="Yakin ingin menghapus kategori menu ini?"
-                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300">
-                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
-                                                </svg>
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                                @click="$dispatch('open-modal', 'category-destroy-modal'); categoryName = '{{ addslashes($category->name) }}'; destroyUrl = '{{ route('admin.menu-categories.destroy', $category->id) }}'"
+                                                title="Hapus kategori"
+                                                aria-label="Hapus kategori {{ $category->name }}"
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-300">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 7h12m-9 0V5.75A1.75 1.75 0 0110.75 4h2.5A1.75 1.75 0 0115 5.75V7m2 0-.72 11.02A2 2 0 0114.28 20H9.72a2 2 0 01-2-1.98L7 7m3 4v5m4-5v5" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </td>
@@ -198,6 +188,41 @@
         'label' => 'data',
     ])
 
+    <x-modal id="category-destroy-modal" maxWidth="md" type="danger">
+        <x-slot name="title">Hapus Kategori</x-slot>
+        <x-slot name="icon">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </x-slot>
+        <x-slot name="description">
+            Anda yakin ingin menghapus kategori <span class="font-bold text-slate-900 dark:text-white" x-text="categoryName"></span>? Kategori menu yang masih memiliki menu tidak dapat dihapus.
+        </x-slot>
+
+        <form x-bind:action="destroyUrl" method="POST" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'category-destroy-modal') input = ''">
+            @csrf
+            @method('DELETE')
+            <div class="pt-2">
+                <label class="sr-only" for="category_destroy_confirmation">Konfirmasi</label>
+                <input type="text" name="destroy_confirmation" id="category_destroy_confirmation" 
+                       x-model="input"
+                       placeholder="Ketik 'hapus' untuk konfirmasi"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       autocomplete="off"
+                       @keydown.enter.prevent="if(input.toLowerCase() === 'hapus') $el.closest('form').submit()" />
+            </div>
+            
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" @click="$dispatch('close-modal', 'category-destroy-modal')"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+                    Batal
+                </button>
+                <button type="submit"
+                        :disabled="input.toLowerCase() !== 'hapus'"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                    Ya, Hapus
+                </button>
+            </div>
+        </form>
+    </x-modal>
 </div>
 
 @endsection
