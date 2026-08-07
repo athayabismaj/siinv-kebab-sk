@@ -174,6 +174,7 @@ class StockLogController extends Controller
         $periodLabel = $periodLabels[$period] ?? strtoupper($period);
 
         $branchName = 'Semua Cabang';
+        $branch = null;
         if ($branchId) {
             $branch = \App\Models\Branch::find($branchId);
             if ($branch) {
@@ -188,6 +189,7 @@ class StockLogController extends Controller
             'periodLabel' => $periodLabel,
             'typeLabel' => $typeLabel,
             'branchName' => $branchName,
+            'branch' => $branch,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
@@ -198,7 +200,7 @@ class StockLogController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel, ReportBrand::logoPath()),
+                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel, $branch),
                 $fileName . '.xlsx'
             )
         );

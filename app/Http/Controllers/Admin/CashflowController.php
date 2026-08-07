@@ -179,6 +179,8 @@ class CashflowController extends Controller
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
+        $branch = $branchId ? \App\Models\Branch::find($branchId) : null;
+
         $viewData = [
             'entries' => $entries,
             'periode' => $periodeLabel,
@@ -186,6 +188,7 @@ class CashflowController extends Controller
             'summary' => $summary,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
+            'branch' => $branch,
         ];
 
         return $this->exportByFormat(
@@ -194,7 +197,7 @@ class CashflowController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\ExpenseReportExport($entries, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath()),
+                new \App\Exports\ExpenseReportExport($entries, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath(), $branch),
                 $fileName . '.xlsx'
             )
         );

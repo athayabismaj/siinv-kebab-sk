@@ -432,6 +432,7 @@ class StockController extends Controller
 
         $branchId = BranchScope::scopedBranchIdFor(auth()->user());
         $branchName = 'Semua Cabang';
+        $branch = null;
         if ($branchId) {
             $branch = \App\Models\Branch::find($branchId);
             if ($branch) {
@@ -446,6 +447,7 @@ class StockController extends Controller
             'periodLabel' => $periodLabel,
             'typeLabel' => $typeLabel,
             'branchName' => $branchName,
+            'branch' => $branch,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
@@ -456,7 +458,7 @@ class StockController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel, ReportBrand::logoPath()),
+                new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel, $branch),
                 $fileName . '.xlsx'
             )
         );

@@ -3,26 +3,21 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\View\View;
-use App\Exports\Concerns\HasReportLogoDrawing;
 use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
-use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TransactionReportExport implements FromView, WithDrawings, WithStyles, ShouldAutoSize
+class TransactionReportExport implements FromView, WithStyles, ShouldAutoSize
 {
-    use HasReportLogoDrawing;
-
     private $viewData;
 
     public function __construct(array $viewData)
     {
-        $this->raiseMemoryLimit();
+        ini_set('memory_limit', '512M');
 
         $this->viewData = Utf8ExportSanitizer::clean($viewData);
-        $this->logoPath = $viewData['logoPath'] ?? null;
     }
 
     public function view(): View

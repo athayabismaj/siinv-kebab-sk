@@ -8,14 +8,15 @@
 
 {{-- ===== BRAND HEADER ===== --}}
 <tr>
-    <td rowspan="3" style="vertical-align: middle; width: 60px;"></td>
-    <td colspan="{{ $titleColspan }}" style="font-weight: bold; font-size: 16px; color: #1a1a2e; vertical-align: bottom;">KEBAB SK</td>
+    <td colspan="{{ $totalColumns }}" style="font-weight: bold; font-size: 18px; color: #1a1a2e; text-align: center;">KEBAB SK</td>
 </tr>
 <tr>
-    <td colspan="{{ $titleColspan }}" style="font-size: 10px; color: #666666;">Sistem Manajemen Inventory &amp; Penjualan</td>
+    <td colspan="{{ $totalColumns }}" style="font-weight: bold; font-size: 14px; color: #1a1a2e; text-align: center; text-decoration: underline;">{{ $reportTitle }}</td>
 </tr>
 <tr>
-    <td colspan="{{ $titleColspan }}" style="font-weight: bold; font-size: 12px; color: #1a1a2e;">{{ $reportTitle }}</td>
+    <td colspan="{{ $totalColumns }}" style="text-align: center; font-size: 11px; color: #555555; vertical-align: top;">
+        {{ isset($branch) && $branch->address ? $branch->address : 'Sistem Manajemen Inventory Kebab SK' }}
+    </td>
 </tr>
 
 {{-- Spacer --}}

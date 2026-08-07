@@ -165,7 +165,7 @@ class DailyStockReportQueryService
             CASE ingredients.display_unit
                 WHEN 'kg'  THEN ({$qty} / 1000.0) * {$price}
                 WHEN 'l'   THEN ({$qty} / 1000.0) * {$price}
-                WHEN 'pcs' THEN ({$qty} / {$packSize}) * {$price}
+                WHEN 'pcs' THEN {$qty} * {$price}
                 ELSE            {$qty} * {$price}
             END
         ";
@@ -181,7 +181,7 @@ class DailyStockReportQueryService
             CASE ingredients.display_unit
                 WHEN 'kg'  THEN ({$qty} / 1000.0) * {$price}
                 WHEN 'l'   THEN ({$qty} / 1000.0) * {$price}
-                WHEN 'pcs' THEN ({$qty} / {$packSize}) * {$price}
+                WHEN 'pcs' THEN {$qty} * {$price}
                 ELSE            {$qty} * {$price}
             END
         ";

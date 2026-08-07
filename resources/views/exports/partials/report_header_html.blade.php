@@ -1,20 +1,25 @@
-<table style="width:100%; margin-bottom:14px;">
+<table style="width:100%; margin-bottom:10px;">
     <tr>
-        <td style="width:86px; vertical-align:middle;">
+        <td style="width:15%; vertical-align:middle;">
             @if(!empty($logoDataUri))
-                <img src="{{ $logoDataUri }}" alt="Logo Kebab SK" style="width:72px; height:72px; object-fit:contain; display:block;">
+                <img src="{{ $logoDataUri }}" alt="Logo Kebab SK" style="width:85px; height:85px; object-fit:contain; display:block;">
             @endif
         </td>
-        <td style="vertical-align:middle;">
-            <div style="font-size:16px; font-weight:bold; color:#111; text-transform:uppercase; letter-spacing:0.5px;">KEBAB SK</div>
-            <div style="font-size:10.5px; color:#666; margin-top:2px;">Sistem Manajemen Inventory &amp; Penjualan</div>
-            <div style="font-size:16px; font-weight:bold; color:#111; text-transform:uppercase; margin-top:5px; letter-spacing:0.7px;">{{ $reportTitle }}</div>
+        <td style="width:70%; vertical-align:middle; text-align:center;">
+            <div style="font-size:24px; font-weight:bold; color:#111; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;">KEBAB SK</div>
+            <div style="font-size:16px; font-weight:bold; color:#111; text-transform:uppercase; letter-spacing:1px; display:inline-block; border-bottom:1px solid #111; padding-bottom:2px; margin-bottom: 6px;">{{ $reportTitle }}</div>
+            <div style="font-size:12px; color:#333;">
+                {{ isset($branch) && $branch->address ? $branch->address : 'Sistem Manajemen Inventory Kebab SK' }}
+            </div>
+        </td>
+        <td style="width:15%; vertical-align:middle; text-align:right;">
+            <!-- Spasi kosong penyeimbang logo -->
         </td>
     </tr>
 </table>
 
-<div style="border-top:2px solid #111; margin-bottom:2px;"></div>
-<div style="border-top:1px solid #111; margin-bottom:12px;"></div>
+<div style="border-top:3px solid #111; margin-bottom:2px;"></div>
+<div style="border-top:1px solid #111; margin-bottom:15px;"></div>
 
 <table style="width:100%; margin-bottom:14px; border:1px solid #d8d8d8; background:#f7f7f7;">
     <tr>

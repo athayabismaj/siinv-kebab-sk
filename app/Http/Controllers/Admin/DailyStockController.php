@@ -250,10 +250,9 @@ class DailyStockController extends Controller
                 $query->where('category_id', $selectedCategoryId);
             })
             ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+            ->get();
 
-        $ingredients->getCollection()->transform(function (Ingredient $ingredient) use ($sessionItemsByIngredient) {
+        $ingredients->transform(function (Ingredient $ingredient) use ($sessionItemsByIngredient) {
             return $this->decorateTransferIngredient(
                 $ingredient,
                 $sessionItemsByIngredient->get($ingredient->id)

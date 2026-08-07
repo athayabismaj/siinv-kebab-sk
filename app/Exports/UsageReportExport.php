@@ -3,32 +3,31 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\View\View;
-use App\Exports\Concerns\HasReportLogoDrawing;
 use App\Support\Utf8ExportSanitizer;
 use Maatwebsite\Excel\Concerns\FromView;
-use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class UsageReportExport implements FromView, WithDrawings, WithStyles, ShouldAutoSize
+class UsageReportExport implements FromView, WithStyles, ShouldAutoSize
 {
-    use HasReportLogoDrawing;
-
     private $items;
     private $periode;
     private $summary;
     private $periodLabel;
+    private $logoPath;
+    private $branch;
 
-    public function __construct($items, string $periode, array $summary, string $periodLabel = '', ?string $logoPath = null)
+    public function __construct($items, string $periode, array $summary, string $periodLabel = '', ?string $logoPath = null, $branch = null)
     {
-        $this->raiseMemoryLimit();
+        ini_set('memory_limit', '512M');
 
         $this->items = Utf8ExportSanitizer::clean($items);
         $this->periode = Utf8ExportSanitizer::clean($periode);
         $this->summary = Utf8ExportSanitizer::clean($summary);
         $this->periodLabel = Utf8ExportSanitizer::clean($periodLabel);
         $this->logoPath = $logoPath;
+        $this->branch = $branch;
     }
 
     public function view(): View
@@ -36,8 +35,9 @@ class UsageReportExport implements FromView, WithDrawings, WithStyles, ShouldAut
         return view('exports.usage_professional', [
             'items' => $this->items,
             'periode' => $this->periode,
-            'periodLabel' => $this->periodLabel,
             'summary' => $this->summary,
+            'periodLabel' => $this->periodLabel,
+            'branch' => $this->branch,
             'isExcel' => true,
         ]);
     }

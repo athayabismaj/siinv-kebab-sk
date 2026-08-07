@@ -1,49 +1,89 @@
 @php
     $reportTitle = 'LAPORAN STOK HARIAN';
+    $branchName = isset($branch) && $branch ? $branch->name : 'Semua Cabang';
     $metaRows = [
-        ['Jumlah Sesi', number_format($summary['sessions_count'] ?? 0, 0, ',', '.') . ' Sesi', 'Est. Nilai Modal', 'Rp ' . number_format($summary['total_value'] ?? 0, 0, ',', '.')],
-        ['Est. Nilai Terjual', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.'), '', ''],
+        ['Cabang', $branchName, 'Jumlah Sesi', number_format($summary['sessions_count'] ?? 0, 0, ',', '.') . ' Sesi'],
+        ['Total Item', number_format($summary['items_count'] ?? 0, 0, ',', '.') . ' Bahan Baku', '', ''],
     ];
-    $excelMetaRows = [
-        ['Jumlah Sesi', number_format($summary['sessions_count'] ?? 0, 0, ',', '.') . ' Sesi'],
-        ['Est. Nilai Modal', 'Rp ' . number_format($summary['total_value'] ?? 0, 0, ',', '.')],
-        ['Est. Nilai Terjual', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.')],
-    ];
+
+    $unitRows = [];
+    if (isset($summary['by_unit']) && is_array($summary['by_unit'])) {
+        $formatNum = function($num) {
+            return floor($num) == $num 
+                ? number_format($num, 0, ',', '.') 
+                : rtrim(rtrim(number_format($num, 2, ',', '.'), '0'), ',');
+        };
+
+        foreach ($summary['by_unit'] as $unitData) {
+            $unitName = strtoupper($unitData['unit']);
+            $used = $formatNum($unitData['used']);
+            $opening = $formatNum($unitData['opening']);
+            $remaining = $formatNum($unitData['remaining']);
+            
+            $unitRows[] = [
+                'unit' => $unitName,
+                'used' => $used,
+                'opening' => $opening,
+                'remaining' => $remaining
+            ];
+
+            $metaRows[] = [
+                'Terpakai (' . $unitName . ')', 
+                $used, 
+                'Rincian Stok ' . $unitName, 
+                'Bawa: ' . $opening . '  →  Sisa: ' . $remaining
+            ];
+        }
+    }
 @endphp
 
 @if(isset($isExcel) && $isExcel)
     <table>
-        @include('exports.partials.report_header_excel', ['columns' => 9])
+        @include('exports.partials.report_header_excel', ['columns' => 6])
+        {{-- Table Header --}}
         <tr>
-            <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">No</th>
-            <th style="font-weight: bold; border: 1px solid #000000;">Tanggal &amp; Kasir</th>
-            <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">Status</th>
-            <th style="font-weight: bold; text-align: center; border: 1px solid #000000;">Total Item Aktif</th>
-            <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Bawa</th>
-            <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Sisa</th>
-            <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Terpakai</th>
-            <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Est. Nilai Modal</th>
-            <th style="font-weight: bold; text-align: right; border: 1px solid #000000;">Est. Nilai Terjual</th>
+            <th style="font-weight: bold; text-align: center; background-color: #1a1a2e; color: #ffffff; border: 1px solid #1a1a2e; padding: 8px 10px; font-size: 11px;">No</th>
+            <th style="font-weight: bold; background-color: #1a1a2e; color: #ffffff; border: 1px solid #1a1a2e; padding: 8px 10px; font-size: 11px;">Tanggal &amp; Kasir</th>
+            <th style="font-weight: bold; text-align: center; background-color: #1a1a2e; color: #ffffff; border: 1px solid #1a1a2e; padding: 8px 10px; font-size: 11px;">Status</th>
+            <th style="font-weight: bold; text-align: center; background-color: #1a1a2e; color: #ffffff; border: 1px solid #1a1a2e; padding: 8px 10px; font-size: 11px;">Total Item Aktif</th>
+            <th style="font-weight: bold; text-align: right; background-color: #1a1a2e; color: #ffffff; border: 1px solid #1a1a2e; padding: 8px 10px; font-size: 11px;">Est. Nilai Modal</th>
+            <th style="font-weight: bold; text-align: right; background-color: #1a1a2e; color: #ffffff; border: 1px solid #1a1a2e; padding: 8px 10px; font-size: 11px;">Est. Pendapatan</th>
         </tr>
+
+        {{-- Table Body --}}
         @forelse($sessions as $index => $session)
+            @php $rowBg = $loop->even ? '#f8f9fc' : '#ffffff'; @endphp
             <tr>
-                <td style="text-align: center; border: 1px solid #000000;">{{ $index + 1 }}</td>
-                <td style="border: 1px solid #000000;">{{ $session->session_date->translatedFormat('d M Y') }} - {{ $session->cashier->name ?? 'User Tidak Diketahui' }}</td>
-                <td style="text-align: center; border: 1px solid #000000;">{{ $session->status === 'closed' ? 'Selesai' : 'Aktif' }}</td>
-                <td style="text-align: center; border: 1px solid #000000;">{{ (int) ($session->items_count ?? 0) }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ (float) ($session->total_opening ?? 0) }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ (float) ($session->total_remaining ?? 0) }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ (float) ($session->total_used ?? 0) }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ (int) round((float) ($session->total_value ?? 0)) }}</td>
-                <td style="text-align: right; border: 1px solid #000000;">{{ (int) round((float) ($session->total_revenue ?? 0)) }}</td>
+                <td style="text-align: center; border: 1px solid #d0d4e0; background-color: {{ $rowBg }}; padding: 6px 10px; color: #888888;">{{ $index + 1 }}</td>
+                <td style="border: 1px solid #d0d4e0; background-color: {{ $rowBg }}; padding: 6px 10px; color: #1a1a2e; font-weight: bold;">{{ $session->session_date->translatedFormat('d M Y') }} - {{ $session->cashier->name ?? 'User Tidak Diketahui' }}</td>
+                <td style="text-align: center; border: 1px solid #d0d4e0; background-color: {{ $rowBg }}; padding: 6px 10px; color: #333333;">{{ $session->status === 'closed' ? 'Selesai' : 'Aktif' }}</td>
+                <td style="text-align: center; border: 1px solid #d0d4e0; background-color: {{ $rowBg }}; padding: 6px 10px; color: #333333;">{{ (int) ($session->items_count ?? 0) }}</td>
+                <td style="text-align: right; border: 1px solid #d0d4e0; background-color: {{ $rowBg }}; padding: 6px 10px; color: #d32f2f; font-weight: bold;">Rp {{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #d0d4e0; background-color: {{ $rowBg }}; padding: 6px 10px; color: #0d8a53; font-weight: bold;">Rp {{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}</td>
             </tr>
         @empty
             <tr>
-                <td colspan="9" style="text-align: center; border: 1px solid #000000;">Tidak ada data laporan stok harian pada periode ini.</td>
+                <td colspan="6" style="text-align: center; border: 1px solid #d0d4e0; padding: 14px 10px; color: #999999; font-style: italic;">Tidak ada data laporan stok harian pada periode ini.</td>
             </tr>
         @endforelse
+
+        {{-- Spacer --}}
+        <tr><td colspan="6"></td></tr>
+
+        {{-- Footer --}}
+        <tr>
+            <td colspan="4" style="color: #999999; font-size: 9px;">Dicetak oleh: {{ auth()->user() ? auth()->user()->name : 'Sistem' }}</td>
+            <td colspan="2" style="text-align: right; color: #999999; font-size: 9px;">{{ now()->translatedFormat('d F Y, H:i:s') }}</td>
+        </tr>
     </table>
 @else
+@php
+    // Reset metaRows for HTML so it doesn't stretch the header table
+    $metaRows = [
+        ['Cabang', $branchName, 'Jumlah Sesi', number_format($summary['sessions_count'] ?? 0, 0, ',', '.') . ' Sesi'],
+        ['Total Item', number_format($summary['items_count'] ?? 0, 0, ',', '.') . ' Bahan Baku', '', ''],
+    ];
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -60,6 +100,25 @@
     {{-- HEADER --}}
     @include('exports.partials.report_header_html')
 
+    {{-- CARDS FOR HTML / PDF --}}
+    @if(isset($unitRows) && count($unitRows) > 0)
+    <div style="margin-bottom: 16px; width: 100%;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 8px 0; margin-left: -8px; margin-right: -8px;">
+            <tr>
+                @foreach($unitRows as $row)
+                <td style="width: 33.33%; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-top: 3px solid #1a1a2e; padding: 12px; vertical-align: top;">
+                    <div style="font-size: 10px; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 4px;">Rincian Stok {{ $row['unit'] }}</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #111; margin-bottom: 8px;">{{ $row['used'] }} <span style="font-size: 10px; font-weight: normal; color: #888;">Terpakai</span></div>
+                    <div style="font-size: 9px; color: #333; border-top: 1px solid #eaeaea; padding-top: 6px;">
+                        Bawa: <strong>{{ $row['opening'] }}</strong> <span style="color:#aaa; margin:0 3px;">→</span> Sisa: <strong>{{ $row['remaining'] }}</strong>
+                    </div>
+                </td>
+                @endforeach
+            </tr>
+        </table>
+    </div>
+    @endif
+
     {{-- DATA TABLE --}}
     <table style="width: 100%;">
         <thead>
@@ -67,12 +126,9 @@
                 <th style="width:4%;  padding:8px 8px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">No</th>
                 <th style="width:20%; padding:8px 8px; text-align:left;   font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Tanggal &amp; Kasir</th>
                 <th style="width:9%;  padding:8px 8px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Status</th>
-                <th style="width:8%;  padding:8px 8px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Item</th>
-                <th style="width:9%;  padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Bawa</th>
-                <th style="width:9%;  padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Sisa</th>
-                <th style="width:9%;  padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Terpakai</th>
-                <th style="width:16%; padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#e67e22; border:none;">Est. Modal</th>
-                <th style="width:16%; padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#c0392b; border:none;">Est. Terjual</th>
+                <th style="width:12%;  padding:8px 8px; text-align:center; font-size:10px; font-weight:bold; text-transform:uppercase; color:#333; border:none;">Item</th>
+                <th style="width:20%; padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#e67e22; border:none;">Est. Modal</th>
+                <th style="width:20%; padding:8px 8px; text-align:right;  font-size:10px; font-weight:bold; text-transform:uppercase; color:#c0392b; border:none;">Est. Pendapatan</th>
             </tr>
         </thead>
         <tbody>
@@ -85,15 +141,12 @@
                     </td>
                     <td style="padding:7px 8px; text-align:center; color:#555;">{{ $session->status === 'closed' ? 'Selesai' : 'Aktif' }}</td>
                     <td style="padding:7px 8px; text-align:center; color:#555;">{{ number_format((int) ($session->items_count ?? 0), 0, ',', '.') }}</td>
-                    <td style="padding:7px 8px; text-align:right; color:#222;">{{ rtrim(rtrim(number_format((float) ($session->total_opening ?? 0), 2, ',', '.'), '0'), ',') }}</td>
-                    <td style="padding:7px 8px; text-align:right; color:#222;">{{ rtrim(rtrim(number_format((float) ($session->total_remaining ?? 0), 2, ',', '.'), '0'), ',') }}</td>
-                    <td style="padding:7px 8px; text-align:right; color:#222; font-weight:bold;">{{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}</td>
                     <td style="padding:7px 8px; text-align:right; color:#e67e22; font-weight:bold;">Rp {{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</td>
                     <td style="padding:7px 8px; text-align:right; color:#c0392b; font-weight:bold;">Rp {{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" style="padding:20px; text-align:center; color:#aaa; font-style:italic;">
+                    <td colspan="6" style="padding:20px; text-align:center; color:#aaa; font-style:italic;">
                         Tidak ada data laporan stok harian pada periode ini.
                     </td>
                 </tr>

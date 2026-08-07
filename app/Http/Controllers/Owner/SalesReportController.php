@@ -328,10 +328,21 @@ class SalesReportController extends Controller
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
+        $branchName = 'Semua Cabang';
+        $branch = null;
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch) {
+                $branchName = $branch->name;
+            }
+        }
+
         $viewData = array_merge($data, [
             'type' => $type,
             'periode' => $periodeLabel,
             'periodLabel' => $periodLabelText,
+            'branchName' => $branchName,
+            'branch' => $branch,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'logoPath' => ReportBrand::logoPath(),
             'isExcel' => $format === 'excel',

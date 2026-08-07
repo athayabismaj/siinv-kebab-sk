@@ -1,13 +1,9 @@
 @php
     $reportTitle = 'LAPORAN RIWAYAT TRANSAKSI';
+    $branchName = isset($branch) && $branch ? $branch->name : 'Semua Cabang';
     $metaRows = [
-        ['Jumlah Transaksi', number_format($summary['total_transactions'] ?? 0, 0, ',', '.') . ' Transaksi', 'Total Omzet', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.')],
-        ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avg_transaction'] ?? 0, 0, ',', '.'), '', ''],
-    ];
-    $excelMetaRows = [
-        ['Jumlah Transaksi', number_format($summary['total_transactions'] ?? 0, 0, ',', '.') . ' Transaksi'],
-        ['Total Omzet', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.')],
-        ['Rata-rata Transaksi', 'Rp ' . number_format($summary['avg_transaction'] ?? 0, 0, ',', '.')],
+        ['Cabang', $branchName, 'Jumlah Transaksi', number_format($summary['total_transactions'] ?? 0, 0, ',', '.') . ' Transaksi'],
+        ['Total Omzet', 'Rp ' . number_format($summary['total_revenue'] ?? 0, 0, ',', '.'), 'Rata-rata Transaksi', 'Rp ' . number_format($summary['avg_transaction'] ?? 0, 0, ',', '.')],
     ];
 @endphp
 
@@ -85,20 +81,6 @@
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; padding: 28px 32px; }
         table { border-collapse: collapse; }
 
-        .header-bar { background: #1a1a2e; color: #fff; padding: 18px 24px; border-radius: 6px; margin-bottom: 20px; }
-        .header-bar .brand { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
-        .header-bar .subtitle { font-size: 10px; color: #a0a0b8; margin-top: 2px; }
-        .header-bar .report-title { font-size: 13px; font-weight: 600; color: #c8c8e0; margin-top: 8px; letter-spacing: 0.5px; text-transform: uppercase; }
-
-        .info-grid { width: 100%; margin-bottom: 18px; }
-        .info-grid td { padding: 0; }
-        .info-card { background: #f8f9fc; border: 1px solid #e8eaf0; border-radius: 5px; padding: 12px 16px; }
-        .info-card .label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #888; margin-bottom: 4px; }
-        .info-card .value { font-size: 14px; font-weight: 700; color: #1a1a2e; }
-        .info-card .value.green { color: #0d8a53; }
-        .info-card .value.red { color: #d32f2f; }
-        .info-card .value.blue { color: #1565c0; }
-
         .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #1a1a2e; }
 
         .data-table { width: 100%; border: 1px solid #d8dce6; border-radius: 4px; overflow: hidden; }
@@ -124,59 +106,7 @@
 </head>
 <body>
 
-    {{-- ===== HEADER BAR ===== --}}
-    <table style="width:100%;">
-        <tr>
-            <td>
-                <div class="header-bar">
-                    <table style="width:100%;">
-                        <tr>
-                            <td style="vertical-align:middle; width:66px;">
-                                @if(!empty($logoDataUri))
-                                    <img src="{{ $logoDataUri }}" alt="Logo" style="width:52px; height:52px; object-fit:contain; border-radius:6px; background:#fff; padding:4px;">
-                                @endif
-                            </td>
-                            <td style="vertical-align:middle; padding-left:12px;">
-                                <div class="brand">KEBAB SK</div>
-                                <div class="subtitle">Sistem Manajemen Inventory & Penjualan</div>
-                                <div class="report-title">{{ $reportTitle }}</div>
-                            </td>
-                            <td style="vertical-align:middle; text-align:right;">
-                                <div style="font-size:10px; color:#a0a0b8;">Periode</div>
-                                <div style="font-size:13px; font-weight:700; color:#fff; margin-top:2px;">{{ $periode }}</div>
-                                <div style="font-size:10px; color:#a0a0b8; margin-top:4px;">Cabang: <span style="color:#fff; font-weight:600;">{{ $branchName ?? 'Semua Cabang' }}</span></div>
-                                <div style="font-size:10px; color:#a0a0b8; margin-top:4px;">Mode: <span style="color:#fff; font-weight:600;">{{ $periodLabel ?? '-' }}</span></div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
-        </tr>
-    </table>
-
-    {{-- ===== SUMMARY CARDS ===== --}}
-    <table class="info-grid" cellspacing="0">
-        <tr>
-            <td style="width:33.33%; padding:0 4px 8px 0;">
-                <div class="info-card">
-                    <div class="label">Jumlah Transaksi</div>
-                    <div class="value" style="font-size:16px;">{{ number_format($summary['total_transactions'] ?? 0, 0, ',', '.') }} Transaksi</div>
-                </div>
-            </td>
-            <td style="width:33.33%; padding:0 4px 8px 4px;">
-                <div class="info-card" style="border-left: 3px solid #0d8a53;">
-                    <div class="label">Total Omzet</div>
-                    <div class="value green" style="font-size:16px;">Rp {{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-            </td>
-            <td style="width:33.33%; padding:0 0 8px 4px;">
-                <div class="info-card" style="border-left: 3px solid #1565c0;">
-                    <div class="label">Rata-rata Transaksi</div>
-                    <div class="value blue" style="font-size:16px;">Rp {{ number_format($summary['avg_transaction'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-            </td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- ===== DATA TABLE ===== --}}
     <div style="margin-top: 10px;">

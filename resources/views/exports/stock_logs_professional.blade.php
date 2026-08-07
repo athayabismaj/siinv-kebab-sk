@@ -1,11 +1,9 @@
 @php
-    $reportTitle = 'LAPORAN RIWAYAT PERUBAHAN STOK BAHAN BAKU';
+    $reportTitle = 'LAPORAN RIWAYAT STOK';
+    $branchName = isset($branch) && $branch ? $branch->name : 'Semua Cabang';
     $metaRows = [
-        ['Filter Riwayat', $typeLabel, 'Total Riwayat', number_format($summary['total'] ?? 0, 0, ',', '.')],
-    ];
-    $excelMetaRows = [
-        ['Filter Riwayat', $typeLabel],
-        ['Total Riwayat', number_format($summary['total'] ?? 0, 0, ',', '.')],
+        ['Cabang', $branchName, 'Filter Riwayat', $typeLabel ?? '-'],
+        ['Total Riwayat', number_format($summary['total'] ?? 0, 0, ',', '.') . ' Entri', '', ''],
     ];
 @endphp
 
@@ -57,6 +55,12 @@
         </tr>
     </table>
 @else
+@php
+    // Reset metaRows for HTML to avoid duplicate info with the cards below
+    $metaRows = [
+        ['Cabang', $branchName, 'Filter Riwayat', $typeLabel ?? '-'],
+    ];
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -66,11 +70,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; padding: 28px 32px; }
         table { border-collapse: collapse; }
-
-        .header-bar { background: #1a1a2e; color: #fff; padding: 18px 24px; border-radius: 6px; margin-bottom: 20px; }
-        .header-bar .brand { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
-        .header-bar .subtitle { font-size: 10px; color: #a0a0b8; margin-top: 2px; }
-        .header-bar .report-title { font-size: 13px; font-weight: 600; color: #c8c8e0; margin-top: 8px; letter-spacing: 0.5px; text-transform: uppercase; }
 
         .info-grid { width: 100%; margin-bottom: 18px; }
         .info-grid td { padding: 0; }
@@ -98,35 +97,7 @@
 </head>
 <body>
 
-    {{-- ===== HEADER BAR ===== --}}
-    <table style="width:100%;">
-        <tr>
-            <td>
-                <div class="header-bar">
-                    <table style="width:100%;">
-                        <tr>
-                            <td style="vertical-align:middle; width:66px;">
-                                @if(!empty($logoDataUri))
-                                    <img src="{{ $logoDataUri }}" alt="Logo" style="width:52px; height:52px; object-fit:contain; border-radius:6px; background:#fff; padding:4px;">
-                                @endif
-                            </td>
-                            <td style="vertical-align:middle; padding-left:12px;">
-                                <div class="brand">KEBAB SK</div>
-                                <div class="subtitle">Sistem Manajemen Inventory & Penjualan</div>
-                                <div class="report-title">{{ $reportTitle }}</div>
-                            </td>
-                            <td style="vertical-align:middle; text-align:right;">
-                                <div style="font-size:10px; color:#a0a0b8;">Periode</div>
-                                <div style="font-size:13px; font-weight:700; color:#fff; margin-top:2px;">{{ $periode ?? $dateDisplay ?? '' }}</div>
-                                <div style="font-size:10px; color:#a0a0b8; margin-top:4px;">Cabang: <span style="color:#fff; font-weight:600;">{{ $branchName ?? 'Semua Cabang' }}</span></div>
-                                <div style="font-size:10px; color:#a0a0b8; margin-top:4px;">Mode: <span style="color:#fff; font-weight:600;">{{ $typeLabel ?? '-' }}</span></div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
-        </tr>
-    </table>
+    @include('exports.partials.report_header_html')
 
     {{-- ===== SUMMARY CARDS ===== --}}
     <table class="info-grid" cellspacing="0">

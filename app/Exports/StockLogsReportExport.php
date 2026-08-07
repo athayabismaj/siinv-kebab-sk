@@ -11,14 +11,14 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class StockLogsReportExport implements FromView, WithDrawings, WithStyles, ShouldAutoSize
+class StockLogsReportExport implements FromView, WithStyles, ShouldAutoSize
 {
     private $logs;
     private array $summary;
     private string $periode;
     private string $periodLabel;
     private string $typeLabel;
-    private ?string $logoPath;
+    private $branch;
 
     public function __construct(
         $logs,
@@ -26,7 +26,7 @@ class StockLogsReportExport implements FromView, WithDrawings, WithStyles, Shoul
         string $periode,
         string $periodLabel,
         string $typeLabel,
-        ?string $logoPath = null
+        $branch = null
     ) {
         $this->raiseMemoryLimit();
 
@@ -35,7 +35,7 @@ class StockLogsReportExport implements FromView, WithDrawings, WithStyles, Shoul
         $this->periode = Utf8ExportSanitizer::clean($periode);
         $this->periodLabel = Utf8ExportSanitizer::clean($periodLabel);
         $this->typeLabel = Utf8ExportSanitizer::clean($typeLabel);
-        $this->logoPath = $logoPath;
+        $this->branch = $branch;
     }
 
     public function view(): View
@@ -46,26 +46,9 @@ class StockLogsReportExport implements FromView, WithDrawings, WithStyles, Shoul
             'periode' => $this->periode,
             'periodLabel' => $this->periodLabel,
             'typeLabel' => $this->typeLabel,
+            'branch' => $this->branch,
             'isExcel' => true,
         ]);
-    }
-
-    public function drawings()
-    {
-        if ($this->logoPath === null || ! is_file($this->logoPath)) {
-            return [];
-        }
-
-        $drawing = new Drawing();
-        $drawing->setName('Logo Kebab SK');
-        $drawing->setDescription('Logo usaha Kebab SK');
-        $drawing->setPath($this->logoPath);
-        $drawing->setHeight(56);
-        $drawing->setCoordinates('A1');
-        $drawing->setOffsetX(8);
-        $drawing->setOffsetY(4);
-
-        return [$drawing];
     }
 
     public function styles(Worksheet $sheet)

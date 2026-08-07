@@ -133,6 +133,8 @@ class DailyStockReportController extends Controller
         }
         if ($total > self::DIRECT_EXPORT_LIMIT) return redirect()->back()->withErrors(['export' => 'Ekspor langsung dibatasi hingga 100 data.']);
         $rows = $query->get();
+        $branch = $branchId ? \App\Models\Branch::find($branchId) : null;
+
         $viewData = [
             'sessions' => $rows,
             'periode' => $periodeLabel,
@@ -140,6 +142,7 @@ class DailyStockReportController extends Controller
             'summary' => $summary,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
+            'branch' => $branch,
         ];
 
         return $this->exportByFormat(
@@ -148,7 +151,7 @@ class DailyStockReportController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\DailyStockReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath()),
+                new \App\Exports\DailyStockReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath(), $branch),
                 $fileName . '.xlsx'
             )
         );

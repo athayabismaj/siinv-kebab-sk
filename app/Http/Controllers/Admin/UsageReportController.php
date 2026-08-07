@@ -134,7 +134,9 @@ class UsageReportController extends Controller
         [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
         $rangeStart = $dateFrom->copy()->startOfDay();
         $rangeEnd = $dateTo->copy()->endOfDay();
-        $branchId = $this->selectedBranchId($request);
+        
+        $selectedBranchId = $this->selectedBranchId($request);
+        $branchId = $selectedBranchId ?? BranchScope::scopedBranchIdFor($request->user());
 
         $query = $this->baseUsageAggregateQuery($rangeStart, $rangeEnd, $branchId)
             ->orderByDesc('total_quantity');
@@ -155,6 +157,7 @@ class UsageReportController extends Controller
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
         $branchName = 'Semua Cabang';
+        $branch = null;
         if ($branchId) {
             $branch = \App\Models\Branch::find($branchId);
             if ($branch) {
@@ -192,6 +195,7 @@ class UsageReportController extends Controller
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
             'branchName' => $branchName,
+            'branch' => $branch,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'isExcel' => $format === 'excel',
         ];
@@ -202,7 +206,7 @@ class UsageReportController extends Controller
             $viewData,
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\UsageReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath()),
+                new \App\Exports\UsageReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath(), $branch),
                 $fileName . '.xlsx'
             )
         );

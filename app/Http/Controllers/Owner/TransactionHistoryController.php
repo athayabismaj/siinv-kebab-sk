@@ -145,6 +145,7 @@ class TransactionHistoryController extends Controller
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
         $branchName = 'Semua Cabang';
+        $branch = null;
         if ($branchId) {
             $branch = \App\Models\Branch::find($branchId);
             if ($branch) {
@@ -158,6 +159,7 @@ class TransactionHistoryController extends Controller
             'periodLabel' => $periodLabelText,
             'summary' => $summary,
             'branchName' => $branchName,
+            'branch' => $branch,
             'logoDataUri' => ReportBrand::logoDataUri(),
             'logoPath' => ReportBrand::logoPath(),
             'isExcel' => $format === 'excel',
