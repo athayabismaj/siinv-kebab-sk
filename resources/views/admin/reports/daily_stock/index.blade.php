@@ -186,7 +186,7 @@
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </span>
             <div class="min-w-0">
-                <p class="daily-stock-finance-label">Estimasi Nilai Terjual</p>
+                <p class="daily-stock-finance-label">Estimasi Pendapatan</p>
                 <p class="daily-stock-finance-caption">Potensi revenue bahan terpakai</p>
                 <p class="daily-stock-finance-value">
                     <span>Rp</span>{{ number_format($summary['total_revenue'] ?? 0, 0, ',', '.') }}
@@ -210,11 +210,8 @@
                         <th class="px-6 py-4 whitespace-nowrap">Sesi & Kasir</th>
                         <th class="px-6 py-4 text-center whitespace-nowrap">Status</th>
                         <th class="px-6 py-4 text-center whitespace-nowrap">Item</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap">Bawa</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap">Sisa</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap">Terpakai</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap">Est. Modal</th>
-                        <th class="px-6 py-4 text-right whitespace-nowrap">Est. Terjual</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap">Est. Pendapatan</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -249,15 +246,6 @@
                                     {{ number_format((int) ($session->items_count ?? 0), 0, ',', '.') }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap align-middle text-[13px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
-                                {{ rtrim(rtrim(number_format((float) ($session->total_opening ?? 0), 2, ',', '.'), '0'), ',') }}
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap align-middle text-[13px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
-                                {{ rtrim(rtrim(number_format((float) ($session->total_remaining ?? 0), 2, ',', '.'), '0'), ',') }}
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap align-middle text-[13px] font-bold text-slate-700 dark:text-slate-200 tabular-nums">
-                                {{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}
-                            </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap align-middle">
                                 <span class="inline-flex items-center justify-end font-bold text-slate-700 dark:text-slate-200 tabular-nums text-[14px]">
                                     <span class="text-[10px] mr-1 text-slate-400 dark:text-slate-500">Rp</span>
@@ -274,7 +262,7 @@
 
                         {{-- ================= CARD MOBILE ================= --}}
                         <tr class="md:hidden border-b border-slate-100 dark:border-slate-800/50 last:border-0">
-                            <td class="p-0" colspan="7">
+                            <td class="p-0" colspan="4">
                                 <div class="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                                     
                                     {{-- Baris 1: Avatar, Kasir & Status --}}
@@ -303,22 +291,10 @@
 
                                     {{-- Baris 2: Grid Data (Divider X Style) --}}
                                     <div class="bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-700/50 py-2.5 px-1 mb-3">
-                                        <div class="grid grid-cols-4 gap-0 text-center divide-x divide-slate-200 dark:divide-slate-700/60">
+                                        <div class="grid grid-cols-1 gap-0 text-center divide-x divide-slate-200 dark:divide-slate-700/60">
                                             <div class="px-2">
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Item</p>
+                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Item Tercatat</p>
                                                 <p class="font-semibold text-slate-700 dark:text-slate-300 text-xs tabular-nums">{{ number_format((int) ($session->items_count ?? 0), 0, ',', '.') }}</p>
-                                            </div>
-                                            <div class="px-2">
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Bawa</p>
-                                                <p class="font-medium text-slate-700 dark:text-slate-400 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) ($session->total_opening ?? 0), 2, ',', '.'), '0'), ',') }}</p>
-                                            </div>
-                                            <div class="px-2">
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sisa</p>
-                                                <p class="font-medium text-slate-700 dark:text-slate-400 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) ($session->total_remaining ?? 0), 2, ',', '.'), '0'), ',') }}</p>
-                                            </div>
-                                            <div class="px-2">
-                                                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pakai</p>
-                                                <p class="font-bold text-slate-700 dark:text-slate-200 text-xs tabular-nums">{{ rtrim(rtrim(number_format((float) ($session->total_used ?? 0), 2, ',', '.'), '0'), ',') }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -329,7 +305,7 @@
                                         <p class="font-black text-slate-700 dark:text-slate-200 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Rp</span>{{ number_format((float) ($session->total_value ?? 0), 0, ',', '.') }}</p>
                                     </div>
                                     <div class="flex items-center justify-between pt-1 px-1">
-                                        <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Terjual</p>
+                                        <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Est. Pendapatan</p>
                                         <p class="font-black text-slate-700 dark:text-slate-200 text-[14px] tabular-nums"><span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Rp</span>{{ number_format((float) ($session->total_revenue ?? 0), 0, ',', '.') }}</p>
                                     </div>
 
@@ -339,7 +315,7 @@
 
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-16 text-center">
+                            <td colspan="4" class="px-6 py-16 text-center">
                                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 mb-3 border border-slate-100 dark:border-slate-700">
                                     <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                 </div>

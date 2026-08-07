@@ -125,7 +125,7 @@
                 <p class="mt-1 text-[12px] font-medium text-slate-500 dark:text-slate-400">Periksa angka yang terisi, sesuaikan dengan stok fisik, lalu simpan.</p>
             </div>
             <span class="inline-flex w-fit items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 dark:border-blue-900/70 dark:bg-blue-500/10 dark:text-blue-300">
-                {{ number_format($ingredients->total(), 0, ',', '.') }} bahan tersedia
+                {{ number_format($ingredients->count(), 0, ',', '.') }} bahan tersedia
             </span>
         </div>
 
@@ -479,19 +479,14 @@
             @endif
         </div>
 
-        @if($ingredients->hasPages())
-            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                {{ $ingredients->links() }}
-            </div>
-        @endif
-
         {{-- ACTION FOOTER --}}
         <div class="sticky bottom-0 z-20 flex flex-col-reverse items-center justify-end gap-3 border-t border-slate-200/80 bg-white/95 px-6 py-4 backdrop-blur-md transition-all sm:flex-row dark:border-slate-800 dark:bg-slate-900/95 shadow-xl">
             <a href="{{ route('admin.daily-stocks.index', ['date' => $session->session_date->toDateString(), 'cashier_id' => $session->cashier_id]) }}"
-               class="inline-flex h-[46px] w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-7 text-[14px] font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95 sm:w-auto dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+               class="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-7 text-[14px] font-bold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 active:scale-95 sm:w-auto sm:min-w-32 lg:min-w-36 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                <i class="fa-solid fa-arrow-left text-slate-400 dark:text-slate-400"></i>
                 Batal
             </a>
-            <button type="submit" class="inline-flex h-[46px] w-full min-w-[220px] items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 text-[14px] font-extrabold text-white shadow-md shadow-blue-500/25 transition hover:bg-blue-700 active:scale-95 sm:w-auto">
+            <button type="submit" class="inline-flex h-12 w-full shrink-0 min-w-[220px] items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 text-[14px] font-extrabold text-white shadow-md shadow-blue-500/25 transition hover:bg-blue-700 active:scale-95 sm:w-auto">
                 <i class="fa-solid fa-check text-base"></i>
                 Simpan Saldo Awal
             </button>
