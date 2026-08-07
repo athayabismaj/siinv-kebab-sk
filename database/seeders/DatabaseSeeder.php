@@ -15,7 +15,11 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             BranchSeeder::class,
             DeveloperUserSeeder::class,
+            UserSeeder::class,
             PaymentMethodSeeder::class,
+            MenuSeeder::class,
+            IngredientSeeder::class,
+            RecipeSeeder::class,
         ]);
     }
 }

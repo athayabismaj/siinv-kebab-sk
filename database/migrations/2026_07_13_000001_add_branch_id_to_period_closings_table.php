@@ -48,10 +48,11 @@ return new class extends Migration {
         if (! Schema::hasTable('period_closings')) {
             return;
         }
-
-        Schema::table('period_closings', function (Blueprint $table) {
-            $table->dropUnique('period_closings_branch_period_unique');
-        });
+        if ($this->uniqueIndexExists('period_closings_branch_period_unique')) {
+            Schema::table('period_closings', function (Blueprint $table) {
+                $table->dropUnique('period_closings_branch_period_unique');
+            });
+        }
 
         if (Schema::hasColumn('period_closings', 'branch_id')) {
             Schema::table('period_closings', function (Blueprint $table) {
@@ -62,5 +63,36 @@ return new class extends Migration {
         Schema::table('period_closings', function (Blueprint $table) {
             $table->unique(['period_type', 'period_date']);
         });
+    }
+
+    private function uniqueIndexExists(string $indexName): bool
+    {
+        if (DB::connection()->pretending()) {
+            return false;
+        }
+
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            // Also check pg_constraint to be safe
+            $constraintExists = (bool) DB::select("SELECT 1 FROM pg_constraint WHERE conname = ?", [$indexName]);
+            return $constraintExists || (bool) DB::table('pg_indexes')
+                ->where('schemaname', DB::raw('current_schema()'))
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        if ($driver === 'sqlite') {
+            return collect(DB::select("PRAGMA index_list('period_closings')"))
+                ->contains(fn ($index) => (string) ($index->name ?? '') === $indexName);
+        }
+
+        $database = DB::getDatabaseName();
+
+        return (bool) DB::table('information_schema.statistics')
+            ->where('table_schema', $database)
+            ->where('table_name', 'period_closings')
+            ->where('index_name', $indexName)
+            ->exists();
     }
 };

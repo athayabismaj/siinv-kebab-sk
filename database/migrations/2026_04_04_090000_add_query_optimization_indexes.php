@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -48,42 +48,79 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::table('password_otps', function (Blueprint $table) {
-            $table->dropIndex('password_otps_user_used_created_idx');
-            $table->dropIndex('password_otps_expires_at_idx');
-        });
+        $this->dropIndexIfExists('password_otps', 'password_otps_user_used_created_idx');
+        $this->dropIndexIfExists('password_otps', 'password_otps_expires_at_idx');
 
-        Schema::table('api_tokens', function (Blueprint $table) {
-            $table->dropIndex('api_tokens_user_created_idx');
-            $table->dropIndex('api_tokens_expires_at_idx');
-        });
+        $this->dropIndexIfExists('api_tokens', 'api_tokens_user_created_idx');
+        $this->dropIndexIfExists('api_tokens', 'api_tokens_expires_at_idx');
 
-        Schema::table('cashflow_entries', function (Blueprint $table) {
-            $table->dropIndex('cashflow_entries_type_entry_date_idx');
-        });
+        $this->dropIndexIfExists('cashflow_entries', 'cashflow_entries_type_entry_date_idx');
 
-        Schema::table('stock_logs', function (Blueprint $table) {
-            $table->dropIndex('stock_logs_type_created_idx');
-            $table->dropIndex('stock_logs_reference_id_idx');
-        });
+        $this->dropIndexIfExists('stock_logs', 'stock_logs_type_created_idx');
+        $this->dropIndexIfExists('stock_logs', 'stock_logs_reference_id_idx');
 
-        Schema::table('transaction_details', function (Blueprint $table) {
-            $table->dropIndex('transaction_details_transaction_id_idx');
-            $table->dropIndex('transaction_details_menu_id_idx');
-        });
+        $this->dropIndexIfExists('transaction_details', 'transaction_details_transaction_id_idx');
+        $this->dropIndexIfExists('transaction_details', 'transaction_details_menu_id_idx');
 
-        Schema::table('menu_variants', function (Blueprint $table) {
-            $table->dropIndex('menu_variants_menu_available_sort_idx');
-        });
+        $this->dropIndexIfExists('menu_variants', 'menu_variants_menu_available_sort_idx');
 
-        Schema::table('menus', function (Blueprint $table) {
-            $table->dropIndex('menus_category_deleted_idx');
-            $table->dropIndex('menus_sort_created_idx');
-        });
+        $this->dropIndexIfExists('menus', 'menus_category_deleted_idx');
+        $this->dropIndexIfExists('menus', 'menus_sort_created_idx');
 
-        Schema::table('ingredients', function (Blueprint $table) {
-            $table->dropIndex('ingredients_category_deleted_idx');
-            $table->dropIndex('ingredients_created_at_idx');
-        });
+        $this->dropIndexIfExists('ingredients', 'ingredients_category_deleted_idx');
+        $this->dropIndexIfExists('ingredients', 'ingredients_created_at_idx');
+    }
+
+    private function dropIndexIfExists(string $table, string $indexName): void
+    {
+        if (! $this->indexExists($table, $indexName)) {
+            return;
+        }
+
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('drop index ' . $indexName . ' on ' . $table);
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::statement('drop index ' . $indexName);
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $driver = \Illuminate\Support\Facades\DB::getDriverName();
+
+        if ($driver === 'pgsql') {
+            $exists = \Illuminate\Support\Facades\DB::table('pg_indexes')
+                ->whereRaw('schemaname = current_schema()')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+
+            return (bool) $exists;
+        }
+
+        if ($driver === 'mysql') {
+            $databaseName = (string) config('database.connections.mysql.database');
+
+            $exists = \Illuminate\Support\Facades\DB::table('information_schema.statistics')
+                ->where('table_schema', $databaseName)
+                ->where('table_name', $table)
+                ->where('index_name', $indexName)
+                ->exists();
+
+            return (bool) $exists;
+        }
+
+        if ($driver === 'sqlite') {
+            $indexes = \Illuminate\Support\Facades\DB::select("pragma index_list('$table')");
+
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 };
