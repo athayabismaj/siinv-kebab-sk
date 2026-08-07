@@ -15,6 +15,8 @@ class DailyStockSession extends Model
         'opened_by',
         'closed_by',
         'status',
+        'stock_retained_at_outlet',
+        'carry_forward_source_session_id',
         'notes',
         'opened_at',
         'closed_at',
@@ -22,6 +24,7 @@ class DailyStockSession extends Model
 
     protected $casts = [
         'session_date' => 'date',
+        'stock_retained_at_outlet' => 'boolean',
         'opened_at' => 'datetime',
         'closed_at' => 'datetime',
     ];
@@ -49,5 +52,15 @@ class DailyStockSession extends Model
     public function items(): HasMany
     {
         return $this->hasMany(DailyStockItem::class);
+    }
+
+    public function carryForwardSource(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'carry_forward_source_session_id');
+    }
+
+    public function carryForwardSessions(): HasMany
+    {
+        return $this->hasMany(self::class, 'carry_forward_source_session_id');
     }
 }

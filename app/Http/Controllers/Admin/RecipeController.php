@@ -4,14 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
-use App\Models\Menu;
-use App\Models\MenuVariant;
-use App\Models\MenuCategory;
 use App\Models\IngredientCategory;
+use App\Models\Menu;
+use App\Models\MenuCategory;
+use App\Models\MenuVariant;
 use App\Support\AdminCache;
+use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class RecipeController extends Controller
 {
@@ -22,7 +24,7 @@ class RecipeController extends Controller
     {
         $query = Menu::with([
             'category',
-            'variants.ingredients'
+            'variants.ingredients',
         ]);
 
         // Filter kategori
@@ -36,24 +38,23 @@ class RecipeController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                  ->orWhereHas('category', function ($q2) use ($search) {
-                      $q2->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
-                  })
-                  ->orWhereHas('variants', function ($q3) use ($search) {
-                      $q3->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
-                  });
+                    ->orWhereHas('category', function ($q2) use ($search) {
+                        $q2->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    })
+                    ->orWhereHas('variants', function ($q3) use ($search) {
+                        $q3->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    });
             });
         }
 
         $menus = $query->orderBy('name')
-                       ->paginate(10)
-                       ->withQueryString();
+            ->paginate(10)
+            ->withQueryString();
 
         $categories = MenuCategory::orderBy('name')->get();
 
         return view('admin.recipes.index', compact('menus', 'categories'));
     }
-
 
     /**
      * ================= EDIT =================
@@ -62,13 +63,13 @@ class RecipeController extends Controller
     {
         $variant->load([
             'menu.category',
-            'ingredients'
+            'ingredients',
         ]);
 
         $query = IngredientCategory::with([
             'ingredients' => function ($q) {
                 $q->orderBy('name');
-            }
+            },
         ])->orderBy('name');
 
         if ($request->filled('category')) {
@@ -84,7 +85,6 @@ class RecipeController extends Controller
             'allCategories'
         ));
     }
-
 
     /**
      * ================= UPDATE =================
@@ -115,9 +115,12 @@ class RecipeController extends Controller
                     ->withInput();
             }
 
-            $validIngredientCount = Ingredient::whereIn('id', $ingredientIds)->count();
+            $validIngredients = Ingredient::query()
+                ->whereIn('id', $ingredientIds)
+                ->get(['id', 'name', 'base_unit'])
+                ->keyBy('id');
 
-            if ($validIngredientCount !== count($ingredientIds)) {
+            if ($validIngredients->count() !== count($ingredientIds)) {
                 return back()
                     ->withErrors(['ingredients' => 'Data bahan tidak valid.'])
                     ->withInput();
@@ -129,6 +132,24 @@ class RecipeController extends Controller
                 return back()
                     ->withErrors(['ingredients' => 'Data bahan tidak sesuai dengan form resep yang dibuka.'])
                     ->withInput();
+            }
+
+            $fractionalPcsErrors = [];
+            foreach ($submittedIngredients as $ingredientId => $quantity) {
+                $ingredient = $validIngredients->get((int) $ingredientId);
+                $numericQuantity = (float) $quantity;
+
+                if ($ingredient
+                    && IngredientUnit::requiresWholeQuantity((string) $ingredient->base_unit)
+                    && $numericQuantity > 0
+                    && ! IngredientUnit::isValidBaseQuantity('pcs', $numericQuantity)) {
+                    $fractionalPcsErrors["ingredients.{$ingredientId}"] =
+                        "Jumlah {$ingredient->name} harus berupa PCS utuh tanpa pecahan.";
+                }
+            }
+
+            if (! empty($fractionalPcsErrors)) {
+                throw ValidationException::withMessages($fractionalPcsErrors);
             }
 
             $syncData = [];
@@ -143,7 +164,7 @@ class RecipeController extends Controller
 
                 if ((float) $quantity > 0) {
                     $syncData[$ingredientId] = [
-                        'quantity' => (float) $quantity
+                        'quantity' => (float) $quantity,
                     ];
                 }
             }
@@ -175,9 +196,11 @@ class RecipeController extends Controller
 
             return redirect()
                 ->route('admin.recipes.index')
-                ->with('success','Resep "' . $variant->name .'" pada menu "' . $variant->menu->name .'" berhasil diperbarui.'
-);
+                ->with('success', 'Resep "'.$variant->name.'" pada menu "'.$variant->menu->name.'" berhasil diperbarui.'
+                );
 
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Gagal memperbarui resep', [
                 'variant_id' => $variant->id,

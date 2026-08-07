@@ -106,7 +106,7 @@
                                 {{-- h-[52px] menggantikan py-3 untuk mengunci tinggi absolut --}}
                                 <input
                                     type="number"
-                                    step="0.01"
+                                    :step="isPackMode ? (inputUnit === 'pack' ? (1 / packSize) : 1) : 0.01"
                                     name="quantity"
                                     x-model="qty"
                                     placeholder="0"

@@ -228,10 +228,10 @@ class DailyStockFlowTest extends TestCase
         $this->assertSame(30.0, (float) $item->opening_qty);
         $this->assertSame(10.0, (float) $item->remaining_qty);
         $this->assertSame(20.0, (float) $item->used_qty);
-        $this->assertSame(10.0, (float) $item->returned_qty);
+        $this->assertSame(0.0, (float) $item->returned_qty);
 
-        // 100 - 30 transfer + 10 return = 80
-        $this->assertSame(80.0, (float) $ingredient->stock);
+        // Sisa 10 tetap berada di outlet, sehingga gudang hanya mencatat transfer awal.
+        $this->assertSame(70.0, (float) $ingredient->stock);
 
         $this->assertDatabaseHas('stock_logs', [
             'ingredient_id' => $ingredient->id,
@@ -240,10 +240,9 @@ class DailyStockFlowTest extends TestCase
             'reference_id' => $session->id,
         ]);
 
-        $this->assertDatabaseHas('stock_logs', [
+        $this->assertDatabaseMissing('stock_logs', [
             'ingredient_id' => $ingredient->id,
             'type' => 'daily_return',
-            'quantity' => 10.00,
             'reference_id' => $session->id,
         ]);
     }
@@ -283,10 +282,10 @@ class DailyStockFlowTest extends TestCase
         $this->assertSame(40.0, (float) $item->opening_qty);
         $this->assertSame(10.0, (float) $item->remaining_qty);
         $this->assertSame(30.0, (float) $item->used_qty);
-        $this->assertSame(10.0, (float) $item->returned_qty);
+        $this->assertSame(0.0, (float) $item->returned_qty);
 
-        // 100 - 40 transfer + 10 return = 70
-        $this->assertSame(70.0, (float) $ingredient->stock);
+        // Sisa tetap di outlet dan tidak dikembalikan secara virtual ke gudang.
+        $this->assertSame(60.0, (float) $ingredient->stock);
 
         $this->assertDatabaseHas('stock_logs', [
             'ingredient_id' => $ingredient->id,
@@ -586,7 +585,7 @@ class DailyStockFlowTest extends TestCase
                 ],
             ],
         ], [
-            'Authorization' => 'Bearer ' . $apiToken,
+            'Authorization' => 'Bearer '.$apiToken,
         ]);
 
         $response->assertOk()->assertJson([
@@ -600,7 +599,8 @@ class DailyStockFlowTest extends TestCase
         $this->assertSame(200.0, (float) $item->opening_qty);
         $this->assertSame(150.0, (float) $item->remaining_qty);
         $this->assertSame(50.0, (float) $item->used_qty);
-        $this->assertSame(150.0, (float) $item->returned_qty);
+        $this->assertSame(0.0, (float) $item->returned_qty);
+        $this->assertTrue((bool) $session->stock_retained_at_outlet);
     }
 
     public function test_api_close_session_preserves_validation_error_contract(): void
@@ -609,7 +609,7 @@ class DailyStockFlowTest extends TestCase
         $apiToken = $this->createApiTokenForUser($cashier);
 
         $response = $this->postJson('/api/daily-stock-sessions/close', [], [
-            'Authorization' => 'Bearer ' . $apiToken,
+            'Authorization' => 'Bearer '.$apiToken,
         ]);
 
         $response->assertUnprocessable()
@@ -648,7 +648,7 @@ class DailyStockFlowTest extends TestCase
         $apiToken = $this->createApiTokenForUser($cashier);
 
         $this->getJson('/api/daily-stock-items', [
-            'Authorization' => 'Bearer ' . $apiToken,
+            'Authorization' => 'Bearer '.$apiToken,
         ])->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.session_id', null)
@@ -676,7 +676,7 @@ class DailyStockFlowTest extends TestCase
         $apiToken = $this->createApiTokenForUser($cashier);
 
         $this->getJson('/api/sessions/current-status', [
-            'Authorization' => 'Bearer ' . $apiToken,
+            'Authorization' => 'Bearer '.$apiToken,
         ])->assertNotFound()
             ->assertJsonPath('active', false);
     }
@@ -727,6 +727,62 @@ class DailyStockFlowTest extends TestCase
             'quantity' => -4.00,
             'note' => 'Hitung fisik uji',
         ]);
+    }
+
+    public function test_restock_rejects_pack_fraction_that_would_create_fractional_pcs(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 10);
+        $ingredient->update(['pack_size' => 10]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.stocks.restock.form', $ingredient))
+            ->post(route('admin.stocks.restock', $ingredient), [
+                'quantity' => 0.04,
+                'input_unit' => 'pack',
+            ])
+            ->assertRedirect(route('admin.stocks.restock.form', $ingredient))
+            ->assertSessionHasErrors('quantity');
+
+        $this->assertSame(10.0, (float) $ingredient->fresh()->stock);
+        $this->assertSame(0, StockLog::query()->where('ingredient_id', $ingredient->id)->count());
+    }
+
+    public function test_ingredient_creation_rejects_pack_value_that_would_store_ghost_pcs(): void
+    {
+        [$admin] = $this->baseDailyStockDataset(stock: 10);
+
+        $this->actingAs($admin)
+            ->from(route('admin.ingredients.create'))
+            ->post(route('admin.ingredients.store'), [
+                'name' => 'Patty Pecahan',
+                'display_unit' => 'pcs',
+                'pack_size' => 10,
+                'stock' => 0.04,
+                'minimum_stock' => 1,
+                'selling_price' => 1000,
+                'cost_price' => 500,
+            ])
+            ->assertRedirect(route('admin.ingredients.create'))
+            ->assertSessionHasErrors('stock');
+
+        $this->assertDatabaseMissing('ingredients', ['name' => 'Patty Pecahan']);
+    }
+
+    public function test_adjustment_accepts_fractional_pack_only_when_it_equals_whole_pcs(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 10);
+        $ingredient->update(['pack_size' => 10]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.stocks.adjust', $ingredient), [
+                'new_stock' => 0.2,
+                'input_unit' => 'pack',
+                'note' => 'Dua pcs fisik',
+            ])
+            ->assertRedirect(route('admin.stocks.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(2.0, (float) $ingredient->fresh()->stock);
     }
 
     public function test_admin_can_trigger_manual_reconcile_action(): void
@@ -817,7 +873,7 @@ class DailyStockFlowTest extends TestCase
 
     private function createApiTokenForUser(User $user): string
     {
-        $plainToken = 'test-token-' . Str::random(32);
+        $plainToken = 'test-token-'.Str::random(32);
 
         ApiToken::create([
             'user_id' => $user->id,

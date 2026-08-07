@@ -1,9 +1,66 @@
 @props(['name'])
 
-<svg {{ $attributes->merge(['fill' => 'none', 'stroke' => 'currentColor', 'viewBox' => '0 0 24 24']) }}>
+@php
+    $animType = match($name) {
+        'dashboard', 'usage-report', 'daily-stock-report', 'chart', 'trend', 'report', 'info' => 'icon-anim-pulse',
+        'menu-category', 'menu-management', 'recipe-book', 'menu', 'clipboard', 'book', 'edit' => 'icon-anim-wiggle',
+        'ingredient-category', 'ingredient-item', 'stock-adjustment', 'cube', 'archive-stack', 'tag', 'archive', 'plus', 'minus' => 'icon-anim-bounce',
+        'transaction-history', 'daily-session', 'stock-history', 'stock-log', 'clock', 'return', 'settings' => 'icon-anim-timer',
+        'operational-expense', 'money', 'cart', 'lock', 'branch', 'users', 'owner-users', 'database', 'building' => 'icon-anim-flutter',
+        default => 'icon-anim-default',
+    };
+@endphp
+
+<svg {{ $attributes->merge(['class' => 'transition-all duration-300 ease-in-out ' . $animType, 'fill' => 'none', 'stroke' => 'currentColor', 'viewBox' => '0 0 24 24']) }}>
     @switch($name)
         @case('dashboard')
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            @break
+        @case('transaction-history')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h3m-6-11V5a2 2 0 012-2h8a2 2 0 012 2v14l-3-2-3 2-3-2-3 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9l2-2-2-2" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 7H9.5a2.5 2.5 0 000 5H12" />
+            @break
+        @case('menu-category')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 17h16M3 17a1 1 0 001 1h16a1 1 0 001-1V16a8 8 0 00-7-7.938V6a1 1 0 00-2 0v2.062A8 8 0 004 16v1z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13a3 3 0 016 0" />
+            @break
+        @case('menu-management')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3v5m-3-5v5m6-5v5M5 8a3 3 0 003 3v10a1 1 0 002 0V11a3 3 0 003-3V3M17 3a2 2 0 00-2 2v5a2 2 0 002 2h2V5a2 2 0 00-2-2zM19 12v9a1 1 0 01-2 0v-9" />
+            @break
+        @case('recipe-book')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h1m-1 3h1m5-3h1m-1 3h1" />
+            @break
+        @case('ingredient-category')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10v4m8-4v4m-4-4v4" />
+            @break
+        @case('ingredient-item')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
+            @break
+        @case('daily-session')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
+            @break
+        @case('stock-adjustment')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m0 7h6" />
+            @break
+        @case('stock-history')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12a9 9 0 0115-6.7L21 8M3 12h4m14-4v4h-4" />
+            @break
+        @case('usage-report')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            @break
+        @case('daily-stock-report')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l2 2 4-4" />
+            @break
+        @case('operational-expense')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             @break
         @case('cart')
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />

@@ -241,6 +241,7 @@ class DailyStockService
 
             $session->update([
                 'status' => 'open',
+                'stock_retained_at_outlet' => false,
                 'closed_by' => null,
                 'closed_at' => null,
                 'notes' => $notes ?: trim(($session->notes ? ($session->notes . ' | ') : '') . "Reopen oleh user #{$reopenedBy}"),

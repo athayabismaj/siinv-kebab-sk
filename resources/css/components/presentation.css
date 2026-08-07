@@ -9,3 +9,12 @@
 .app-details-summary::-webkit-details-marker {
     display: none;
 }
+
+/* Global Dark Mode Radio Toggle Override */
+.dark input[type="radio"]:checked + div,
+.dark input[type="radio"]:checked + span {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #f8fafc !important; /* slate-50 */
+    border-color: #334155 !important; /* slate-700 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4) !important;
+}

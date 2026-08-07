@@ -98,7 +98,7 @@
                                     <div class="flex items-center gap-2">
                                         <div class="relative flex-1">
                                             <input type="number"
-                                                   step="0.01"
+                                                   step="{{ ($ingredient->base_unit ?? '') === 'pcs' ? '1' : '0.01' }}"
                                                    min="0"
                                                    name="ingredients[{{ $ingredient->id }}]"
                                                    value="{{ old('ingredients.' . $ingredient->id, $quantity > 0 ? (float) $quantity : '') }}"

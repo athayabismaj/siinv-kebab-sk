@@ -404,6 +404,14 @@
                                         </span>
                                         <span class="text-[10px] font-semibold text-slate-400 uppercase">{{ $item->display_unit }}</span>
                                     </div>
+                                    @if((float) $item->carry_forward_qty > 0)
+                                        <p class="mt-1 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                                            Sisa kemarin {{ rtrim(rtrim(number_format((float) $item->carry_forward_display, 2, '.', ''), '0'), '.') }}
+                                            @if((float) $item->opening_adjustment_qty !== 0.0)
+                                                · koreksi {{ (float) $item->opening_adjustment_qty > 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $item->opening_adjustment_display, 2, '.', ''), '0'), '.') }}
+                                            @endif
+                                        </p>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
                                     <div class="inline-flex items-baseline gap-1">
@@ -440,6 +448,9 @@
                                         <div class="flex justify-between items-start mb-3 gap-2">
                                             <div>
                                                 <p class="font-bold text-slate-900 dark:text-white text-[14px] leading-tight">{{ $item->ingredient->name }}</p>
+                                                @if((float) $item->carry_forward_qty > 0)
+                                                    <p class="mt-1 text-[9px] font-bold text-amber-600 dark:text-amber-400">Sisa kemarin {{ rtrim(rtrim(number_format((float) $item->carry_forward_display, 2, '.', ''), '0'), '.') }} {{ strtoupper($item->display_unit) }}</p>
+                                                @endif
                                                 @if($selPrice > 0)
                                                     <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
                                                         Rp {{ number_format($selPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}

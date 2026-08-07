@@ -42,11 +42,11 @@
 
                     <div class="space-y-1">
                         @foreach($section['items'] as $item)
-                            <a href="{{ $item['route'] }}" @click="sidebarOpen = false" class="{{ $baseItemClass }} {{ $item['active'] ? $activeItemClass : $inactiveItemClass }}">
-                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? ($isDeveloper ? 'bg-slate-100 !text-slate-950 dark:bg-slate-700 dark:!text-slate-100' : 'bg-white/20 !text-white shadow-inner dark:bg-black/10') : 'bg-slate-100 text-slate-500 group-hover:bg-white dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700' }}">
-                                    <x-icon :name="$item['icon']" class="h-4 w-4" />
+                            <a href="{{ $item['route'] }}" @click="sidebarOpen = false" class="{{ $baseItemClass }} {{ $item['active'] ? $activeItemClass : $inactiveItemClass }} group transition-all duration-300">
+                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 group-hover:shadow-sm {{ $item['active'] ? ($isDeveloper ? 'bg-slate-100 !text-slate-950 dark:bg-slate-700 dark:!text-slate-100' : 'bg-white/20 !text-white shadow-inner dark:bg-black/10') : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-800 dark:group-hover:text-blue-400' }}">
+                                    <x-icon :name="$item['icon']" class="h-4 w-4 {{ $item['active'] ? 'active-icon-anim' : '' }}" />
                                 </span>
-                                <span class="min-w-0 flex-1 truncate {{ $item['active'] ? ($isDeveloper ? '!text-slate-950 dark:!text-slate-100' : '!text-white font-bold') : '' }}">{{ $item['label'] }}</span>
+                                <span class="min-w-0 flex-1 truncate transition-transform duration-300 group-hover:translate-x-0.5 {{ $item['active'] ? ($isDeveloper ? '!text-slate-950 dark:!text-slate-100' : '!text-white font-bold') : '' }}">{{ $item['label'] }}</span>
                             </a>
                         @endforeach
                     </div>
@@ -55,3 +55,62 @@
         </div>
     </nav>
 </aside>
+
+@once
+<style>
+/* Custom Micro-Animations for Sidebar Icons */
+@keyframes iconBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    40% { transform: translateY(-3px) scale(1.08, 0.94); }
+    60% { transform: translateY(-1px) scale(0.98, 1.02); }
+}
+@keyframes iconWiggle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-14deg) scale(1.1); }
+    50% { transform: rotate(12deg) scale(1.1); }
+    75% { transform: rotate(-8deg) scale(1.05); }
+}
+@keyframes iconPulseGlow {
+    0%, 100% { transform: scale(1); }
+    40% { transform: scale(1.22) rotate(4deg); }
+    70% { transform: scale(0.96) rotate(-2deg); }
+}
+@keyframes iconSpinTimer {
+    0% { transform: rotate(0deg) scale(1); }
+    40% { transform: rotate(22deg) scale(1.15); }
+    80% { transform: rotate(-8deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+}
+@keyframes iconFlutter {
+    0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    30% { transform: translate(-1.5px, -2px) rotate(-10deg) scale(1.1); }
+    70% { transform: translate(1.5px, -1px) rotate(10deg) scale(1.1); }
+}
+@keyframes activeIconFloat {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-2px) scale(1.06); }
+}
+
+.group:hover .icon-anim-bounce {
+    animation: iconBounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) infinite !important;
+}
+.group:hover .icon-anim-wiggle {
+    animation: iconWiggle 0.55s ease-in-out infinite !important;
+}
+.group:hover .icon-anim-pulse {
+    animation: iconPulseGlow 0.7s ease-in-out infinite !important;
+}
+.group:hover .icon-anim-timer {
+    animation: iconSpinTimer 0.75s ease-in-out infinite !important;
+}
+.group:hover .icon-anim-flutter {
+    animation: iconFlutter 0.65s ease-in-out infinite !important;
+}
+.group:hover .icon-anim-default {
+    transform: scale(1.15) rotate(6deg);
+}
+.active-icon-anim {
+    animation: activeIconFloat 3s ease-in-out infinite;
+}
+</style>
+@endonce

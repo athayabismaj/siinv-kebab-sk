@@ -16,9 +16,11 @@ class TransferDailyStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'session_id' => ['required', Rule::exists((new DailyStockSession())->getTable(), 'id')],
+            'session_id' => ['required', Rule::exists((new DailyStockSession)->getTable(), 'id')],
             'transfers' => ['required', 'array'],
+            'transfers.*.opening_quantity' => ['nullable', 'numeric', 'min:0'],
             'transfers.*.quantity' => ['nullable', 'numeric', 'min:0'],
+            'transfers.*.physical_quantity' => ['nullable', 'numeric', 'min:0'],
             'transfers.*.note' => ['nullable', 'string', 'max:255'],
             'transfers.*.transfer_unit' => ['nullable', 'in:pack,pcs,g,kg,ml,l'],
         ];

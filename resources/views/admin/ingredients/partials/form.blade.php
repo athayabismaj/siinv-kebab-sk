@@ -326,7 +326,7 @@
                             <span x-text="unit === 'pcs' ? 'Stok Saat Ini (Pack)' : 'Stok Saat Ini'"></span> <span class="text-rose-500">*</span>
                         </label>
                         <input type="number"
-                               step="0.01"
+                               :step="unit === 'pcs' ? (1 / Math.max(1, Number(packSize) || 1)) : 0.01"
                                name="stock"
                                x-model="stock"
                                placeholder="0.00"
@@ -348,7 +348,7 @@
                             <span x-text="unit === 'pcs' ? 'Batas Minimum Stok (Pack)' : 'Batas Minimum Stok'"></span> <span class="text-rose-500">*</span>
                         </label>
                         <input type="number"
-                               step="0.01"
+                               :step="unit === 'pcs' ? (1 / Math.max(1, Number(packSize) || 1)) : 0.01"
                                name="minimum_stock"
                                x-model="minStock"
                                placeholder="0.00"

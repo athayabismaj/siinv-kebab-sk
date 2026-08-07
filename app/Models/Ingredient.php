@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\IngredientUnit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -27,30 +28,42 @@ class Ingredient extends Model
         'cost_price' => 'decimal:2',
     ];
 
-
-    public function category() {
+    public function category()
+    {
         return $this->belongsTo(IngredientCategory::class);
     }
 
-
-    public function menuVariants() {
+    public function menuVariants()
+    {
         return $this->belongsToMany(MenuVariant::class, 'menu_variant_ingredients', 'ingredient_id', 'menu_variant_id')->withPivot('quantity')->withTimestamps();
     }
 
-    public function getConvertedStockAttribute() {
+    public function getConvertedStockAttribute()
+    {
+        $stock = IngredientUnit::normalizeBaseQuantity(
+            (string) ($this->base_unit ?: $this->display_unit),
+            (float) $this->stock
+        );
+
         if (in_array($this->display_unit, ['kg', 'l'])) {
-            return $this->stock / 1000;
+            return $stock / 1000;
         }
 
-        return $this->stock;
+        return $stock;
     }
 
-    public function getConvertedMinimumStockAttribute() {
+    public function getConvertedMinimumStockAttribute()
+    {
+        $minimumStock = IngredientUnit::normalizeBaseQuantity(
+            (string) ($this->base_unit ?: $this->display_unit),
+            (float) $this->minimum_stock
+        );
+
         if (in_array($this->display_unit, ['kg', 'l'])) {
-            return $this->minimum_stock / 1000;
+            return $minimumStock / 1000;
         }
 
-        return $this->minimum_stock;
+        return $minimumStock;
     }
 
     public function getDisplayStockValueAttribute()
@@ -76,8 +89,14 @@ class Ingredient extends Model
 
     private function getDisplayMetrics(): array
     {
-        $stock = (float) $this->stock;
-        $minimumStock = (float) $this->minimum_stock;
+        $stock = IngredientUnit::normalizeBaseQuantity(
+            (string) ($this->base_unit ?: $this->display_unit),
+            (float) $this->stock
+        );
+        $minimumStock = IngredientUnit::normalizeBaseQuantity(
+            (string) ($this->base_unit ?: $this->display_unit),
+            (float) $this->minimum_stock
+        );
         $unit = strtolower(trim((string) $this->base_unit));
 
         $gramUnits = ['g', 'gr', 'gram', 'grams'];
@@ -122,8 +141,8 @@ class Ingredient extends Model
         return $trimmed === '' ? '0' : $trimmed;
     }
 
-    
-    public function stockLogs() {
+    public function stockLogs()
+    {
         return $this->hasMany(StockLog::class);
     }
 
@@ -131,7 +150,4 @@ class Ingredient extends Model
     {
         return $this->hasMany(DailyStockItem::class);
     }
-
-
-
 }

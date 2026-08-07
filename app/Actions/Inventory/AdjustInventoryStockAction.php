@@ -6,6 +6,7 @@ use App\Models\Ingredient;
 use App\Models\StockLog;
 use App\Support\IngredientUnit;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class AdjustInventoryStockAction
 {
@@ -22,6 +23,15 @@ class AdjustInventoryStockAction
                 ->lockForUpdate()
                 ->firstOrFail();
             $newStockInBaseUnit = $this->normalizeQuantity($ingredient, $newStock, $inputUnit);
+
+            if (! IngredientUnit::isValidBaseQuantity((string) $ingredient->base_unit, $newStockInBaseUnit)) {
+                throw new RuntimeException('Stok untuk satuan PCS harus berupa bilangan bulat.');
+            }
+
+            $newStockInBaseUnit = IngredientUnit::normalizeBaseQuantity(
+                (string) $ingredient->base_unit,
+                $newStockInBaseUnit
+            );
             $currentStock = (float) $ingredient->stock;
 
             if (round($newStockInBaseUnit, 2) === round($currentStock, 2)) {

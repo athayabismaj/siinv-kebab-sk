@@ -19,9 +19,11 @@ class IngredientStockView
         if (($ingredient->display_unit ?? '') === 'pcs' && (int) ($ingredient->pack_size ?? 1) > 1) {
             $packSize = max(1, (int) $ingredient->pack_size);
             $unit = 'pcs';
-            $stockPackLabel = self::fullPackCountFromPcs($stock, $packSize) . ' pack';
-            $minimumPackLabel = self::fullPackCountFromPcs($minimum, $packSize) . ' pack';
-            $packInfoLabel = '1 pack = ' . $packSize . ' pcs';
+            $fullStockPacks = self::fullPackCountFromPcs($stock, $packSize);
+            $fullMinimumPacks = self::fullPackCountFromPcs($minimum, $packSize);
+            $stockPackLabel = $fullStockPacks > 0 ? $fullStockPacks.' pack penuh' : null;
+            $minimumPackLabel = $fullMinimumPacks > 0 ? $fullMinimumPacks.' pack' : null;
+            $packInfoLabel = '1 pack = '.$packSize.' pcs';
         }
 
         $isOut = $stock <= 0;
@@ -88,6 +90,7 @@ class IngredientStockView
     {
         $formatted = number_format($value, 2, '.', '');
         $trimmed = rtrim(rtrim($formatted, '0'), '.');
+
         return $trimmed === '' ? '0' : $trimmed;
     }
 
@@ -95,6 +98,7 @@ class IngredientStockView
     {
         $pcsInt = (int) floor(max(0, $pcs));
         $sizeInt = max(1, $packSize);
+
         return intdiv($pcsInt, $sizeInt);
     }
 

@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\OpenDailyStockSessionRequest;
 use App\Http\Requests\Admin\CloseDailyStockSessionRequest;
+use App\Http\Requests\Admin\OpenDailyStockSessionRequest;
 use App\Http\Requests\Admin\ReconcileDailyStockSessionRequest;
 use App\Http\Requests\Admin\ReopenDailyStockSessionRequest;
 use App\Http\Requests\Admin\TransferDailyStockRequest;
+use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\IngredientCategory;
@@ -20,16 +21,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 
 class DailyStockController extends Controller
 {
     public function __construct(
         private readonly DailyStockService $dailyStockService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -43,7 +43,7 @@ class DailyStockController extends Controller
             'search' => 'nullable|string|max:100',
             'category_id' => [
                 'nullable',
-                Rule::exists((new IngredientCategory())->getTable(), 'id'),
+                Rule::exists((new IngredientCategory)->getTable(), 'id'),
             ],
         ]);
 
@@ -66,7 +66,7 @@ class DailyStockController extends Controller
 
         $session = null;
         $sessionItems = new LengthAwarePaginator(
-            new Collection(),
+            new Collection,
             0,
             10,
             LengthAwarePaginator::resolveCurrentPage(),
@@ -107,6 +107,8 @@ class DailyStockController extends Controller
                 $ingredient = $item->ingredient;
 
                 $item->opening_display = $this->toDisplayQuantity($ingredient, (float) $item->opening_qty);
+                $item->carry_forward_display = $this->toDisplayQuantity($ingredient, (float) $item->carry_forward_qty);
+                $item->opening_adjustment_display = $this->toDisplayQuantity($ingredient, (float) $item->opening_adjustment_qty);
                 $item->remaining_display = $this->toDisplayQuantity($ingredient, (float) $item->remaining_qty);
                 $item->used_display = $this->toDisplayQuantity($ingredient, (float) $item->used_qty);
                 $item->display_unit = strtolower((string) ($ingredient->display_unit ?? ''));
@@ -127,6 +129,7 @@ class DailyStockController extends Controller
                 $searchLower = mb_strtolower($search);
                 $filteredItems = $filteredItems->filter(function ($item) use ($searchLower) {
                     $name = mb_strtolower((string) optional($item->ingredient)->name);
+
                     return str_contains($name, $searchLower);
                 })->values();
             }
@@ -208,13 +211,17 @@ class DailyStockController extends Controller
             'search' => 'nullable|string|max:100',
             'category_id' => [
                 'nullable',
-                Rule::exists((new IngredientCategory())->getTable(), 'id'),
+                Rule::exists((new IngredientCategory)->getTable(), 'id'),
             ],
             'ingredient_id' => 'nullable|integer|min:1',
         ]);
 
         $session = DailyStockSession::query()
-            ->with(['cashier:id,name', 'items.ingredient:id,name,display_unit,pack_size'])
+            ->with([
+                'cashier:id,name',
+                'carryForwardSource:id,session_date',
+                'items.ingredient:id,name,display_unit,pack_size',
+            ])
             ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->findOrFail((int) $validated['session_id']);
 
@@ -232,6 +239,7 @@ class DailyStockController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
         $selectedCategoryId = (int) ($validated['category_id'] ?? 0);
         $selectedIngredientId = (int) ($validated['ingredient_id'] ?? 0);
+        $sessionItemsByIngredient = $session->items->keyBy('ingredient_id');
 
         $ingredients = Ingredient::query()
             ->select(['id', 'name', 'display_unit', 'base_unit', 'pack_size', 'stock'])
@@ -245,8 +253,11 @@ class DailyStockController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $ingredients->getCollection()->transform(function (Ingredient $ingredient) {
-            return $this->decorateTransferIngredient($ingredient);
+        $ingredients->getCollection()->transform(function (Ingredient $ingredient) use ($sessionItemsByIngredient) {
+            return $this->decorateTransferIngredient(
+                $ingredient,
+                $sessionItemsByIngredient->get($ingredient->id)
+            );
         });
 
         $selectedIngredient = null;
@@ -258,7 +269,10 @@ class DailyStockController extends Controller
         }
 
         if ($selectedIngredient) {
-            $this->decorateTransferIngredient($selectedIngredient);
+            $this->decorateTransferIngredient(
+                $selectedIngredient,
+                $sessionItemsByIngredient->get($selectedIngredient->id)
+            );
         }
 
         $categories = IngredientCategory::query()
@@ -280,7 +294,7 @@ class DailyStockController extends Controller
         $validated = $request->validate([
             'session_id' => [
                 'required',
-                Rule::exists((new DailyStockSession())->getTable(), 'id'),
+                Rule::exists((new DailyStockSession)->getTable(), 'id'),
             ],
         ]);
 
@@ -354,12 +368,19 @@ class DailyStockController extends Controller
                 $branchId
             );
 
+            $carriedItemCount = $session->items
+                ->filter(fn ($item) => (float) $item->carry_forward_qty > 0)
+                ->count();
+            $successMessage = $carriedItemCount > 0
+                ? "Sesi stok harian berhasil dibuka dengan {$carriedItemCount} saldo sisa dari sesi sebelumnya."
+                : 'Sesi stok harian berhasil dibuka.';
+
             return redirect()
                 ->route('admin.daily-stocks.index', [
                     'date' => $session->session_date->toDateString(),
                     'cashier_id' => $session->cashier_id,
                 ])
-                ->with('success', 'Sesi stok harian berhasil dibuka.');
+                ->with('success', $successMessage);
         } catch (RuntimeException $e) {
             Log::warning('Daily stock open session failed', [
                 'cashier_id' => $validated['cashier_id'] ?? null,
@@ -394,37 +415,68 @@ class DailyStockController extends Controller
 
             $rawTransfers = $validated['transfers'] ?? [];
             $batchTransfers = [];
-            
-            if (!empty($rawTransfers)) {
+            $targetModeSubmitted = false;
+
+            if (! empty($rawTransfers)) {
                 $ingredientIds = array_keys($rawTransfers);
                 $ingredients = Ingredient::query()->whereIn('id', $ingredientIds)->get()->keyBy('id');
-                
+
                 foreach ($rawTransfers as $ingredientId => $data) {
                     $qty = (float) ($data['quantity'] ?? 0);
-                    if ($qty <= 0) {
+                    $hasOpeningQuantity = array_key_exists('opening_quantity', $data)
+                        && $data['opening_quantity'] !== null
+                        && $data['opening_quantity'] !== '';
+                    $hasPhysicalQuantity = array_key_exists('physical_quantity', $data)
+                        && $data['physical_quantity'] !== null
+                        && $data['physical_quantity'] !== '';
+
+                    if ($qty <= 0 && ! $hasPhysicalQuantity && ! $hasOpeningQuantity) {
                         continue;
                     }
-                    
+
                     $ingredient = $ingredients->get($ingredientId);
-                    if (!$ingredient) {
+                    if (! $ingredient) {
                         continue;
                     }
-                    
+
+                    if ($hasOpeningQuantity) {
+                        $targetModeSubmitted = true;
+                        $batchTransfers[$ingredient->id] = [
+                            'target_opening_qty' => $this->normalizeQuantityForIngredient(
+                                $ingredient,
+                                (float) $data['opening_quantity'],
+                                (string) $ingredient->display_unit
+                            ),
+                            'note' => $data['note'] ?? null,
+                        ];
+
+                        continue;
+                    }
+
                     $transferUnit = (string) ($data['transfer_unit'] ?? 'pack');
                     $quantityBase = $this->normalizeQuantityForIngredient(
                         $ingredient,
                         $qty,
                         $transferUnit
                     );
-                    
+
+                    $physicalQuantityBase = $hasPhysicalQuantity
+                        ? $this->normalizeQuantityForIngredient(
+                            $ingredient,
+                            (float) $data['physical_quantity'],
+                            (string) $ingredient->display_unit
+                        )
+                        : null;
+
                     $batchTransfers[$ingredient->id] = [
                         'qty' => $quantityBase,
+                        'physical_qty' => $physicalQuantityBase,
                         'note' => $data['note'] ?? null,
                     ];
                 }
             }
 
-            if (!empty($batchTransfers)) {
+            if (! empty($batchTransfers)) {
                 $transferResult = $this->dailyStockService->batchTransferToDaily(
                     (int) $validated['session_id'],
                     $batchTransfers,
@@ -433,6 +485,8 @@ class DailyStockController extends Controller
                 );
 
                 $processedCount = (int) ($transferResult['processed'] ?? 0);
+                $returnedCount = (int) ($transferResult['returned'] ?? 0);
+                $reconciledCount = (int) ($transferResult['reconciled'] ?? 0);
                 $skippedTransfers = $transferResult['skipped'] ?? [];
                 $redirect = redirect()
                     ->route('admin.daily-stocks.transfer.form', [
@@ -442,20 +496,35 @@ class DailyStockController extends Controller
                         'page' => $request->query('page'),
                     ]);
 
-                if ($processedCount > 0) {
-                    $redirect = $redirect->with('success', "{$processedCount} bahan berhasil ditransfer ke sesi harian.");
+                if ($processedCount > 0 || $returnedCount > 0 || $reconciledCount > 0) {
+                    $messages = [];
+                    if ($reconciledCount > 0) {
+                        $messages[] = "stok awal {$reconciledCount} bahan berhasil diverifikasi";
+                    }
+                    if ($processedCount > 0) {
+                        $messages[] = "{$processedCount} bahan tambahan berhasil diambil dari gudang";
+                    }
+                    if ($returnedCount > 0) {
+                        $messages[] = "pengambilan {$returnedCount} bahan berhasil dikoreksi ke gudang";
+                    }
 
-                    if (!empty($skippedTransfers)) {
+                    $redirect = $redirect->with('success', ucfirst(implode(' dan ', $messages)).'.');
+
+                    if (! empty($skippedTransfers)) {
                         $redirect = $redirect->with('warning', $this->buildTransferWarningMessage($skippedTransfers));
                     }
 
                     return $redirect;
                 }
 
-                if (!empty($skippedTransfers)) {
+                if (! empty($skippedTransfers)) {
                     return back()
                         ->withInput()
                         ->with('error', $this->buildTransferWarningMessage($skippedTransfers));
+                }
+
+                if ($targetModeSubmitted) {
+                    return $redirect->with('success', 'Saldo awal tidak berubah.');
                 }
             }
 
@@ -469,7 +538,17 @@ class DailyStockController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->withInput()->with('error', 'Transfer stok gagal diproses. Periksa jumlah dan stok bahan.');
+            $safeMessage = match ($e->getMessage()) {
+                'Stok fisik awal tidak boleh negatif.' => 'Stok fisik awal tidak boleh negatif.',
+                'Stok fisik awal tidak dapat dikoreksi setelah bahan dipakai dalam transaksi.' => 'Stok fisik awal tidak dapat dikoreksi setelah bahan dipakai dalam transaksi.',
+                'Koreksi stok fisik menghasilkan saldo negatif.' => 'Koreksi stok fisik menghasilkan saldo negatif.',
+                'Stok awal hari ini tidak boleh negatif.' => 'Stok awal hari ini tidak boleh negatif.',
+                'Stok awal hari ini tidak dapat diubah setelah bahan dipakai dalam transaksi.' => 'Stok awal hari ini tidak dapat diubah setelah bahan dipakai dalam transaksi.',
+                'Koreksi stok awal menghasilkan saldo negatif.' => 'Koreksi stok awal menghasilkan saldo negatif.',
+                default => 'Transfer stok gagal diproses. Periksa jumlah dan stok bahan.',
+            };
+
+            return back()->withInput()->with('error', $safeMessage);
         } catch (\Throwable $e) {
             Log::error('Daily stock transfer error', [
                 'session_id' => $validated['session_id'] ?? null,
@@ -639,7 +718,7 @@ class DailyStockController extends Controller
         if (! $session) {
             return [
                 'items_count' => 0,
-                'by_unit'     => [],
+                'by_unit' => [],
                 'total_value' => 0,
             ];
         }
@@ -652,27 +731,27 @@ class DailyStockController extends Controller
         $byUnit = [];
         foreach ($grouped as $unit => $unitItems) {
             $byUnit[] = [
-                'unit'      => $unit,
-                'count'     => $unitItems->count(),
-                'opening'   => round((float) $unitItems->sum('opening_qty'), 2),
+                'unit' => $unit,
+                'count' => $unitItems->count(),
+                'opening' => round((float) $unitItems->sum('opening_qty'), 2),
                 'remaining' => round((float) $unitItems->sum('remaining_qty'), 2),
-                'used'      => round((float) $unitItems->sum('used_qty'), 2),
+                'used' => round((float) $unitItems->sum('used_qty'), 2),
             ];
         }
 
         return [
-            'items_count'     => $session->items->count(),
-            'by_unit'         => $byUnit,
-            'total_value'     => (float) $session->items->sum(function ($item) {
-                $usedQty  = (float) $item->used_qty;
+            'items_count' => $session->items->count(),
+            'by_unit' => $byUnit,
+            'total_value' => (float) $session->items->sum(function ($item) {
+                $usedQty = (float) $item->used_qty;
                 $selPrice = (float) ($item->ingredient->selling_price ?? 0);
                 $dispUnit = strtolower((string) ($item->ingredient->display_unit ?? ''));
                 $packSize = max(1, (int) ($item->ingredient->pack_size ?? 1));
 
-                return match($dispUnit) {
+                return match ($dispUnit) {
                     'kg', 'l' => ($usedQty / 1000) * $selPrice,
-                    'pcs'     => ($usedQty / $packSize) * $selPrice,
-                    default   => $usedQty * $selPrice,
+                    'pcs' => ($usedQty / $packSize) * $selPrice,
+                    default => $usedQty * $selPrice,
                 };
             }),
         ];
@@ -721,7 +800,7 @@ class DailyStockController extends Controller
     }
 
     /**
-     * @param array<int, array{name: string, requested: float, available: float, unit: string}> $skippedTransfers
+     * @param  array<int, array{name: string, requested: float, available: float, unit: string}>  $skippedTransfers
      */
     private function buildTransferWarningMessage(array $skippedTransfers): string
     {
@@ -772,8 +851,8 @@ class DailyStockController extends Controller
             return;
         }
 
-        $driver = config('database.connections.' . config('database.default') . '.driver');
-        $term = '%' . $search . '%';
+        $driver = config('database.connections.'.config('database.default').'.driver');
+        $term = '%'.$search.'%';
 
         if ($driver === 'pgsql') {
             $query->where('name', 'ILIKE', $term);
@@ -781,11 +860,13 @@ class DailyStockController extends Controller
             return;
         }
 
-        $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
+        $query->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($search).'%']);
     }
 
-    private function decorateTransferIngredient(Ingredient $ingredient): Ingredient
-    {
+    private function decorateTransferIngredient(
+        Ingredient $ingredient,
+        ?DailyStockItem $sessionItem = null
+    ): Ingredient {
         $stock = (float) $ingredient->stock;
         $displayUnit = strtolower(trim((string) $ingredient->display_unit));
         $baseUnit = strtolower(trim((string) ($ingredient->base_unit ?: IngredientUnit::baseUnit($displayUnit))));
@@ -809,6 +890,22 @@ class DailyStockController extends Controller
             $ingredient->transfer_stock_unit = $baseUnit;
             $ingredient->transfer_input_unit = $baseUnit;
         }
+
+        $carryForwardBase = (float) ($sessionItem?->carry_forward_qty ?? 0);
+        $openingAdjustmentBase = (float) ($sessionItem?->opening_adjustment_qty ?? 0);
+        $transferredBase = (float) ($sessionItem?->transferred_qty ?? 0);
+        $sessionOpeningBase = (float) ($sessionItem?->opening_qty ?? 0);
+        $sessionRemainingBase = (float) ($sessionItem?->remaining_qty ?? 0);
+        $ingredient->has_carry_forward = $carryForwardBase > 0;
+        $ingredient->carry_forward_value = $this->toDisplayQuantity($ingredient, $carryForwardBase);
+        $ingredient->physical_opening_value = $this->toDisplayQuantity(
+            $ingredient,
+            $carryForwardBase + $openingAdjustmentBase
+        );
+        $ingredient->transferred_to_session_value = $this->toDisplayQuantity($ingredient, $transferredBase);
+        $ingredient->session_opening_value = $this->toDisplayQuantity($ingredient, $sessionOpeningBase);
+        $ingredient->session_remaining_value = $this->toDisplayQuantity($ingredient, $sessionRemainingBase);
+        $ingredient->carry_forward_reconciled = $sessionItem?->carry_forward_reconciled_at !== null;
 
         return $ingredient;
     }

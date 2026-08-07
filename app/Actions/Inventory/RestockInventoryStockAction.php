@@ -28,6 +28,15 @@ class RestockInventoryStockAction
                 throw new RuntimeException('Jumlah restok harus lebih dari 0.');
             }
 
+            if (! IngredientUnit::isValidBaseQuantity((string) $ingredient->base_unit, $quantityInBaseUnit)) {
+                throw new RuntimeException('Jumlah restok untuk satuan PCS harus berupa bilangan bulat.');
+            }
+
+            $quantityInBaseUnit = IngredientUnit::normalizeBaseQuantity(
+                (string) $ingredient->base_unit,
+                $quantityInBaseUnit
+            );
+
             $ingredient->increment('stock', $quantityInBaseUnit);
 
             StockLog::query()->create([

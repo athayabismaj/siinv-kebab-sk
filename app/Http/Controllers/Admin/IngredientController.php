@@ -11,6 +11,7 @@ use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class IngredientController extends Controller
 {
@@ -55,6 +56,7 @@ class IngredientController extends Controller
         $ingredients->setCollection(
             $ingredients->getCollection()->map(function (Ingredient $ingredient) {
                 $ingredient->stock_meta = IngredientStockView::fromIngredient($ingredient);
+
                 return $ingredient;
             })
         );
@@ -174,6 +176,25 @@ class IngredientController extends Controller
         $packSize = (int) $validated['pack_size'];
         $displayUnit = (string) $validated['display_unit'];
 
+        if ($displayUnit === 'pcs') {
+            $invalidFields = collect(['stock', 'minimum_stock'])
+                ->filter(function (string $field) use ($validated, $packSize): bool {
+                    $baseQuantity = (float) $validated[$field] * max(1, $packSize);
+
+                    return ! IngredientUnit::isValidBaseQuantity('pcs', $baseQuantity);
+                });
+
+            if ($invalidFields->isNotEmpty()) {
+                $messages = $invalidFields
+                    ->mapWithKeys(fn (string $field): array => [
+                        $field => 'Nilai PACK harus menghasilkan jumlah PCS utuh.',
+                    ])
+                    ->all();
+
+                throw ValidationException::withMessages($messages);
+            }
+        }
+
         return [
             'name' => $validated['name'],
             'category_id' => $validated['category_id'] ?? null,
@@ -228,11 +249,13 @@ class IngredientController extends Controller
     {
         if ($recordStatus === 'active') {
             $query->orderByDesc('ingredients.created_at')->orderByDesc('ingredients.id');
+
             return;
         }
 
         if ($recordStatus === 'archived') {
             $query->orderByDesc('ingredients.deleted_at')->orderByDesc('ingredients.id');
+
             return;
         }
 
@@ -252,10 +275,11 @@ class IngredientController extends Controller
 
         if (DB::connection()->getDriverName() === 'pgsql') {
             $query->where('name', 'ILIKE', "%{$search}%");
+
             return;
         }
 
-        $query->where('name', 'like', '%' . $search . '%');
+        $query->where('name', 'like', '%'.$search.'%');
     }
 
     private function categoryOptions()
@@ -273,9 +297,15 @@ class IngredientController extends Controller
     private function normalizeStockInput(string $displayUnit, float $value, int $packSize): float
     {
         if ($displayUnit === 'pcs') {
-            return $value * max(1, $packSize);
+            return IngredientUnit::normalizeBaseQuantity(
+                'pcs',
+                $value * max(1, $packSize)
+            );
         }
 
-        return IngredientUnit::toBase($displayUnit, $value);
+        return IngredientUnit::normalizeBaseQuantity(
+            IngredientUnit::baseUnit($displayUnit),
+            IngredientUnit::toBase($displayUnit, $value)
+        );
     }
 }

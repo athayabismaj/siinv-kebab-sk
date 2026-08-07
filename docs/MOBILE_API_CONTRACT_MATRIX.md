@@ -70,6 +70,9 @@ seluruh cabang yang masih diizinkan. Token atau sesi user lain tetap ditolak.
 - Pembukaan sesi dilakukan admin melalui web. Android tidak mempunyai endpoint
   open-session.
 - Status sesi dan stok harian wajib menunjuk `session_id` yang sama.
+- Item stok harian dapat membawa `carry_forward_qty`, `opening_adjustment_qty`,
+  dan `is_carried_forward`. Aplikasi dapat memberi label "Sisa Kemarin" tanpa
+  menghitung ulang atau mengurangi stok gudang.
 - Hanya sesi berstatus buka pada tanggal bisnis aplikasi yang digunakan; sesi
   lama yang belum tertutup tidak dipilih sebagai sesi hari ini.
 - Jika data rusak menghasilkan lebih dari satu sesi valid, backend gagal aman

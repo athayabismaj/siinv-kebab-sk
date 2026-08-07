@@ -2,6 +2,7 @@
 
 namespace App\Actions\DailyStock;
 
+use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\User;
 use App\Support\BranchScope;
@@ -37,15 +38,33 @@ class OpenDailyStockSessionAction
                     return $this->useExistingSession($session, $notes);
                 }
 
-                return DailyStockSession::query()->create([
+                $sourceSession = $this->previousSession(
+                    $date,
+                    $cashierId,
+                    $resolvedBranchId
+                );
+                $carryForwardSource = $sourceSession?->status === 'closed'
+                    && $sourceSession->stock_retained_at_outlet
+                    ? $sourceSession
+                    : null;
+
+                $session = DailyStockSession::query()->create([
                     'session_date' => $date,
                     'branch_id' => $resolvedBranchId,
                     'cashier_id' => $cashierId,
                     'opened_by' => $openedBy,
                     'status' => 'open',
+                    'stock_retained_at_outlet' => false,
+                    'carry_forward_source_session_id' => $carryForwardSource?->id,
                     'notes' => $notes,
                     'opened_at' => now(),
                 ]);
+
+                if ($carryForwardSource) {
+                    $this->copyRemainingStock($carryForwardSource, $session);
+                }
+
+                return $session->fresh(['items.ingredient', 'carryForwardSource']);
             });
         } catch (QueryException $exception) {
             if (! $this->isDailySessionUniqueViolation($exception)) {
@@ -87,6 +106,51 @@ class OpenDailyStockSessionAction
         }
 
         return $session;
+    }
+
+    private function previousSession(
+        string $date,
+        int $cashierId,
+        ?int $branchId
+    ): ?DailyStockSession {
+        return DailyStockSession::query()
+            ->where('session_date', '<', $date)
+            ->where('cashier_id', $cashierId)
+            ->when($branchId, fn (Builder $query) => $query->where('branch_id', $branchId))
+            ->latest('session_date')
+            ->latest('closed_at')
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+    }
+
+    private function copyRemainingStock(
+        DailyStockSession $sourceSession,
+        DailyStockSession $targetSession
+    ): void {
+        $sourceItems = DailyStockItem::query()
+            ->where('daily_stock_session_id', $sourceSession->id)
+            ->where('remaining_qty', '>', 0)
+            ->orderBy('ingredient_id')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($sourceItems as $sourceItem) {
+            $remaining = round((float) $sourceItem->remaining_qty, 2);
+
+            DailyStockItem::query()->create([
+                'daily_stock_session_id' => $targetSession->id,
+                'ingredient_id' => $sourceItem->ingredient_id,
+                'carry_forward_qty' => $remaining,
+                'opening_adjustment_qty' => 0,
+                'transferred_qty' => 0,
+                'opening_qty' => $remaining,
+                'remaining_qty' => $remaining,
+                'used_qty' => 0,
+                'returned_qty' => 0,
+                'note' => "Sisa sesi sebelumnya #{$sourceSession->id}",
+            ]);
+        }
     }
 
     protected function isDailySessionUniqueViolation(QueryException $exception): bool

@@ -1,53 +1,46 @@
+/* Styling & refinement for daily stock transfer page */
+.transfer-stock-page input[type="number"] {
+    color-scheme: light dark;
+}
+
+.transfer-stock-page input[type="number"]::-webkit-outer-spin-button,
+.transfer-stock-page input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.transfer-stock-page input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 .dark .transfer-stock-page input[name^="transfers["],
-    .dark .transfer-stock-page select[name^="transfers["] {
-        background-color: #0f172a !important;
-        border-color: #475569 !important;
-        color: #f8fafc !important;
-        color-scheme: dark;
-    }
+.dark .transfer-stock-page select[name^="transfers["] {
+    color-scheme: dark;
+}
 
-    .dark .transfer-stock-page input[name^="transfers["]::placeholder {
-        color: #94a3b8 !important;
-        opacity: 1;
-    }
+.transfer-stock-page .transfer-filter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
 
-    .dark .transfer-stock-page .transfer-unit-toggle {
-        background-color: #0f172a !important;
-        border-color: #475569 !important;
-    }
+.transfer-stock-page .transfer-filter-category {
+    width: 100%;
+}
 
-    .dark .transfer-stock-page .transfer-unit-option {
-        color: #94a3b8 !important;
-    }
+.transfer-stock-page .transfer-filter-search {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 
-    .dark .transfer-stock-page input[type="radio"]:checked + .transfer-unit-option {
-        background-color: #2563eb !important;
-        color: #ffffff !important;
-    }
-
+@media (min-width: 640px) {
     .transfer-stock-page .transfer-filter-form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        flex-direction: row;
+        align-items: center;
     }
 
     .transfer-stock-page .transfer-filter-category {
-        width: 100%;
+        flex: 0 0 176px;
+        width: 176px;
     }
-
-    .transfer-stock-page .transfer-filter-search {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    @media (min-width: 640px) {
-        .transfer-stock-page .transfer-filter-form {
-            flex-direction: row;
-            align-items: center;
-        }
-
-        .transfer-stock-page .transfer-filter-category {
-            flex: 0 0 176px;
-            width: 176px;
-        }
-    }
+}

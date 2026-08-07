@@ -94,6 +94,10 @@ class DailyOperationsWorkflowTest extends TestCase
                 'total_items_sold' => 0,
             ]);
 
+            $dailyReturnCountBeforeClose = DB::table('stock_logs')
+                ->where('type', 'daily_return')
+                ->count();
+
             app(CloseDailyStockSessionAction::class)->execute(
                 $session->id,
                 [$ingredient->id => 10],
@@ -102,14 +106,12 @@ class DailyOperationsWorkflowTest extends TestCase
             );
 
             $this->assertSame('closed', $session->fresh()->status);
-            $this->assertSame(100.0, (float) $ingredient->fresh()->stock);
-            $this->assertDatabaseHas('stock_logs', [
-                'branch_id' => $branch->id,
-                'ingredient_id' => $ingredient->id,
-                'type' => 'daily_return',
-                'quantity' => 10,
-                'reference_id' => $session->id,
-            ]);
+            $this->assertSame(90.0, (float) $ingredient->fresh()->stock);
+            $this->assertTrue((bool) $session->fresh()->stock_retained_at_outlet);
+            $this->assertSame(
+                $dailyReturnCountBeforeClose,
+                DB::table('stock_logs')->where('type', 'daily_return')->count()
+            );
         } finally {
             Carbon::setTestNow();
         }
@@ -174,7 +176,10 @@ class DailyOperationsWorkflowTest extends TestCase
      */
     private function createOperationalDataset(): array
     {
-        $branch = Branch::query()->where('code', 'default')->firstOrFail();
+        $branch = Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
         $branch->update(['code' => 'umk']);
         $admin = $this->createUser('admin', $branch, 'Admin UMK');
         $cashier = $this->createUser('kasir', $branch, 'Kasir UMK');

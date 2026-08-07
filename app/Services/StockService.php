@@ -8,13 +8,13 @@ use App\Models\Ingredient;
 use App\Models\MenuVariant;
 use App\Models\StockLog;
 use App\Support\AdminCache;
+use App\Support\IngredientUnit;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use RuntimeException;
 
 class StockService
 {
-
     public static function deductStock(
         int $variantId,
         float $qty,
@@ -23,8 +23,7 @@ class StockService
         ?int $cashierId = null,
         Carbon|string|null $transactionAt = null,
         ?int $branchId = null
-    ): void
-    {
+    ): void {
         $cashierId = (int) ($cashierId ?? 0);
         if ($cashierId <= 0) {
             throw new RuntimeException('Kasir tidak valid untuk pengurangan stok harian.');
@@ -57,6 +56,15 @@ class StockService
             $usedQty = (float) $ingredient->pivot->quantity * $qty;
             if ($usedQty <= 0) {
                 continue;
+            }
+
+            if (! IngredientUnit::isValidBaseQuantity(
+                (string) ($ingredient->base_unit ?: $ingredient->display_unit),
+                $usedQty
+            )) {
+                throw new RuntimeException(
+                    "Resep {$variant->name} menghasilkan pecahan PCS untuk {$ingredient->name}. Perbaiki resep terlebih dahulu."
+                );
             }
 
             // Lock row ingredient hanya untuk memastikan data ingredient konsisten saat validasi relasi recipe.

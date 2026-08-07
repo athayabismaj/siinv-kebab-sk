@@ -53,15 +53,22 @@ class DailyStockController extends Controller
 
             $baseValue = (float) $item->opening_qty;
             $remainingBase = (float) $item->remaining_qty;
+            $carryForwardBase = (float) $item->carry_forward_qty;
+            $openingAdjustmentBase = (float) $item->opening_adjustment_qty;
             $unit = strtolower((string) $ingredient->display_unit);
             $qty = round(IngredientUnit::toDisplay($unit, $baseValue), 2);
             $remainingQty = round(IngredientUnit::toDisplay($unit, $remainingBase), 2);
+            $carryForwardQty = round(IngredientUnit::toDisplay($unit, $carryForwardBase), 2);
+            $openingAdjustmentQty = round(IngredientUnit::toDisplay($unit, $openingAdjustmentBase), 2);
 
             return [
                 'ingredient_id' => $ingredient->id,
                 'name' => $ingredient->name,
                 'qty' => $qty,
                 'remaining_qty' => $remainingQty,
+                'carry_forward_qty' => $carryForwardQty,
+                'opening_adjustment_qty' => $openingAdjustmentQty,
+                'is_carried_forward' => $carryForwardBase > 0,
                 'unit' => $unit,
                 'display_qty' => (string) $qty,
             ];

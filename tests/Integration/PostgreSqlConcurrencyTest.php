@@ -114,6 +114,10 @@ class PostgreSqlConcurrencyTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]));
+
+        $this->assertDatabaseRejects(fn () => DB::table('ingredients')
+            ->where('id', $context['ingredient']->id)
+            ->update(['stock' => 0.04]));
     }
 
     public function test_two_real_processes_cannot_oversell_daily_stock(): void
@@ -202,7 +206,7 @@ class PostgreSqlConcurrencyTest extends TestCase
         $this->assertSame(2, StockLog::query()->where('type', 'in')->count());
     }
 
-    public function test_concurrent_close_session_returns_inventory_only_once(): void
+    public function test_concurrent_close_session_retains_outlet_inventory_only_once(): void
     {
         $context = $this->seedCheckoutContext(remainingQty: 1, warehouseStock: 0);
         $results = $this->runWorkers('close-session', [
@@ -212,8 +216,9 @@ class PostgreSqlConcurrencyTest extends TestCase
 
         $this->assertCount(1, collect($results)->where('ok', true));
         $this->assertSame('closed', $context['session']->fresh()->status);
-        $this->assertSame(1.0, (float) $context['ingredient']->fresh()->stock);
-        $this->assertSame(1, StockLog::query()->where('type', 'daily_return')->where('reference_id', $context['session']->id)->count());
+        $this->assertSame(0.0, (float) $context['ingredient']->fresh()->stock);
+        $this->assertTrue((bool) $context['session']->fresh()->stock_retained_at_outlet);
+        $this->assertSame(0, StockLog::query()->where('type', 'daily_return')->where('reference_id', $context['session']->id)->count());
     }
 
     public function test_two_real_processes_open_one_daily_session_for_the_same_cashier_and_date(): void

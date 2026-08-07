@@ -462,7 +462,10 @@ class AndroidOperationalBranchContractTest extends TestCase
      */
     private function createAssignedCashier(): array
     {
-        $primaryBranch = Branch::query()->where('code', 'default')->firstOrFail();
+        $primaryBranch = Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
         $operationalBranch = Branch::query()->create([
             'name' => 'Kebab SK Jepara',
             'code' => 'jpr',

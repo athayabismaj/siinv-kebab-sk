@@ -129,6 +129,31 @@ class RecipeControllerTest extends TestCase
         $response->assertSessionHasErrors('ingredients');
     }
 
+    public function test_update_recipe_rejects_fractional_piece_ingredient(): void
+    {
+        $admin = $this->createAdminUser();
+        [$variant, $ingredientA] = $this->createRecipeDataset();
+        $ingredientA->update([
+            'display_unit' => 'pcs',
+            'base_unit' => 'pcs',
+            'pack_size' => 10,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.recipes.edit', $variant->id))
+            ->put(route('admin.recipes.update', $variant->id), [
+                'visible_ingredients' => [(string) $ingredientA->id],
+                'ingredients' => [(string) $ingredientA->id => 0.04],
+            ]);
+
+        $response->assertRedirect(route('admin.recipes.edit', $variant->id));
+        $response->assertSessionHasErrors("ingredients.{$ingredientA->id}");
+        $this->assertDatabaseMissing('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $ingredientA->id,
+        ]);
+    }
+
     public function test_update_recipe_does_not_touch_other_variant_recipe(): void
     {
         $admin = $this->createAdminUser();

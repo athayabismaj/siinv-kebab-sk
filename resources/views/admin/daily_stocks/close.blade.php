@@ -137,7 +137,7 @@
                                     name="remaining[{{ $item->ingredient_id }}]"
                                     min="0"
                                     max="{{ $openingQty }}"
-                                    step="0.01"
+                                    step="{{ $item->display_unit === 'pcs' ? '1' : '0.01' }}"
                                     value="{{ $currentRemaining }}"
                                     data-opening-base="{{ $item->opening_qty }}"
                                     data-display-unit="{{ $item->display_unit }}"

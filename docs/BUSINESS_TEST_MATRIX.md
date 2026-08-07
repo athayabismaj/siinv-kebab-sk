@@ -22,6 +22,7 @@ ditutup oleh suite PHPUnit; status `Manual` harus diperiksa pada release candida
 | VOID-02 | Pembatalan | Void kedua dengan transaksi yang sama ditolak. | Otomatis | Covered |
 | VOID-03 | Pembatalan | Void lintas cabang atau lintas sesi tidak membuat side effect. | Otomatis | Covered |
 | STOCK-01 | Sesi stok | Admin membuka sesi hanya untuk kasir cabang aktif dan tanggal yang sah. | Otomatis | Covered |
+| STOCK-05 | Sesi stok | Sisa outlet sesi sebelumnya dibawa ke sesi berikutnya tanpa mutasi gudang ganda; koreksi fisik diaudit terpisah. | Otomatis | Covered |
 | STOCK-02 | Transfer | Transfer mengurangi gudang, membuat item sesi, dan menulis stock log. | Otomatis | Covered |
 | STOCK-03 | Transfer | Transfer batch menyimpan item yang cukup dan melaporkan item yang kurang. | Otomatis | Covered |
 | STOCK-04 | Penyesuaian | Penyesuaian mencatat selisih stok pada cabang aktif. | Otomatis | Covered |
