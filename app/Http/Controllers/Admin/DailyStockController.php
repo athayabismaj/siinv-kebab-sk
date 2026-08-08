@@ -743,14 +743,14 @@ class DailyStockController extends Controller
             'by_unit' => $byUnit,
             'total_value' => (float) $session->items->sum(function ($item) {
                 $usedQty = (float) $item->used_qty;
-                $selPrice = (float) ($item->ingredient->selling_price ?? 0);
+                $costPrice = (float) ($item->ingredient->cost_price ?? 0);
                 $dispUnit = strtolower((string) ($item->ingredient->display_unit ?? ''));
                 $packSize = max(1, (int) ($item->ingredient->pack_size ?? 1));
 
                 return match ($dispUnit) {
-                    'kg', 'l' => ($usedQty / 1000) * $selPrice,
-                    'pcs' => ($usedQty / $packSize) * $selPrice,
-                    default => $usedQty * $selPrice,
+                    'kg', 'l' => ($usedQty / 1000) * $costPrice,
+                    'pcs' => ($usedQty / $packSize) * $costPrice,
+                    default => $usedQty * $costPrice,
                 };
             }),
         ];

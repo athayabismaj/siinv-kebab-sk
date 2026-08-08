@@ -372,13 +372,13 @@
                             {{-- ROW DESKTOP --}}
                             @php
                                 $usedQty  = (float) $item->used_qty;
-                                $selPrice = (float) ($item->ingredient->selling_price ?? 0);
+                                $costPrice = (float) ($item->ingredient->cost_price ?? 0);
                                 $dispUnit = $item->ingredient->display_unit ?? '';
                                 $packSize = max(1, (int) ($item->ingredient->pack_size ?? 1));
                                 $itemValue = match($dispUnit) {
-                                    'kg', 'l' => ($usedQty / 1000) * $selPrice,
-                                    'pcs'     => ($usedQty / $packSize) * $selPrice,
-                                    default   => $usedQty * $selPrice,
+                                    'kg', 'l' => ($usedQty / 1000) * $costPrice,
+                                    'pcs'     => ($usedQty / $packSize) * $costPrice,
+                                    default   => $usedQty * $costPrice,
                                 };
                             @endphp
                             <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group">
@@ -389,9 +389,9 @@
                                         </div>
                                         <div>
                                             <p class="font-bold text-[14px] text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors">{{ $item->ingredient->name }}</p>
-                                            @if($selPrice > 0)
+                                            @if($costPrice > 0)
                                                 <p class="text-[11px] text-slate-400 font-medium mt-0.5">
-                                                    Rp {{ number_format($selPrice, 0, ',', '.') }} / {{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
+                                                    Rp {{ number_format($costPrice, 0, ',', '.') }} / {{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
                                                 </p>
                                             @endif
                                         </div>
@@ -451,9 +451,9 @@
                                                 @if((float) $item->carry_forward_qty > 0)
                                                     <p class="mt-1 text-[9px] font-bold text-amber-600 dark:text-amber-400">Sisa kemarin {{ rtrim(rtrim(number_format((float) $item->carry_forward_display, 2, '.', ''), '0'), '.') }} {{ strtoupper($item->display_unit) }}</p>
                                                 @endif
-                                                @if($selPrice > 0)
+                                                @if($costPrice > 0)
                                                     <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                                                        Rp {{ number_format($selPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
+                                                        Rp {{ number_format($costPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
                                                     </p>
                                                 @endif
                                             </div>
