@@ -18,7 +18,7 @@ class StockLogExportResilienceTest extends TestCase
     public function test_owner_stock_log_export_keeps_the_selected_branch_scope(): void
     {
         $owner = $this->createOwner();
-        $firstBranch = Branch::query()->where('code', 'default')->firstOrFail();
+        $firstBranch = $this->defaultBranch();
         $secondBranch = Branch::query()->create(['name' => 'Kebab SK Jepara', 'code' => 'jpr', 'is_active' => true]);
         $ingredient = Ingredient::query()->create(['name' => 'Tortilla', 'stock' => 100, 'minimum_stock' => 10, 'base_unit' => 'pcs', 'display_unit' => 'pcs']);
 
@@ -42,7 +42,7 @@ class StockLogExportResilienceTest extends TestCase
         Queue::fake();
 
         $owner = $this->createOwner();
-        $branch = Branch::query()->where('code', 'default')->firstOrFail();
+        $branch = $this->defaultBranch();
         $ingredient = Ingredient::query()->create(['name' => 'Tortilla', 'stock' => 100, 'minimum_stock' => 10, 'base_unit' => 'pcs', 'display_unit' => 'pcs']);
 
         foreach (range(1, 101) as $number) {
@@ -60,6 +60,32 @@ class StockLogExportResilienceTest extends TestCase
             ->assertSessionHas('success');
     }
 
+    public function test_admin_stock_log_html_export_supports_more_than_one_hundred_rows(): void
+    {
+        $branch = $this->defaultBranch();
+        $admin = $this->createAdmin($branch);
+        $ingredient = Ingredient::query()->create([
+            'name' => 'Bahan Riwayat Admin',
+            'stock' => 200,
+            'minimum_stock' => 10,
+            'base_unit' => 'pcs',
+            'display_unit' => 'pcs',
+        ]);
+
+        foreach (range(1, 107) as $number) {
+            $this->createLog($branch, $ingredient, 'Riwayat Admin '.$number);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.stocks.logs.export', [
+                'format' => 'html',
+                'period' => 'daily',
+                'date' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('Riwayat Admin 107');
+    }
+
     private function createOwner(): User
     {
         $role = Role::query()->firstOrCreate(['name' => 'owner']);
@@ -70,6 +96,28 @@ class StockLogExportResilienceTest extends TestCase
             'email' => 'owner-export@example.test',
             'password' => 'secret123',
             'role_id' => $role->id,
+        ]);
+    }
+
+    private function defaultBranch(): Branch
+    {
+        return Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
+    }
+
+    private function createAdmin(Branch $branch): User
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin']);
+
+        return User::query()->create([
+            'name' => 'Admin Export',
+            'username' => 'admin_export',
+            'email' => 'admin-export@example.test',
+            'password' => 'secret123',
+            'role_id' => $role->id,
+            'branch_id' => $branch->id,
         ]);
     }
 

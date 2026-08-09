@@ -53,6 +53,7 @@ class ExportThresholdBoundaryTest extends TestCase
         $this->stockLogRequest($owner, $branch, 'html')->assertOk();
 
         $this->stockLogs($branch, $ingredient, 1, 'SL');
+        $this->stockLogRequest($owner, $branch, 'html')->assertOk();
         $this->stockLogRequest($owner, $branch, 'excel')->assertRedirect();
         $this->assertDatabaseHas('generated_exports', ['type' => 'stock_log', 'status' => GeneratedExport::STATUS_PENDING]);
     }
@@ -296,7 +297,10 @@ class ExportThresholdBoundaryTest extends TestCase
 
     private function defaultBranch(): Branch
     {
-        return Branch::query()->where('code', 'default')->firstOrFail();
+        return Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
     }
 
     private function owner(string $suffix): User

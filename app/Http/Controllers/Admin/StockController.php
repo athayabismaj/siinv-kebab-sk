@@ -29,7 +29,10 @@ use Illuminate\Support\Facades\Log;
 class StockController extends Controller
 {
     use DirectExportResponse;
-    private const DIRECT_EXPORT_LIMIT = 100;
+
+    private const DIRECT_EXCEL_EXPORT_LIMIT = 100;
+
+    private const DIRECT_DOCUMENT_EXPORT_LIMIT = 500;
 
     public function __construct(
         private readonly RestockInventoryStockAction $restockInventoryStock,
@@ -410,7 +413,7 @@ class StockController extends Controller
             : $rangeStart->format('dM') . '-' . $rangeEnd->format('dMY');
         $fileName = 'Riwayat_Stok_' . $dateSuffix;
 
-        if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
+        if ($format === 'excel' && $total > self::DIRECT_EXCEL_EXPORT_LIMIT) {
             $generatedExport = GeneratedExport::query()->create([
                 'requested_by' => $request->user()->id, 'branch_id' => $branchId,
                 'type' => 'stock_log', 'format' => 'excel',
@@ -420,7 +423,11 @@ class StockController extends Controller
             GenerateStockLogExport::dispatch($generatedExport->id)->onConnection('database');
             return redirect()->route('admin.generated-exports.show', $generatedExport)->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
         }
-        if ($total > self::DIRECT_EXPORT_LIMIT) return redirect()->back()->withErrors(['export' => 'Ekspor langsung dibatasi hingga 100 riwayat.']);
+        if ($format !== 'excel' && $total > self::DIRECT_DOCUMENT_EXPORT_LIMIT) {
+            return redirect()->back()->withErrors([
+                'export' => 'Ekspor HTML atau PDF dibatasi hingga 500 riwayat. Persempit periode atau gunakan Excel.',
+            ]);
+        }
         $logs = $query->get()->map(fn (StockLog $log) => StockLogView::decorate($log));
 
         $periodLabels = [
