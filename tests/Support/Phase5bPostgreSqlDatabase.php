@@ -109,6 +109,9 @@ final class Phase5bPostgreSqlDatabase
             'DB_DATABASE' => $this->database,
             'DB_USERNAME' => $this->username,
             'DB_PASSWORD' => $this->password,
+            'DB_SCHEMA' => 'public',
+            'DB_SSLMODE' => 'prefer',
+            'DB_PERSISTENT' => 'false',
             'CACHE_STORE' => 'array',
             'QUEUE_CONNECTION' => 'sync',
         ];

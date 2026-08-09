@@ -7,8 +7,8 @@ use App\Models\Branch;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
 use App\Models\User;
-use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\Analytics\DailySalesSummaryService;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\StockService;
 use App\Services\VariantAvailabilityService;
 use Carbon\Carbon;
@@ -23,33 +23,33 @@ class CheckoutTransactionAction
         private readonly VariantAvailabilityService $variantAvailabilityService,
         private readonly DailySalesSummaryService $dailySalesSummaryService,
         private readonly CashierOperationalContextResolver $operationalContextResolver,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{ok:bool,status?:int,message?:string,data?:array<string,mixed>,result?:array<string,mixed>}
      */
-    public function execute(array $validated, int $cashierId): array
+    public function execute(array $validated, int|User $cashier): array
     {
-        if (! PaymentMethod::query()->whereNull('deleted_at')->exists()) {
-            return [
-                'ok' => false,
-                'status' => 422,
-                'message' => 'Metode pembayaran belum tersedia.',
-                'data' => ['payment_method_id' => $validated['payment_method_id'] ?? null],
-            ];
-        }
+        $cashierId = $cashier instanceof User ? (int) $cashier->id : $cashier;
 
-        return DB::transaction(function () use ($validated, $cashierId) {
+        return DB::transaction(function () use ($validated, $cashierId, $cashier) {
             if (DB::getDriverName() === 'pgsql') {
                 DB::statement("SET LOCAL lock_timeout = '5s'");
                 DB::statement("SET LOCAL statement_timeout = '12s'");
             }
 
-            $cashier = User::query()->findOrFail($cashierId);
+            $cashier = $cashier instanceof User
+                ? $cashier
+                : User::query()->findOrFail($cashierId);
             $operationalContext = $this->operationalContextResolver->resolve(
                 $cashier,
-                ['items:daily_stock_session_id,ingredient_id,remaining_qty'],
+                [
+                    'items' => fn ($query) => $query
+                        ->select('id', 'daily_stock_session_id', 'ingredient_id', 'remaining_qty', 'used_qty')
+                        ->orderBy('ingredient_id')
+                        ->lockForUpdate(),
+                ],
+                lockForUpdate: true,
             );
             if ($operationalContext->ambiguous) {
                 return [
@@ -77,10 +77,19 @@ class CheckoutTransactionAction
                 $validated['note'] ?? null,
                 $operationalContext,
             );
-            $branch = Branch::query()->findOrFail($result['branch_id']);
-            $this->dailySalesSummaryService->rebuildForDate($branch, $result['occurred_at']);
+            $this->dailySalesSummaryService->recordSuccessfulTransaction(
+                $result['branch_model'],
+                $result['occurred_at'],
+                (float) $result['total_amount'],
+                (int) $result['total_items_sold'],
+            );
 
-            unset($result['branch_id'], $result['occurred_at']);
+            unset(
+                $result['branch_id'],
+                $result['branch_model'],
+                $result['occurred_at'],
+                $result['total_items_sold'],
+            );
 
             return [
                 'ok' => true,
@@ -90,15 +99,15 @@ class CheckoutTransactionAction
     }
 
     /**
-     * @return array{ok:bool,status?:int,message?:string,data?:array<string,mixed>,payment_method?:PaymentMethod,line_items?:array<int,array<string,mixed>>,total_amount?:float,paid_amount?:float}
+     * @return array{ok:bool,status?:int,message?:string,data?:array<string,mixed>,payment_method?:PaymentMethod,line_items?:array<int,array<string,mixed>>,ingredient_usages?:array<int,array<string,mixed>>,total_amount?:float,paid_amount?:float}
      */
     private function buildCheckoutDraft(
         array $validated,
         int $cashierId,
         CashierOperationalContext $operationalContext,
-    ): array
-    {
+    ): array {
         $lineItems = [];
+        $ingredientUsages = [];
         $totalAmount = 0.0;
 
         $paymentMethod = PaymentMethod::query()
@@ -113,11 +122,17 @@ class CheckoutTransactionAction
             ->values();
 
         $variants = MenuVariant::query()
-            ->with([
-                'menu:id,name,is_active',
-                'ingredients:id,name',
+            ->join('menus', 'menus.id', '=', 'menu_variants.menu_id')
+            ->select([
+                'menu_variants.*',
+                'menus.name as menu_name',
+                'menus.is_active as menu_is_active',
+                'menus.deleted_at as menu_deleted_at',
             ])
-            ->whereIn('id', $requestedVariantIds)
+            ->with([
+                'ingredients:id,name,base_unit,display_unit',
+            ])
+            ->whereIn('menu_variants.id', $requestedVariantIds)
             ->get()
             ->keyBy('id');
 
@@ -126,10 +141,10 @@ class CheckoutTransactionAction
             $variant = $variants->get($variantId);
 
             if (! $variant) {
-                throw (new ModelNotFoundException())->setModel(MenuVariant::class, [$variantId]);
+                throw (new ModelNotFoundException)->setModel(MenuVariant::class, [$variantId]);
             }
 
-            if (! $variant->is_available || ! optional($variant->menu)->is_active) {
+            if (! $variant->is_available || ! $variant->menu_is_active || $variant->menu_deleted_at) {
                 return [
                     'ok' => false,
                     'status' => 422,
@@ -167,11 +182,32 @@ class CheckoutTransactionAction
                 'variant_id' => $variantId,
                 'variant_name' => $variant->name,
                 'menu_id' => (int) $variant->menu_id,
-                'menu_name' => optional($variant->menu)->name,
+                'menu_name' => $variant->menu_name,
                 'qty' => $qty,
                 'price' => $price,
                 'subtotal' => $subtotal,
             ];
+
+            foreach ($variant->ingredients as $ingredient) {
+                $usedQty = (float) $ingredient->pivot->quantity * $qty;
+                if ($usedQty <= 0) {
+                    continue;
+                }
+
+                $ingredientId = (int) $ingredient->id;
+                if (isset($ingredientUsages[$ingredientId])) {
+                    $ingredientUsages[$ingredientId]['quantity'] += $usedQty;
+
+                    continue;
+                }
+
+                $ingredientUsages[$ingredientId] = [
+                    'ingredient_id' => $ingredientId,
+                    'name' => (string) $ingredient->name,
+                    'base_unit' => (string) ($ingredient->base_unit ?: $ingredient->display_unit),
+                    'quantity' => $usedQty,
+                ];
+            }
         }
 
         $paidAmount = (float) $validated['paid_amount'];
@@ -192,13 +228,14 @@ class CheckoutTransactionAction
             'ok' => true,
             'payment_method' => $paymentMethod,
             'line_items' => $lineItems,
+            'ingredient_usages' => array_values($ingredientUsages),
             'total_amount' => $totalAmount,
             'paid_amount' => $paidAmount,
         ];
     }
 
     /**
-     * @param array{payment_method:PaymentMethod,line_items:array<int,array<string,mixed>>,total_amount:float,paid_amount:float} $draft
+     * @param  array{payment_method:PaymentMethod,line_items:array<int,array<string,mixed>>,ingredient_usages:array<int,array<string,mixed>>,total_amount:float,paid_amount:float}  $draft
      * @return array<string,mixed>
      */
     private function createTransaction(
@@ -206,8 +243,7 @@ class CheckoutTransactionAction
         array $draft,
         ?string $note,
         CashierOperationalContext $operationalContext,
-    ): array
-    {
+    ): array {
         $now = now(config('app.timezone', 'Asia/Jakarta'));
         $branchId = $operationalContext->operationalBranchId();
         $branch = $branchId ? Branch::query()->find($branchId, ['id', 'name', 'code', 'address']) : null;
@@ -233,8 +269,8 @@ class CheckoutTransactionAction
             'updated_at' => $now,
         ]);
 
-        foreach ($draft['line_items'] as $line) {
-            DB::table('transaction_details')->insert([
+        DB::table('transaction_details')->insert(array_map(
+            fn (array $line): array => [
                 'transaction_id' => $transactionId,
                 'menu_id' => $line['menu_id'],
                 'menu_variant_id' => $line['variant_id'],
@@ -243,18 +279,19 @@ class CheckoutTransactionAction
                 'subtotal' => $line['subtotal'],
                 'created_at' => $now,
                 'updated_at' => $now,
-            ]);
+            ],
+            $draft['line_items'],
+        ));
 
-            StockService::deductStock(
-                $line['variant_id'],
-                $line['qty'],
-                $transactionId,
-                $note,
-                $cashierId,
-                $now,
-                $branchId,
-            );
-        }
+        StockService::deductDailyStockBatch(
+            $activeSessionId,
+            $draft['ingredient_usages'],
+            $transactionId,
+            $note,
+            $cashierId,
+            $branchId,
+            $operationalContext->session,
+        );
 
         return [
             'transaction_id' => $transactionId,
@@ -277,12 +314,14 @@ class CheckoutTransactionAction
             'paid_amount' => round($draft['paid_amount'], 2),
             'change_amount' => round($draft['paid_amount'] - $draft['total_amount'], 2),
             'branch_id' => $branchId,
+            'branch_model' => $branch,
             'branch' => [
                 'id' => (int) $branch->id,
                 'name' => (string) $branch->name,
                 'address' => $branch->address,
             ],
             'occurred_at' => $now,
+            'total_items_sold' => (int) collect($draft['line_items'])->sum('qty'),
         ];
     }
 
@@ -290,6 +329,29 @@ class CheckoutTransactionAction
     {
         $sequenceDate = $now->toDateString();
         $timestamp = $now->toDateTimeString();
+
+        if (in_array(DB::getDriverName(), ['pgsql', 'sqlite'], true)) {
+            $sequence = DB::selectOne(
+                'INSERT INTO transaction_sequences
+                    (branch_id, sequence_date, last_number, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?)
+                ON CONFLICT (branch_id, sequence_date)
+                DO UPDATE SET
+                    last_number = transaction_sequences.last_number + 1,
+                    updated_at = EXCLUDED.updated_at
+                RETURNING last_number',
+                [$branchId, $sequenceDate, $timestamp, $timestamp],
+            );
+
+            $nextNumber = (int) ($sequence->last_number ?? 1);
+
+            return sprintf(
+                'TRX-%s-%s-%03d',
+                $this->transactionBranchCode($branchCode),
+                $now->format('Ymd'),
+                $nextNumber,
+            );
+        }
 
         DB::table('transaction_sequences')->insertOrIgnore([
             'branch_id' => $branchId,

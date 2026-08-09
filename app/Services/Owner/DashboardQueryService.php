@@ -2,9 +2,9 @@
 
 namespace App\Services\Owner;
 
-use App\Models\Ingredient;
 use App\Models\CashflowEntry;
 use App\Models\DailyStockSession;
+use App\Models\Ingredient;
 use App\Models\Transaction;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
@@ -20,8 +20,8 @@ class DashboardQueryService
         $selectedBranch = $branchId ? $branchOptions->firstWhere('id', $branchId) : null;
 
         return Cache::remember(
-            AdminCache::key('dashboard', 'owner:dashboard:' . $todayKey . ':branch:' . ($branchId ?: 'all')),
-            now()->addSeconds(90),
+            AdminCache::key('dashboard', 'owner:dashboard:'.$todayKey.':branch:'.($branchId ?: 'all')),
+            now()->addMinutes(5),
             fn () => $this->buildFreshDashboardData($branchId, $branchOptions, $selectedBranch)
         );
     }
@@ -33,43 +33,16 @@ class DashboardQueryService
         $todayKey = $todayStart->toDateString();
         $last7Start = now()->subDays(6)->startOfDay();
 
-        $todayAggregate = Transaction::query()
-            ->successful()
-            ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_revenue, COUNT(*) as total_transactions');
-        $this->applyBranch($todayAggregate, $branchId, 'branch_id');
-        $todayAggregate = $todayAggregate->first();
-        $todayRevenue = (float) ($todayAggregate->total_revenue ?? 0);
-        $todayTransactionsCount = (int) ($todayAggregate->total_transactions ?? 0);
-
-        $expenseAggregate = Schema::hasTable('cashflow_entries')
-            ? tap(
-                CashflowEntry::query()
-                    ->whereDate('entry_date', $todayKey)
-                    ->where('type', 'expense')
-                    ->selectRaw('COALESCE(SUM(amount), 0) as expense_total, COUNT(*) as expense_count'),
-                fn ($query) => $this->applyBranch($query, $branchId, 'branch_id')
-            )->first()
-            : null;
-        $todayExpenseTotal = (float) ($expenseAggregate->expense_total ?? 0);
-        $todayExpenseCount = (int) ($expenseAggregate->expense_count ?? 0);
+        $coreMetrics = $this->coreMetrics($todayStart, $todayEnd, $todayKey, $branchId);
+        $todayRevenue = (float) ($coreMetrics->total_revenue ?? 0);
+        $todayTransactionsCount = (int) ($coreMetrics->total_transactions ?? 0);
+        $todayExpenseTotal = (float) ($coreMetrics->expense_total ?? 0);
+        $todayExpenseCount = (int) ($coreMetrics->expense_count ?? 0);
         $todayNetProfit = $todayRevenue - $todayExpenseTotal;
 
-        $sessionAggregate = Schema::hasTable('daily_stock_sessions')
-            ? tap(
-                DailyStockSession::query()
-                    ->whereDate('session_date', $todayKey)
-                    ->selectRaw(
-                        "COUNT(*) as total_sessions,
-                    SUM(CASE WHEN LOWER(TRIM(status)) = 'open' THEN 1 ELSE 0 END) as open_sessions,
-                    SUM(CASE WHEN LOWER(TRIM(status)) = 'closed' THEN 1 ELSE 0 END) as closed_sessions"
-                    ),
-                fn ($query) => $this->applyBranch($query, $branchId, 'branch_id')
-            )->first()
-            : null;
-        $sessionTotal = (int) ($sessionAggregate->total_sessions ?? 0);
-        $openSessions = (int) ($sessionAggregate->open_sessions ?? 0);
-        $closedSessions = (int) ($sessionAggregate->closed_sessions ?? 0);
+        $sessionTotal = (int) ($coreMetrics->total_sessions ?? 0);
+        $openSessions = (int) ($coreMetrics->open_sessions ?? 0);
+        $closedSessions = (int) ($coreMetrics->closed_sessions ?? 0);
         $dailyStockStatus = match (true) {
             $sessionTotal === 0 => [
                 'key' => 'not_opened',
@@ -186,6 +159,61 @@ class DashboardQueryService
         ];
     }
 
+    /**
+     * Satukan metrik ringkas dashboard ke satu round-trip database.
+     */
+    private function coreMetrics($todayStart, $todayEnd, string $todayKey, ?int $branchId): object
+    {
+        $transactions = Transaction::query()
+            ->successful()
+            ->whereBetween('created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()]);
+        $this->applyBranch($transactions, $branchId, 'branch_id');
+
+        $expenses = CashflowEntry::query()
+            ->whereDate('entry_date', $todayKey)
+            ->where('type', 'expense');
+        $this->applyBranch($expenses, $branchId, 'branch_id');
+
+        $sessions = DailyStockSession::query()
+            ->whereDate('session_date', $todayKey);
+        $this->applyBranch($sessions, $branchId, 'branch_id');
+
+        return DB::query()
+            ->selectSub(
+                (clone $transactions)->selectRaw('COALESCE(SUM(total_amount), 0)'),
+                'total_revenue'
+            )
+            ->selectSub(
+                (clone $transactions)->selectRaw('COUNT(*)'),
+                'total_transactions'
+            )
+            ->selectSub(
+                (clone $expenses)->selectRaw('COALESCE(SUM(amount), 0)'),
+                'expense_total'
+            )
+            ->selectSub(
+                (clone $expenses)->selectRaw('COUNT(*)'),
+                'expense_count'
+            )
+            ->selectSub(
+                (clone $sessions)->selectRaw('COUNT(*)'),
+                'total_sessions'
+            )
+            ->selectSub(
+                (clone $sessions)
+                    ->whereRaw("LOWER(TRIM(status)) = 'open'")
+                    ->selectRaw('COUNT(*)'),
+                'open_sessions'
+            )
+            ->selectSub(
+                (clone $sessions)
+                    ->whereRaw("LOWER(TRIM(status)) = 'closed'")
+                    ->selectRaw('COUNT(*)'),
+                'closed_sessions'
+            )
+            ->first();
+    }
+
     private function formatQuantity(float $value, string $baseUnit): string
     {
         $unit = strtolower(trim($baseUnit));
@@ -215,7 +243,7 @@ class DashboardQueryService
             $formatted = '0';
         }
 
-        return trim($formatted . ' ' . $displayUnit);
+        return trim($formatted.' '.$displayUnit);
     }
 
     private function applyBranch($query, ?int $branchId, string $column): void
@@ -234,4 +262,3 @@ class DashboardQueryService
         BranchScope::apply($query, $branchId, $column);
     }
 }
-

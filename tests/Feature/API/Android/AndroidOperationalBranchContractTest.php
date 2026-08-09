@@ -15,6 +15,7 @@ use App\Models\Role;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\DailyStockService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -129,26 +130,32 @@ class AndroidOperationalBranchContractTest extends TestCase
 
     public function test_previous_date_open_session_is_not_treated_as_today_operational_session(): void
     {
-        [$primaryBranch, , $admin, $cashier] = $this->createAssignedCashier();
-        app(DailyStockService::class)->openSession(
-            now('Asia/Jakarta')->subDay(),
-            $cashier->id,
-            $admin->id,
-            null,
-            $primaryBranch->id,
-        );
-        $token = $this->createApiTokenFor($cashier);
+        Carbon::setTestNow(Carbon::parse('2026-08-09 10:00:00', 'Asia/Jakarta'));
 
-        $this->withHeader('Authorization', 'Bearer '.$token)
-            ->getJson('/api/sessions/current-status')
-            ->assertNotFound()
-            ->assertJsonPath('active', false);
+        try {
+            [$primaryBranch, , $admin, $cashier] = $this->createAssignedCashier();
+            app(DailyStockService::class)->openSession(
+                now('Asia/Jakarta')->subDay(),
+                $cashier->id,
+                $admin->id,
+                null,
+                $primaryBranch->id,
+            );
+            $token = $this->createApiTokenFor($cashier);
 
-        $this->withHeader('Authorization', 'Bearer '.$token)
-            ->getJson('/api/daily-stock-items')
-            ->assertOk()
-            ->assertJsonPath('data.session_id', null)
-            ->assertJsonPath('data.items', []);
+            $this->withHeader('Authorization', 'Bearer '.$token)
+                ->getJson('/api/sessions/current-status')
+                ->assertNotFound()
+                ->assertJsonPath('active', false);
+
+            $this->withHeader('Authorization', 'Bearer '.$token)
+                ->getJson('/api/daily-stock-items')
+                ->assertOk()
+                ->assertJsonPath('data.session_id', null)
+                ->assertJsonPath('data.items', []);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_daily_stock_remaining_quantity_is_a_non_nullable_database_invariant(): void

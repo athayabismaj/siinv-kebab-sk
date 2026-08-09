@@ -74,8 +74,8 @@ class DailyStockController extends Controller
         );
         if ($selectedCashierId > 0) {
             $session = DailyStockSession::query()
-                ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price'])
-                ->where('session_date', $selectedDate->toDateString())
+                ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price,cost_price'])
+                ->whereDate('session_date', $selectedDate->toDateString())
                 ->where('cashier_id', $selectedCashierId)
                 ->when($activeBranchId, fn ($query) => $query->where('branch_id', $activeBranchId))
                 ->first();
@@ -388,7 +388,7 @@ class DailyStockController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->withInput()->with('error', 'Sesi stok harian gagal dibuka. Periksa kembali data yang dipilih.');
+            return back()->withInput()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
             Log::error('Daily stock open session error', [
                 'cashier_id' => $validated['cashier_id'] ?? null,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Services\Api\CashierOperationalContextResolver;
+use App\Support\DailyStockClosingWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,12 +12,14 @@ class SessionStatusController extends Controller
 {
     public function __construct(
         private readonly CashierOperationalContextResolver $operationalContextResolver,
-    ) {
-    }
+    ) {}
 
     public function currentStatus(Request $request): JsonResponse
     {
-        $context = $this->operationalContextResolver->resolve($request->user());
+        $context = $this->operationalContextResolver->resolve(
+            $request->user(),
+            allowPreviousDayClosingGrace: true,
+        );
 
         if ($context->ambiguous) {
             return response()->json([
@@ -34,6 +37,9 @@ class SessionStatusController extends Controller
             ], 404);
         }
 
+        $sessionDate = $session->session_date->toDateString();
+        $today = now((string) config('app.timezone', 'Asia/Jakarta'))->toDateString();
+
         return response()->json([
             'active' => true,
             'data' => [
@@ -41,6 +47,8 @@ class SessionStatusController extends Controller
                 'status' => $session->status,
                 'opened_at' => $session->opened_at,
                 'session_date' => $session->session_date,
+                'is_previous_day_session' => $sessionDate !== $today,
+                'closing_grace_until' => DailyStockClosingWindow::cutoffLabel(),
             ],
         ], 200);
     }

@@ -15,6 +15,51 @@ class DailySalesSummaryService
 {
     private ?bool $summaryTableAvailable = null;
 
+    public function recordSuccessfulTransaction(
+        Branch $branch,
+        Carbon $date,
+        float $revenue,
+        int $itemsSold,
+    ): void {
+        $timestamp = now();
+
+        try {
+            if (in_array(DB::getDriverName(), ['pgsql', 'sqlite'], true)) {
+                DB::statement(
+                    'INSERT INTO daily_sales_summaries
+                        (branch_id, sale_date, total_transactions, total_revenue, total_items_sold, created_at, updated_at)
+                    VALUES (?, ?, 1, ?, ?, ?, ?)
+                    ON CONFLICT (branch_id, sale_date)
+                    DO UPDATE SET
+                        total_transactions = daily_sales_summaries.total_transactions + 1,
+                        total_revenue = daily_sales_summaries.total_revenue + EXCLUDED.total_revenue,
+                        total_items_sold = daily_sales_summaries.total_items_sold + EXCLUDED.total_items_sold,
+                        updated_at = EXCLUDED.updated_at',
+                    [
+                        $branch->id,
+                        $date->toDateString(),
+                        $revenue,
+                        $itemsSold,
+                        $timestamp,
+                        $timestamp,
+                    ],
+                );
+
+                return;
+            }
+
+            $this->rebuildForDate($branch, $date);
+        } catch (QueryException $exception) {
+            if ($this->isMissingSummaryTableException($exception)) {
+                $this->summaryTableAvailable = false;
+
+                return;
+            }
+
+            throw $exception;
+        }
+    }
+
     public function getOrBuildForDate(Branch $branch, Carbon $date): array
     {
         if (! $this->hasSummaryTable()) {

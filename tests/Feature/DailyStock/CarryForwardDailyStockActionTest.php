@@ -98,7 +98,7 @@ class CarryForwardDailyStockActionTest extends TestCase
         $this->assertSame(0, $session->items()->count());
     }
 
-    public function test_stale_closed_remainder_is_not_reused_when_a_newer_session_is_still_open(): void
+    public function test_new_session_is_blocked_when_previous_session_is_still_open(): void
     {
         [$branch, $admin, $cashier, $ingredient] = $this->context();
         $staleSession = DailyStockSession::query()->create([
@@ -120,7 +120,7 @@ class CarryForwardDailyStockActionTest extends TestCase
             'used_qty' => 0,
             'returned_qty' => 0,
         ]);
-        DailyStockSession::query()->create([
+        $openSession = DailyStockSession::query()->create([
             'session_date' => now()->subDay()->toDateString(),
             'branch_id' => $branch->id,
             'cashier_id' => $cashier->id,
@@ -130,15 +130,26 @@ class CarryForwardDailyStockActionTest extends TestCase
             'opened_at' => now()->subDay()->startOfDay(),
         ]);
 
-        $session = app(OpenDailyStockSessionAction::class)->execute(
-            now()->toDateString(),
-            $cashier->id,
-            $admin->id,
-            branchId: $branch->id,
-        );
+        try {
+            app(OpenDailyStockSessionAction::class)->execute(
+                now()->toDateString(),
+                $cashier->id,
+                $admin->id,
+                branchId: $branch->id,
+            );
 
-        $this->assertNull($session->carry_forward_source_session_id);
-        $this->assertSame(0, $session->items()->count());
+            $this->fail('Sesi baru seharusnya tidak dibuat selama sesi sebelumnya masih terbuka.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString("Sesi stok harian sebelumnya (#{$openSession->id}", $exception->getMessage());
+            $this->assertStringContainsString('masih terbuka', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('daily_stock_sessions', 2);
+        $this->assertDatabaseMissing('daily_stock_sessions', [
+            'session_date' => now()->toDateString(),
+            'cashier_id' => $cashier->id,
+            'branch_id' => $branch->id,
+        ]);
     }
 
     public function test_matching_physical_stock_is_carried_without_reducing_warehouse_stock(): void

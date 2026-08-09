@@ -292,7 +292,7 @@ class PostgreSqlConcurrencyTest extends TestCase
         $checkout = app(CheckoutTransactionAction::class)->execute($this->checkoutRequest($context), $context['cashier']->id);
 
         $this->assertTrue($checkout['ok']);
-        $this->assertLessThanOrEqual(35, $queryCount, "PostgreSQL checkout query count regressed to {$queryCount} queries.");
+        $this->assertLessThanOrEqual(18, $queryCount, "PostgreSQL checkout query count regressed to {$queryCount} queries.");
     }
 
     /** @return array<string, mixed> */

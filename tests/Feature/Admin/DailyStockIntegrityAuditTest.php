@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Branch;
 use App\Models\DailyStockItem;
 use App\Models\DailyStockSession;
 use App\Models\Ingredient;
@@ -20,10 +21,11 @@ class DailyStockIntegrityAuditTest extends TestCase
 
     public function test_integrity_audit_reports_mismatch_between_session_item_and_transaction_usage_log(): void
     {
-        [$cashier, $ingredient] = $this->dataset();
+        [$cashier, $ingredient, $branch] = $this->dataset();
 
         $session = DailyStockSession::create([
             'session_date' => now()->toDateString(),
+            'branch_id' => $branch->id,
             'cashier_id' => $cashier->id,
             'opened_by' => $cashier->id,
             'status' => 'open',
@@ -42,16 +44,20 @@ class DailyStockIntegrityAuditTest extends TestCase
         $payment = PaymentMethod::create(['name' => 'Tunai']);
         $trx = Transaction::create([
             'transaction_code' => 'TRX-AUDIT-0001',
+            'branch_id' => $branch->id,
             'user_id' => $cashier->id,
             'total_amount' => 10000,
             'payment_method_id' => $payment->id,
             'paid_amount' => 10000,
             'change_amount' => 0,
+            'status' => 'SUCCESS',
+            'daily_stock_session_id' => $session->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
         StockLog::create([
+            'branch_id' => $branch->id,
             'ingredient_id' => $ingredient->id,
             'type' => 'daily_usage',
             'quantity' => -200,
@@ -66,10 +72,14 @@ class DailyStockIntegrityAuditTest extends TestCase
     }
 
     /**
-     * @return array{0: User, 1: Ingredient}
+     * @return array{0: User, 1: Ingredient, 2: Branch}
      */
     private function dataset(): array
     {
+        $branch = Branch::query()->firstOrCreate(
+            ['code' => 'default'],
+            ['name' => 'Kebab SK', 'is_active' => true],
+        );
         $cashierRole = Role::create(['name' => 'kasir']);
         $cashier = User::create([
             'name' => 'Kasir Audit',
@@ -77,6 +87,7 @@ class DailyStockIntegrityAuditTest extends TestCase
             'email' => 'kasir-audit@example.test',
             'password' => 'secret123',
             'role_id' => $cashierRole->id,
+            'branch_id' => $branch->id,
         ]);
 
         $category = IngredientCategory::create(['name' => 'Bahan Audit']);
@@ -90,7 +101,6 @@ class DailyStockIntegrityAuditTest extends TestCase
             'minimum_stock' => 5,
         ]);
 
-        return [$cashier, $ingredient];
+        return [$cashier, $ingredient, $branch];
     }
 }
-

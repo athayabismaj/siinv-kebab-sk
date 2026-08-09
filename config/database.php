@@ -98,6 +98,7 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'options' => extension_loaded('pdo_pgsql') ? array_filter([
                 \PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5),
+                \PDO::ATTR_PERSISTENT => filter_var(env('DB_PERSISTENT', false), FILTER_VALIDATE_BOOL),
             ]) : [],
         ],
 
@@ -112,7 +113,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'sslmode' => env('FASE4D_PG_SSLMODE', 'prefer'),
         ],
 
         'sqlsrv' => [

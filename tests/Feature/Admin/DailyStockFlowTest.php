@@ -374,6 +374,44 @@ class DailyStockFlowTest extends TestCase
         ]);
     }
 
+    public function test_admin_sees_actionable_message_when_previous_session_is_still_open(): void
+    {
+        [$admin, $cashier] = $this->baseDailyStockDataset();
+        $previousSession = DailyStockSession::query()->create([
+            'session_date' => now()->subDay()->toDateString(),
+            'branch_id' => $cashier->branch_id,
+            'cashier_id' => $cashier->id,
+            'opened_by' => $admin->id,
+            'status' => 'open',
+            'stock_retained_at_outlet' => false,
+            'opened_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.daily-stocks.index', [
+                'date' => now()->toDateString(),
+                'cashier_id' => $cashier->id,
+            ]))
+            ->post(route('admin.daily-stocks.open'), [
+                'date' => now()->toDateString(),
+                'cashier_id' => $cashier->id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas(
+                'error',
+                fn (string $message) => str_contains($message, "Sesi stok harian sebelumnya (#{$previousSession->id}")
+                    && str_contains($message, 'masih terbuka')
+                    && str_contains($message, 'Tutup sesi tersebut terlebih dahulu')
+            );
+
+        $this->assertDatabaseCount('daily_stock_sessions', 1);
+        $this->assertDatabaseMissing('daily_stock_sessions', [
+            'session_date' => now()->toDateString(),
+            'cashier_id' => $cashier->id,
+            'branch_id' => $cashier->branch_id,
+        ]);
+    }
+
     public function test_admin_cannot_open_a_session_for_cashier_from_another_branch(): void
     {
         [$admin] = $this->baseDailyStockDataset();
@@ -509,16 +547,20 @@ class DailyStockFlowTest extends TestCase
         $payment = PaymentMethod::create(['name' => 'Tunai']);
         $transaction = Transaction::create([
             'transaction_code' => 'TRX-TEST-0001',
+            'branch_id' => $session->branch_id,
             'user_id' => $cashier->id,
             'total_amount' => 10000,
             'payment_method_id' => $payment->id,
             'paid_amount' => 10000,
             'change_amount' => 0,
+            'status' => 'SUCCESS',
+            'daily_stock_session_id' => $session->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
         StockLog::create([
+            'branch_id' => $session->branch_id,
             'ingredient_id' => $ingredient->id,
             'type' => 'daily_usage',
             'quantity' => -25,

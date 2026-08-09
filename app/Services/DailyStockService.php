@@ -36,8 +36,7 @@ class DailyStockService
                 ->get();
 
             $usageByIngredient = $this->inferUsageFromTransactions(
-                (int) $session->cashier_id,
-                $session->session_date->toDateString(),
+                $session,
                 $items->pluck('ingredient_id')->map(fn ($id) => (int) $id)->all()
             );
 
@@ -263,17 +262,29 @@ class DailyStockService
      * @param array<int, int> $ingredientIds
      * @return array<int, float>
      */
-    private function inferUsageFromTransactions(int $cashierId, string $sessionDate, array $ingredientIds): array
+    private function inferUsageFromTransactions(DailyStockSession $session, array $ingredientIds): array
     {
-        if ($cashierId <= 0 || empty($ingredientIds)) {
+        if ($session->id <= 0 || empty($ingredientIds)) {
             return [];
         }
 
         $rows = DB::table('stock_logs as sl')
             ->join('transactions as t', 't.id', '=', 'sl.reference_id')
             ->where('sl.type', 'daily_usage')
-            ->where('t.user_id', $cashierId)
-            ->whereDate('t.created_at', $sessionDate)
+            ->where('t.daily_stock_session_id', $session->id)
+            ->where('t.branch_id', $session->branch_id)
+            ->whereColumn('sl.branch_id', 't.branch_id')
+            ->where(function ($query): void {
+                $query->whereRaw("UPPER(TRIM(t.status)) = 'SUCCESS'")
+                    ->orWhere(function ($voided): void {
+                        $voided->whereRaw("UPPER(TRIM(t.status)) = 'VOID'")
+                            ->whereRaw("LOWER(TRIM(t.void_reason)) = 'waste'");
+                    });
+            })
+            ->where(function ($query): void {
+                $query->whereNull('sl.note')
+                    ->orWhere('sl.note', 'not like', 'Pemakaian stok harian sesi #%');
+            })
             ->whereIn('sl.ingredient_id', $ingredientIds)
             ->groupBy('sl.ingredient_id')
             ->selectRaw('sl.ingredient_id, SUM(ABS(sl.quantity)) as used_total')

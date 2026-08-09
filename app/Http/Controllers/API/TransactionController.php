@@ -26,8 +26,7 @@ class TransactionController extends Controller
         private readonly ApiTransactionService $transactionService,
         private readonly CheckoutTransactionAction $checkoutTransactionAction,
         private readonly CashierOperationalContextResolver $operationalContextResolver,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -147,7 +146,7 @@ class TransactionController extends Controller
 
         try {
             $validated = $request->validated();
-            $checkout = $this->checkoutTransactionAction->execute($validated, $userId);
+            $checkout = $this->checkoutTransactionAction->execute($validated, $request->user());
             if (! $checkout['ok']) {
                 return $this->errorResponse(
                     $checkout['message'],
@@ -163,6 +162,8 @@ class TransactionController extends Controller
             AdminCache::bumpUsage();
             AdminCache::bumpDailyStock();
             AdminCache::bumpTransactions();
+            AdminCache::bumpStock();
+            AdminCache::bumpCatalog();
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {

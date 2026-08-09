@@ -16,8 +16,7 @@ class CashflowController extends Controller
 
     public function __construct(
         private readonly CashierOperationalContextResolver $operationalContextResolver,
-    ) {
-    }
+    ) {}
 
     public function storeExpense(Request $request)
     {
@@ -69,6 +68,7 @@ class CashflowController extends Controller
         ]);
 
         AdminCache::bumpCashflow();
+        AdminCache::bumpDashboard();
 
         return $this->successResponse('Pengeluaran operasional berhasil disimpan.', [
             'id' => $entry->id,

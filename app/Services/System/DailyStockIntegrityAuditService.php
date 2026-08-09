@@ -24,7 +24,7 @@ class DailyStockIntegrityAuditService
             ->whereDate('session_date', '>=', $start->toDateString())
             ->whereDate('session_date', '<=', $end->toDateString())
             ->with('items:id,daily_stock_session_id,ingredient_id,opening_qty,remaining_qty,used_qty')
-            ->get(['id', 'session_date', 'cashier_id', 'status']);
+            ->get(['id', 'session_date', 'branch_id', 'cashier_id', 'status']);
 
         if ($sessions->isEmpty()) {
             return [
@@ -34,19 +34,30 @@ class DailyStockIntegrityAuditService
             ];
         }
 
-        $cashierIds = $sessions->pluck('cashier_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $sessionIds = $sessions->pluck('id')->map(fn ($id) => (int) $id)->all();
         $usageRows = DB::table('stock_logs as sl')
             ->join('transactions as t', 't.id', '=', 'sl.reference_id')
             ->where('sl.type', 'daily_usage')
-            ->whereIn('t.user_id', $cashierIds)
-            ->whereBetween('t.created_at', [$start, $end])
-            ->selectRaw('t.user_id, DATE(t.created_at) as usage_date, sl.ingredient_id, SUM(ABS(sl.quantity)) as used_total')
-            ->groupBy('t.user_id', DB::raw('DATE(t.created_at)'), 'sl.ingredient_id')
+            ->whereIn('t.daily_stock_session_id', $sessionIds)
+            ->whereColumn('sl.branch_id', 't.branch_id')
+            ->where(function ($query): void {
+                $query->whereRaw("UPPER(TRIM(t.status)) = 'SUCCESS'")
+                    ->orWhere(function ($voided): void {
+                        $voided->whereRaw("UPPER(TRIM(t.status)) = 'VOID'")
+                            ->whereRaw("LOWER(TRIM(t.void_reason)) = 'waste'");
+                    });
+            })
+            ->where(function ($query): void {
+                $query->whereNull('sl.note')
+                    ->orWhere('sl.note', 'not like', 'Pemakaian stok harian sesi #%');
+            })
+            ->selectRaw('t.daily_stock_session_id, sl.ingredient_id, SUM(ABS(sl.quantity)) as used_total')
+            ->groupBy('t.daily_stock_session_id', 'sl.ingredient_id')
             ->get();
 
         $usageMap = [];
         foreach ($usageRows as $row) {
-            $key = $this->usageMapKey((int) $row->user_id, (string) $row->usage_date, (int) $row->ingredient_id);
+            $key = $this->usageMapKey((int) $row->daily_stock_session_id, (int) $row->ingredient_id);
             $usageMap[$key] = (float) $row->used_total;
         }
 
@@ -59,7 +70,7 @@ class DailyStockIntegrityAuditService
                 $used = (float) $item->used_qty;
                 $remaining = (float) $item->remaining_qty;
 
-                $usageKey = $this->usageMapKey((int) $session->cashier_id, $sessionDate, (int) $item->ingredient_id);
+                $usageKey = $this->usageMapKey((int) $session->id, (int) $item->ingredient_id);
                 $usedFromTx = (float) ($usageMap[$usageKey] ?? 0);
 
                 if (abs($used - $usedFromTx) > 0.009) {
@@ -109,8 +120,8 @@ class DailyStockIntegrityAuditService
         ];
     }
 
-    private function usageMapKey(int $cashierId, string $date, int $ingredientId): string
+    private function usageMapKey(int $sessionId, int $ingredientId): string
     {
-        return "{$cashierId}|{$date}|{$ingredientId}";
+        return "{$sessionId}|{$ingredientId}";
     }
 }

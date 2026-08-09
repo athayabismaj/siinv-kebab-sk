@@ -5,53 +5,81 @@ namespace App\Services\Api;
 use App\DTOs\CashierOperationalContext;
 use App\Models\DailyStockSession;
 use App\Models\User;
+use App\Support\DailyStockClosingWindow;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 
 final class CashierOperationalContextResolver
 {
     /**
-     * @param array<int, string> $relations
+     * @param  array<int|string, mixed>  $relations
      */
     public function resolve(
         User $user,
         array $relations = [],
         ?CarbonInterface $businessTime = null,
+        bool $lockForUpdate = false,
+        bool $allowPreviousDayClosingGrace = false,
     ): CashierOperationalContext {
-        $allowedBranchIds = $user->assignedBranches()
-            ->where('branches.is_active', true)
-            ->orderBy('branches.name')
-            ->pluck('branches.id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
         $primaryBranchId = (int) ($user->branch_id ?? 0);
-        if ($primaryBranchId > 0 && ! in_array($primaryBranchId, $allowedBranchIds, true)) {
-            $allowedBranchIds[] = $primaryBranchId;
-        }
-        $allowedBranchIds = array_values(array_unique($allowedBranchIds));
-        $sessionDate = ($businessTime ? $businessTime->copy() : now(config('app.timezone', 'Asia/Jakarta')))
+        $localTime = ($businessTime ? $businessTime->copy() : now(config('app.timezone', 'Asia/Jakarta')))
             ->setTimezone(config('app.timezone', 'Asia/Jakarta'))
-            ->toDateString();
-
-        if ($allowedBranchIds === []) {
-            return new CashierOperationalContext((int) $user->id, [], $sessionDate);
-        }
+            ->toImmutable();
+        $sessionDates = $allowPreviousDayClosingGrace
+            ? DailyStockClosingWindow::candidateSessionDates($localTime)
+            : [$localTime->toDateString()];
 
         $sessions = DailyStockSession::query()
             ->with($relations)
             ->where('cashier_id', $user->id)
-            ->whereIn('branch_id', $allowedBranchIds)
-            ->whereDate('session_date', $sessionDate)
+            ->where(function ($query) use ($user, $primaryBranchId): void {
+                $assignedBranchExists = fn ($subquery) => $subquery
+                    ->selectRaw('1')
+                    ->from('branch_user')
+                    ->join('branches', 'branches.id', '=', 'branch_user.branch_id')
+                    ->where('branch_user.user_id', $user->id)
+                    ->where('branches.is_active', true)
+                    ->whereColumn('branch_user.branch_id', 'daily_stock_sessions.branch_id');
+
+                if ($primaryBranchId > 0) {
+                    $query->where('daily_stock_sessions.branch_id', $primaryBranchId)
+                        ->orWhereExists($assignedBranchExists);
+
+                    return;
+                }
+
+                $query->whereExists($assignedBranchExists);
+            })
+            ->where(function ($query) use ($sessionDates): void {
+                foreach ($sessionDates as $sessionDate) {
+                    $query->orWhereDate('session_date', $sessionDate);
+                }
+            })
             ->whereRaw("LOWER(TRIM(status)) = 'open'")
+            ->orderBy('session_date')
             ->orderBy('branch_id')
             ->orderBy('id')
-            ->limit(2)
+            ->limit(3)
+            ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
             ->get();
+
+        $selectedSessionDate = $sessions->first()?->session_date?->toDateString()
+            ?? $sessionDates[0];
+        $sessions = $sessions
+            ->filter(fn (DailyStockSession $session) => $session->session_date->toDateString() === $selectedSessionDate)
+            ->values();
+
+        $allowedBranchIds = $sessions->pluck('branch_id')
+            ->map(fn ($id) => (int) $id)
+            ->when($primaryBranchId > 0, fn ($ids) => $ids->push($primaryBranchId))
+            ->unique()
+            ->values()
+            ->all();
 
         if ($sessions->count() > 1) {
             Log::warning('Ambiguous active cashier operational sessions.', [
                 'user_id' => (int) $user->id,
-                'session_date' => $sessionDate,
+                'session_date' => $selectedSessionDate,
                 'session_ids' => $sessions->pluck('id')->map(fn ($id) => (int) $id)->all(),
                 'branch_ids' => $sessions->pluck('branch_id')->map(fn ($id) => (int) $id)->all(),
             ]);
@@ -59,7 +87,7 @@ final class CashierOperationalContextResolver
             return new CashierOperationalContext(
                 (int) $user->id,
                 $allowedBranchIds,
-                $sessionDate,
+                $selectedSessionDate,
                 null,
                 true,
             );
@@ -68,7 +96,7 @@ final class CashierOperationalContextResolver
         return new CashierOperationalContext(
             (int) $user->id,
             $allowedBranchIds,
-            $sessionDate,
+            $selectedSessionDate,
             $sessions->first(),
         );
     }

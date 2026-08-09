@@ -492,9 +492,11 @@ $guardScheduledEvent(
     true,
 );
 
-// Menutup sesi stok kasir yang menggantung dari shift sebelumnya setiap jam 04:00 pagi
+// Menutup sesi stok kasir yang masih menggantung setelah grace period berakhir.
 $guardScheduledEvent(
-    Schedule::command('ops:auto-close-stock-sessions')->dailyAt('04:00'),
+    Schedule::command('ops:auto-close-stock-sessions')->dailyAt(
+        sprintf('%02d:00', (int) config('operations.daily_stock_close_grace_hour', 3))
+    ),
     'daily-stock-auto-close',
     30,
     true,

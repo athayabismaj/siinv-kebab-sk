@@ -4,7 +4,6 @@ namespace App\Http\Requests\API;
 
 use App\Models\PaymentMethod;
 use Illuminate\Support\Arr;
-use Illuminate\Validation\Rule;
 
 class StoreTransactionRequest extends ApiFormRequest
 {
@@ -18,6 +17,7 @@ class StoreTransactionRequest extends ApiFormRequest
         $paymentMethodId = $this->input('payment_method_id');
         if (is_string($paymentMethodId) && is_numeric($paymentMethodId)) {
             $this->merge(['payment_method_id' => (int) $paymentMethodId]);
+
             return;
         }
 
@@ -30,6 +30,7 @@ class StoreTransactionRequest extends ApiFormRequest
             $paymentMethodObjectId = Arr::get($paymentMethodValue, 'id');
             if (is_numeric($paymentMethodObjectId)) {
                 $this->merge(['payment_method_id' => (int) $paymentMethodObjectId]);
+
                 return;
             }
         }
@@ -61,11 +62,12 @@ class StoreTransactionRequest extends ApiFormRequest
             'payment_method_id' => [
                 'required',
                 'integer',
-                Rule::exists('payment_methods', 'id')->whereNull('deleted_at'),
             ],
             'paid_amount' => 'required|numeric|min:0',
             'items' => 'required|array|min:1',
-            'items.*.variant_id' => 'required|integer|exists:menu_variants,id',
+            // Keberadaan seluruh varian divalidasi sekaligus oleh CheckoutTransactionAction.
+            // Rule exists pada wildcard menjalankan satu query untuk setiap baris keranjang.
+            'items.*.variant_id' => 'required|integer',
             'items.*.qty' => 'required|integer|min:1',
             'note' => 'nullable|string|max:255',
         ];

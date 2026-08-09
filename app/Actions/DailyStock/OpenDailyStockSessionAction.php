@@ -43,6 +43,16 @@ class OpenDailyStockSessionAction
                     $cashierId,
                     $resolvedBranchId
                 );
+
+                if ($sourceSession?->status === 'open') {
+                    $sourceDate = $sourceSession->session_date->format('d/m/Y');
+
+                    throw new RuntimeException(
+                        "Sesi stok harian sebelumnya (#{$sourceSession->id}, {$sourceDate}) masih terbuka. "
+                        .'Tutup sesi tersebut terlebih dahulu agar sisa bahan dapat dibawa ke sesi baru.'
+                    );
+                }
+
                 $carryForwardSource = $sourceSession?->status === 'closed'
                     && $sourceSession->stock_retained_at_outlet
                     ? $sourceSession

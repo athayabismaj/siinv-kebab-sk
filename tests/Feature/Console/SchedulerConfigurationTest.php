@@ -39,7 +39,7 @@ class SchedulerConfigurationTest extends TestCase
         $this->assertScheduledEvent($events, 'sales-summary-current', '*/15 * * * *', 10, true);
         $this->assertScheduledEvent($events, 'sales-summary-rebuild', '10 2 * * *', 30, true);
         $this->assertScheduledEvent($events, 'daily-stock-integrity-audit', '20 3 * * *', 20, true);
-        $this->assertScheduledEvent($events, 'daily-stock-auto-close', '0 4 * * *', 30, true);
+        $this->assertScheduledEvent($events, 'daily-stock-auto-close', '0 3 * * *', 30, true);
         $this->assertScheduledEvent($events, 'exports-cleanup', '35 3 * * *', 10, true);
         $this->assertScheduledEvent($events, 'backup-daily', '0 1 * * *', 180, true);
         $this->assertScheduledEvent($events, 'backup-weekly', '0 2 * * 1', 180, true);

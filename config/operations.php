@@ -6,6 +6,9 @@ return [
     'start_hour' => (int) env('OPS_START_HOUR', 9),
     'end_hour' => (int) env('OPS_END_HOUR', 22),
 
+    // Sesi hari sebelumnya masih dapat ditutup kasir sebelum jam ini.
+    'daily_stock_close_grace_hour' => (int) env('DAILY_STOCK_CLOSE_GRACE_HOUR', 3),
+
     // Jika true, export berat yang diminta di jam operasional akan dijadwalkan
     // otomatis setelah jam operasional berakhir.
     'defer_heavy_exports_during_ops' => (bool) env('OPS_DEFER_HEAVY_EXPORTS', true),

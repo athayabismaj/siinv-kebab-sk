@@ -6,11 +6,18 @@ use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class BranchScope
 {
+    public static function forgetUserAssignments(User|int $user): void
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        Cache::forget('branch-scope:v2:assigned-user:'.$userId);
+    }
+
     public static function defaultBranchId(): ?int
     {
         if (! self::hasBranchesTable()) {
@@ -97,7 +104,7 @@ class BranchScope
             return array_values(array_filter([$fallbackBranchId]));
         }
 
-        $assignedIds = DB::table('branch_user')
+        $loadAssignedIds = fn () => DB::table('branch_user')
             ->join('branches', 'branches.id', '=', 'branch_user.branch_id')
             ->where('branch_user.user_id', $user->id)
             ->where('branches.is_active', true)
@@ -105,6 +112,14 @@ class BranchScope
             ->pluck('branch_user.branch_id')
             ->map(fn ($id) => (int) $id)
             ->all();
+
+        $assignedIds = app()->environment('testing')
+            ? $loadAssignedIds()
+            : Cache::remember(
+                'branch-scope:v2:assigned-user:'.$user->id,
+                now()->addSeconds(30),
+                $loadAssignedIds,
+            );
 
         if ($fallbackBranchId && ! in_array($fallbackBranchId, $assignedIds, true)) {
             $assignedIds[] = $fallbackBranchId;
@@ -144,10 +159,18 @@ class BranchScope
             return collect();
         }
 
-        return Branch::query()
+        $loadOptions = fn () => Branch::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
+
+        return app()->environment('testing')
+            ? $loadOptions()
+            : Cache::remember(
+                'branch-scope:v2:active-options',
+                now()->addSeconds(60),
+                $loadOptions,
+            );
     }
 
     public static function optionsFor(?User $user)
@@ -168,11 +191,21 @@ class BranchScope
             return collect();
         }
 
-        return Branch::query()
+        $cacheKey = 'branch-scope:v2:user-options:'.md5(implode(',', $branchIds));
+
+        $loadOptions = fn () => Branch::query()
             ->whereIn('id', $branchIds)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
+
+        return app()->environment('testing')
+            ? $loadOptions()
+            : Cache::remember(
+                $cacheKey,
+                now()->addSeconds(60),
+                $loadOptions,
+            );
     }
 
     public static function switchActiveBranch(User $user, int $branchId): bool
@@ -190,20 +223,47 @@ class BranchScope
 
     public static function hasBranchesTable(): bool
     {
-        return Schema::hasTable('branches');
+        if (app()->environment('testing')) {
+            return Schema::hasTable('branches');
+        }
+
+        return (bool) Cache::remember(
+            'branch-scope:v2:schema:branches',
+            now()->addHour(),
+            fn () => Schema::hasTable('branches'),
+        );
     }
 
     public static function supportsUserBranches(): bool
     {
-        return self::hasBranchesTable()
-            && Schema::hasTable('users')
-            && Schema::hasColumn('users', 'branch_id');
+        if (app()->environment('testing')) {
+            return self::hasBranchesTable()
+                && Schema::hasTable('users')
+                && Schema::hasColumn('users', 'branch_id');
+        }
+
+        return (bool) Cache::remember(
+            'branch-scope:v2:schema:user-branches',
+            now()->addHour(),
+            fn () => self::hasBranchesTable()
+                && Schema::hasTable('users')
+                && Schema::hasColumn('users', 'branch_id'),
+        );
     }
 
     public static function supportsUserBranchAssignments(): bool
     {
-        return self::supportsUserBranches()
-            && Schema::hasTable('branch_user');
+        if (app()->environment('testing')) {
+            return self::supportsUserBranches()
+                && Schema::hasTable('branch_user');
+        }
+
+        return (bool) Cache::remember(
+            'branch-scope:v2:schema:branch-assignments',
+            now()->addHour(),
+            fn () => self::supportsUserBranches()
+                && Schema::hasTable('branch_user'),
+        );
     }
 
     private static function sessionBranchId(): ?int
@@ -225,6 +285,7 @@ class BranchScope
 
         session(['active_branch_id' => (int) $branchId]);
     }
+
     /**
      * Get the owner's active branch ID from session.
      * Returns null if "Semua Cabang" (0) is selected or no session value.

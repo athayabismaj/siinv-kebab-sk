@@ -284,6 +284,7 @@ class UserManagementController extends Controller
 
         if ($roleName !== 'admin') {
             $user->assignedBranches()->sync([]);
+            BranchScope::forgetUserAssignments($user);
 
             return;
         }
@@ -301,6 +302,7 @@ class UserManagementController extends Controller
         }
 
         $user->assignedBranches()->sync($branchIds);
+        BranchScope::forgetUserAssignments($user);
     }
 
     private function selectedBranchIdsFor(User $user): array

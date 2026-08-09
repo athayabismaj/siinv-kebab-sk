@@ -44,8 +44,8 @@ class CashflowController extends Controller
         $salesRevenue = (float) ($summary['salesRevenue'] ?? 0);
         $expenseTotal = (float) ($summary['expenseTotal'] ?? 0);
         $expenseCount = (int) ($summary['expenseCount'] ?? 0);
-        $hpp          = (float) ($summary['hpp'] ?? 0);
-        $netCash      = (float) ($summary['netCash'] ?? 0);
+        $hpp = (float) ($summary['hpp'] ?? 0);
+        $netCash = (float) ($summary['netCash'] ?? 0);
 
         return view('admin.reports.expenses.index', compact(
             'entries',
@@ -103,6 +103,7 @@ class CashflowController extends Controller
         ]);
 
         AdminCache::bumpCashflow();
+        AdminCache::bumpDashboard();
 
         return redirect()
             ->route('admin.reports.cashflow', [
@@ -116,6 +117,7 @@ class CashflowController extends Controller
     public function export(Request $request)
     {
         $format = (string) $request->query('format', 'excel');
+
         return $this->exportDirect($request, $format);
     }
 
@@ -129,8 +131,8 @@ class CashflowController extends Controller
 
         $dateSuffix = $dateFrom->isSameDay($dateTo)
             ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Pengeluaran_' . $dateSuffix;
+            : $dateFrom->format('dM').'-'.$dateTo->format('dMY');
+        $fileName = 'Pengeluaran_'.$dateSuffix;
         $branchId = BranchScope::scopedBranchIdFor($request->user());
         $total = (clone $baseQuery)->toBase()->count();
 
@@ -147,7 +149,7 @@ class CashflowController extends Controller
                     'search' => trim((string) $request->input('search', '')),
                 ],
                 'status' => GeneratedExport::STATUS_PENDING,
-                'original_filename' => $fileName . '.xlsx',
+                'original_filename' => $fileName.'.xlsx',
                 'expires_at' => now()->addDays(7),
             ]);
 
@@ -166,7 +168,7 @@ class CashflowController extends Controller
         $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $request, $baseQuery);
         $summary['branchName'] = $this->branchLabel(BranchScope::scopedBranchIdFor(auth()->user()));
 
-        $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
+        $periodeLabel = $dateFrom->translatedFormat('d F Y').' s/d '.$dateTo->translatedFormat('d F Y');
         if ($dateFrom->toDateString() === $dateTo->toDateString()) {
             $periodeLabel = $dateFrom->translatedFormat('d F Y');
         }
@@ -175,7 +177,7 @@ class CashflowController extends Controller
             'daily' => 'HARIAN',
             'weekly' => 'MINGGUAN',
             'monthly' => 'BULANAN',
-            'custom' => 'KUSTOM'
+            'custom' => 'KUSTOM',
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
@@ -198,7 +200,7 @@ class CashflowController extends Controller
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
                 new \App\Exports\ExpenseReportExport($entries, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath(), $branch),
-                $fileName . '.xlsx'
+                $fileName.'.xlsx'
             )
         );
     }
@@ -210,8 +212,8 @@ class CashflowController extends Controller
             ->where('type', 'expense')
             ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->whereBetween('entry_date', [
-                $dateFrom . ' 00:00:00',
-                $dateTo . ' 23:59:59',
+                $dateFrom.' 00:00:00',
+                $dateTo.' 23:59:59',
             ])
             ->latest('entry_date')
             ->latest('id');
@@ -219,7 +221,7 @@ class CashflowController extends Controller
 
     private function summary(string $type, string $dateFrom, string $dateTo, Request $request, Builder $baseQuery): array
     {
-        $summaryKey = AdminCache::key('cashflow', 'summary:' . md5(json_encode([
+        $summaryKey = AdminCache::key('cashflow', 'summary:'.md5(json_encode([
             'type' => $type,
             'from' => $dateFrom,
             'to' => $dateTo,
@@ -231,7 +233,7 @@ class CashflowController extends Controller
             $salesRevenue = (float) Transaction::query()
                 ->successful()
                 ->when(BranchScope::scopedBranchIdFor(auth()->user()), fn ($query, $branchId) => $query->where('branch_id', $branchId))
-                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->whereBetween('created_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
                 ->sum('total_amount');
 
             $expenseTotal = (float) (clone $baseQuery)->toBase()->sum('amount');
@@ -259,8 +261,8 @@ class CashflowController extends Controller
                 'salesRevenue' => $salesRevenue,
                 'expenseTotal' => $expenseTotal,
                 'expenseCount' => $expenseCount,
-                'hpp'          => $hpp,
-                'netCash'      => $salesRevenue - $expenseTotal,
+                'hpp' => $hpp,
+                'netCash' => $salesRevenue - $expenseTotal,
             ];
         });
     }

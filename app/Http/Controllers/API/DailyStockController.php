@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\API\CloseDailyStockSessionRequest;
 use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\DailyStockService;
+use App\Support\DailyStockClosingWindow;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +28,11 @@ class DailyStockController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $context = $this->operationalContextResolver->resolve($user, ['items.ingredient']);
+        $context = $this->operationalContextResolver->resolve(
+            $user,
+            ['items.ingredient'],
+            allowPreviousDayClosingGrace: true,
+        );
         if ($context->ambiguous) {
             return $this->errorResponse(
                 'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
@@ -76,6 +81,10 @@ class DailyStockController extends Controller
 
         return $this->successResponse('Berhasil mengambil stok bahan harian', [
             'session_id' => $session->id,
+            'session_date' => $session->session_date->toDateString(),
+            'is_previous_day_session' => $session->session_date->toDateString()
+                !== now((string) config('app.timezone', 'Asia/Jakarta'))->toDateString(),
+            'closing_grace_until' => DailyStockClosingWindow::cutoffLabel(),
             'items' => $items,
         ]);
     }
@@ -87,7 +96,11 @@ class DailyStockController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        $context = $this->operationalContextResolver->resolve($user, ['items.ingredient']);
+        $context = $this->operationalContextResolver->resolve(
+            $user,
+            ['items.ingredient'],
+            allowPreviousDayClosingGrace: true,
+        );
         if ($context->ambiguous) {
             return $this->errorResponse(
                 'Terdapat konflik sesi aktif. Hubungi admin untuk memeriksa sesi kasir.',
@@ -158,6 +171,7 @@ class DailyStockController extends Controller
             return $this->successResponse('Sesi stok harian berhasil ditutup.', [
                 'session_id' => $closedSession->id,
                 'status' => $closedSession->status,
+                'session_date' => $closedSession->session_date->toDateString(),
             ]);
         } catch (\RuntimeException $e) {
             Log::warning('Gagal menutup sesi stok harian via API.', [
@@ -208,5 +222,4 @@ class DailyStockController extends Controller
 
         return is_numeric($normalized) ? (float) $normalized : null;
     }
-
 }

@@ -37,14 +37,22 @@ class IngredientController extends Controller
 
         $this->applyIndexFilters($query, $request);
 
-        $activeCount = (clone $query)->whereNull('ingredients.deleted_at')->count();
-        $archivedCount = (clone $query)->whereNotNull('ingredients.deleted_at')->count();
-        $allCount = $activeCount + $archivedCount;
+        $countRow = (clone $query)
+            ->setEagerLoads([])
+            ->reorder()
+            ->select([])
+            ->selectRaw(
+                'COUNT(*) as all_count,
+                SUM(CASE WHEN ingredients.deleted_at IS NULL THEN 1 ELSE 0 END) as active_count,
+                SUM(CASE WHEN ingredients.deleted_at IS NOT NULL THEN 1 ELSE 0 END) as archived_count,
+                SUM(CASE WHEN ingredients.deleted_at IS NULL AND stock <= minimum_stock THEN 1 ELSE 0 END) as low_stock_count'
+            )
+            ->first();
 
-        $lowStockCount = (clone $query)
-            ->whereNull('ingredients.deleted_at')
-            ->whereColumn('stock', '<=', 'minimum_stock')
-            ->count();
+        $activeCount = (int) ($countRow->active_count ?? 0);
+        $archivedCount = (int) ($countRow->archived_count ?? 0);
+        $allCount = $activeCount + $archivedCount;
+        $lowStockCount = (int) ($countRow->low_stock_count ?? 0);
 
         $this->applyRecordStatus($query, $recordStatus);
         $this->applyLifecycleSorting($query, $recordStatus);

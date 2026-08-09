@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\DailyStockSession;
 use App\Services\DailyStockService;
+use App\Support\DailyStockClosingWindow;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -30,10 +31,15 @@ class AutoCloseStockSessions extends Command
     {
         $this->info('Mencari sesi stok harian yang belum ditutup...');
 
-        // Cari semua sesi open yang tanggalnya lebih lama dari waktu cutoff (toleransi 4 jam).
-        // Misalnya: pada pukul 04:00 pagi tanggal 4 Mei, now()->subHours(4)->toDateString() adalah '2026-05-04'.
-        // Maka sesi dengan session_date < '2026-05-04' (yaitu '2026-05-03' dan sebelumnya) akan ditarik.
-        $cutoffDate = now()->subHours(4)->toDateString();
+        $localNow = now((string) config('app.timezone', 'Asia/Jakarta'));
+        $cutoff = $localNow->copy()->startOfDay()->addHours(DailyStockClosingWindow::cutoffHour());
+        if ($localNow->lt($cutoff)) {
+            $this->info('Grace period closing masih aktif sampai '.DailyStockClosingWindow::cutoffLabel().'.');
+
+            return Command::SUCCESS;
+        }
+
+        $cutoffDate = $localNow->toDateString();
 
         $openSessions = DailyStockSession::query()
             ->where('status', 'open')
@@ -42,6 +48,7 @@ class AutoCloseStockSessions extends Command
 
         if ($openSessions->isEmpty()) {
             $this->info('Tidak ada sesi stok yang perlu ditutup secara otomatis.');
+
             return Command::SUCCESS;
         }
 
@@ -70,7 +77,7 @@ class AutoCloseStockSessions extends Command
 
             } catch (\Exception $e) {
                 $failedCount++;
-                $this->error("Gagal menutup sesi #{$session->id}: " . $e->getMessage());
+                $this->error("Gagal menutup sesi #{$session->id}: ".$e->getMessage());
                 Log::error("ops:auto-close-stock-sessions gagal menutup sesi #{$session->id}", [
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
