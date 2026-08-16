@@ -23,6 +23,7 @@ Setiap varian pada `GET /api/menus` memiliki field:
 
 - `id` (int)
 - `name` (string)
+- `image_url` (string|null, URL absolut gambar varian untuk kartu menu POS)
 - `price` (number)
 - `is_available` (bool)
 - `unavailable_reason` (string|null)
@@ -35,6 +36,7 @@ Contoh:
 {
   "id": 12,
   "name": "Jumbo",
+  "image_url": "https://example.com/media/menu-variants/abc123.webp",
   "price": 28000,
   "is_available": false,
   "unavailable_reason": "INSUFFICIENT_STOCK",
@@ -57,4 +59,3 @@ Contoh:
 - `INGREDIENT_NOT_TRANSFERRED`
 - `INSUFFICIENT_STOCK`
 - `MANUAL_DISABLED`
-

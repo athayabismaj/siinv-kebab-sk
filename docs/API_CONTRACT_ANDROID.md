@@ -45,6 +45,9 @@ untuk memilih cabang transaksi.
 - `branch` dapat `null` pada profil. Jika ada, field stabilnya adalah
   `id:integer`, `name:string`, dan `code:string`.
 - `note`, beberapa label, target, dan nilai pertumbuhan dapat nullable.
+- Setiap varian pada katalog menu memiliki `image_url:string|null`. Client POS
+  menampilkan URL tersebut sebagai gambar kartu varian dan memakai placeholder
+  ketika nilainya `null`.
 - Timestamp checkout adalah string ISO-8601. Detail receipt menerima string
   `Y-m-d H:i:s`; label riwayat adalah string tampilan Indonesia.
 - Status riwayat adalah string tampilan backend (contoh `Sukses`/`Void`).

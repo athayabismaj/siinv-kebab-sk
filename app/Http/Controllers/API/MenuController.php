@@ -44,7 +44,7 @@ class MenuController extends Controller
                     'category:id,name',
                     'variants' => function ($variantQuery) use ($isPrivileged) {
                         $variantQuery
-                            ->select('id', 'menu_id', 'name', 'price', 'is_available', 'sort_order')
+                            ->select('id', 'menu_id', 'name', 'image_path', 'price', 'is_available', 'sort_order')
                             ->with(['ingredients:id,name'])
                             ->orderBy('sort_order');
                     },
@@ -84,6 +84,7 @@ class MenuController extends Controller
                     return [
                         'id' => $variant->id,
                         'name' => $variant->name,
+                        'image_url' => $variant->image_url,
                         'price' => (float) $variant->price,
                         'is_available' => (bool) $availability['is_available'],
                         'unavailable_reason' => $availability['unavailable_reason'],

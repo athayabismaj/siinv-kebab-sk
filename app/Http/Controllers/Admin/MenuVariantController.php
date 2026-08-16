@@ -7,6 +7,9 @@ use App\Models\Menu;
 use App\Models\MenuVariant;
 use App\Support\AdminCache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class MenuVariantController extends Controller {
     /*** INDEX */
@@ -31,6 +34,7 @@ class MenuVariantController extends Controller {
             'sell_price' => 'required|numeric|min:0',
             'sort_order' => 'nullable|numeric|min:0',
             'is_available' => 'nullable|boolean',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         // Auto default sort order jika kosong
@@ -38,15 +42,23 @@ class MenuVariantController extends Controller {
             ? (int) $validated['sort_order']
             : ($menu->variants()->max('sort_order') + 1);
 
-        $menu->variants()->create([
-            'name' => $validated['name'],
-            // price tetap dipakai sistem transaksi lama, disamakan dengan sell_price.
-            'price' => $validated['sell_price'],
-            'cost_price' => $validated['cost_price'],
-            'sell_price' => $validated['sell_price'],
-            'sort_order' => $sortOrder ?? 0,
-            'is_available' => $request->boolean('is_available'),
-        ]);
+        $imagePath = $this->storeImage($request);
+
+        try {
+            $menu->variants()->create([
+                'name' => $validated['name'],
+                'image_path' => $imagePath,
+                // price tetap dipakai sistem transaksi lama, disamakan dengan sell_price.
+                'price' => $validated['sell_price'],
+                'cost_price' => $validated['cost_price'],
+                'sell_price' => $validated['sell_price'],
+                'sort_order' => $sortOrder ?? 0,
+                'is_available' => $request->boolean('is_available'),
+            ]);
+        } catch (Throwable $exception) {
+            $this->deleteImage($imagePath);
+            throw $exception;
+        }
 
         AdminCache::bumpCatalog();
 
@@ -74,18 +86,35 @@ class MenuVariantController extends Controller {
             'sell_price' => 'required|numeric|min:0',
             'sort_order' => 'nullable|numeric|min:0',
             'is_available' => 'nullable|boolean',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'remove_image' => 'nullable|boolean',
         ]);
 
-        $menuVariant->update([
-            'name' => $validated['name'],
-            'price' => $validated['sell_price'],
-            'cost_price' => $validated['cost_price'],
-            'sell_price' => $validated['sell_price'],
-            'sort_order' => isset($validated['sort_order'])
-                ? (int) $validated['sort_order']
-                : $menuVariant->sort_order,
-            'is_available' => $request->boolean('is_available'),
-        ]);
+        $oldImagePath = $menuVariant->image_path;
+        $newImagePath = $this->storeImage($request);
+        $imagePath = $newImagePath
+            ?? ($request->boolean('remove_image') ? null : $oldImagePath);
+
+        try {
+            $menuVariant->update([
+                'name' => $validated['name'],
+                'image_path' => $imagePath,
+                'price' => $validated['sell_price'],
+                'cost_price' => $validated['cost_price'],
+                'sell_price' => $validated['sell_price'],
+                'sort_order' => isset($validated['sort_order'])
+                    ? (int) $validated['sort_order']
+                    : $menuVariant->sort_order,
+                'is_available' => $request->boolean('is_available'),
+            ]);
+        } catch (Throwable $exception) {
+            $this->deleteImage($newImagePath);
+            throw $exception;
+        }
+
+        if ($oldImagePath !== $imagePath) {
+            $this->deleteImage($oldImagePath);
+        }
 
         AdminCache::bumpCatalog();
 
@@ -99,11 +128,37 @@ class MenuVariantController extends Controller {
     {
         abort_unless($menuVariant->menu_id === $menu->id, 404);
 
+        $imagePath = $menuVariant->image_path;
         $menuVariant->delete();
+        $this->deleteImage($imagePath);
         AdminCache::bumpCatalog();
 
         return redirect()
             ->route('admin.menu-variants.index', $menu->id)
             ->with('success', 'Variant berhasil dihapus.');
+    }
+
+    private function storeImage(Request $request): ?string
+    {
+        if (! $request->hasFile('image')) {
+            return null;
+        }
+
+        $path = $request->file('image')->store('menu-variants', 'public');
+
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                'image' => 'Gambar varian gagal disimpan. Silakan coba lagi.',
+            ]);
+        }
+
+        return $path;
+    }
+
+    private function deleteImage(?string $path): void
+    {
+        if ($path) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

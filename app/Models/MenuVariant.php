@@ -9,6 +9,7 @@ class MenuVariant extends Model
     protected $fillable = [
         'menu_id',
         'name',
+        'image_path',
         'price',
         'cost_price',
         'sell_price',
@@ -23,6 +24,17 @@ class MenuVariant extends Model
         'sort_order' => 'integer',
         'is_available' => 'boolean',
     ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (! $this->image_path) {
+            return null;
+        }
+
+        return route('menu-variant-images.show', [
+            'filename' => basename($this->image_path),
+        ]);
+    }
     
     // Relasi ke Menu
     public function menu()

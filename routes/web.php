@@ -29,9 +29,13 @@ use App\Http\Controllers\Admin\CashflowController as AdminCashflowController;
 use App\Http\Controllers\Admin\DailyStockReportController;
 use App\Http\Controllers\Admin\BranchContextController;
 use App\Http\Controllers\System\ReadinessController;
+use App\Http\Controllers\MenuVariantImageController;
 
 Route::get('/', [LoginController::class, 'showLogin'])->name('login');
 Route::get('/health/ready', ReadinessController::class)->name('health.ready');
+Route::get('/media/menu-variants/{filename}', MenuVariantImageController::class)
+    ->where('filename', '[A-Za-z0-9._-]+')
+    ->name('menu-variant-images.show');
 Route::post('/login', [LoginController::class, 'login'])
     ->middleware('throttle:auth-login')
     ->name('login.process');
