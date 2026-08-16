@@ -197,7 +197,7 @@ class DailySalesSummaryService
             ->join('transactions as transactions', 'transactions.id', '=', 'details.transaction_id')
             ->where('transactions.branch_id', $branch->id)
             ->whereBetween('transactions.created_at', [$start, $end])
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+            ->where('transactions.status', 'SUCCESS')
             ->sum('details.quantity');
 
         return [
@@ -225,7 +225,7 @@ class DailySalesSummaryService
             ->join('transactions as transactions', 'transactions.id', '=', 'details.transaction_id')
             ->where('transactions.branch_id', $branch->id)
             ->whereBetween('transactions.created_at', [$start, $end])
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+            ->where('transactions.status', 'SUCCESS')
             ->selectRaw('DATE(transactions.created_at) as date, COALESCE(SUM(details.quantity), 0) as items_sold')
             ->groupByRaw('DATE(transactions.created_at)')
             ->pluck('items_sold', 'date');
@@ -248,7 +248,7 @@ class DailySalesSummaryService
 
     private function successfulTransactions(): Builder
     {
-        return Transaction::query()->whereRaw("UPPER(COALESCE(status, '')) = ?", ['SUCCESS']);
+        return Transaction::query()->successful();
     }
 
     private function emptyRangePayload(): array

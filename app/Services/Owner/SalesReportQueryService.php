@@ -16,7 +16,7 @@ class SalesReportQueryService
     {
         $dateKey = $selectedDate->toDateString();
 
-        return $this->remember('daily_summary_success:' . $dateKey . ':branch:' . ($branchId ?: 'all'), fn () => $this->buildSuccessfulSummary(
+        return $this->remember('daily_summary_success:'.$dateKey.':branch:'.($branchId ?: 'all'), fn () => $this->buildSuccessfulSummary(
             $selectedDate,
             $selectedDate,
             $branchId
@@ -36,14 +36,14 @@ class SalesReportQueryService
             ];
         };
 
-        return $bypassCache ? $resolver() : $this->remember('monthly_summary_success:' . $monthKey . ':branch:' . ($branchId ?: 'all'), $resolver);
+        return $bypassCache ? $resolver() : $this->remember('monthly_summary_success:'.$monthKey.':branch:'.($branchId ?: 'all'), $resolver);
     }
 
     public function buildWeeklySummary(Carbon $weekAnchor, bool $bypassCache = false, ?int $branchId = null): array
     {
         $weekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY);
         $weekEnd = $weekAnchor->copy()->endOfWeek(Carbon::SUNDAY);
-        $key = $weekStart->toDateString() . ':' . $weekEnd->toDateString();
+        $key = $weekStart->toDateString().':'.$weekEnd->toDateString();
 
         $resolver = function () use ($weekStart, $weekEnd, $branchId) {
             return [
@@ -52,7 +52,7 @@ class SalesReportQueryService
             ];
         };
 
-        return $bypassCache ? $resolver() : $this->remember('weekly_summary_success:' . $key . ':branch:' . ($branchId ?: 'all'), $resolver);
+        return $bypassCache ? $resolver() : $this->remember('weekly_summary_success:'.$key.':branch:'.($branchId ?: 'all'), $resolver);
     }
 
     public function buildYearlySummary(int $year, bool $bypassCache = false, ?int $branchId = null): array
@@ -85,12 +85,12 @@ class SalesReportQueryService
             ];
         };
 
-        return $bypassCache ? $resolver() : $this->remember('yearly_summary_success:' . $year . ':branch:' . ($branchId ?: 'all'), $resolver);
+        return $bypassCache ? $resolver() : $this->remember('yearly_summary_success:'.$year.':branch:'.($branchId ?: 'all'), $resolver);
     }
 
     public function buildPeriodMenuAnalytics(Carbon $start, Carbon $end, bool $limitTopTen = true, ?int $branchId = null): array
     {
-        $cacheSuffix = 'menu_analytics_success:' . $start->toDateString() . ':' . $end->toDateString() . ':' . ($limitTopTen ? '10' : 'all') . ':branch:' . ($branchId ?: 'all');
+        $cacheSuffix = 'menu_analytics_success:'.$start->toDateString().':'.$end->toDateString().':'.($limitTopTen ? '10' : 'all').':branch:'.($branchId ?: 'all');
 
         return $this->remember($cacheSuffix, function () use ($start, $end, $limitTopTen, $branchId) {
             $menuStats = $this->buildPeriodMenuStats($start, $end, $branchId);
@@ -127,7 +127,7 @@ class SalesReportQueryService
 
     public function buildPeriodTransactionOverview(Carbon $start, Carbon $end, ?int $branchId = null): array
     {
-        $cacheSuffix = 'transaction_overview_cash:' . $start->toDateString() . ':' . $end->toDateString() . ':branch:' . ($branchId ?: 'all');
+        $cacheSuffix = 'transaction_overview_cash:'.$start->toDateString().':'.$end->toDateString().':branch:'.($branchId ?: 'all');
 
         return $this->remember($cacheSuffix, function () use ($start, $end, $branchId) {
             [$startDateTime, $endDateTime] = $this->toDateTimeRange($start, $end);
@@ -229,7 +229,7 @@ class SalesReportQueryService
             ->leftJoin('menu_variants', 'menu_variants.id', '=', 'transaction_details.menu_variant_id')
             ->leftJoin('menu_categories', 'menu_categories.id', '=', 'menus.category_id')
             ->whereBetween('transactions.created_at', [$startDateTime, $endDateTime])
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+            ->where('transactions.status', 'SUCCESS')
             ->where(function ($query) {
                 $query->whereNull('menu_categories.id')
                     ->orWhere('menu_categories.is_addon', false);
@@ -279,7 +279,7 @@ class SalesReportQueryService
             ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
             ->leftJoin('menu_categories', 'menu_categories.id', '=', 'menus.category_id')
             ->whereBetween('transactions.created_at', [$startDateTime, $endDateTime])
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+            ->where('transactions.status', 'SUCCESS')
             ->where(function ($query) {
                 $query->whereNull('menu_categories.id')
                     ->orWhere('menu_categories.is_addon', false);
@@ -333,7 +333,7 @@ class SalesReportQueryService
             return $variantName;
         }
 
-        return trim($menuName . ' ' . $variantName);
+        return trim($menuName.' '.$variantName);
     }
 
     private function toDateTimeRange(Carbon $start, Carbon $end): array
@@ -347,7 +347,7 @@ class SalesReportQueryService
     private function remember(string $suffix, callable $resolver): array
     {
         return Cache::remember(
-            AdminCache::key('transactions', 'owner:sales:' . $suffix),
+            AdminCache::key('transactions', 'owner:sales:'.$suffix),
             now()->addSeconds(120),
             $resolver
         );

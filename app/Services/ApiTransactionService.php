@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class ApiTransactionService
 {
@@ -84,7 +83,7 @@ class ApiTransactionService
     {
         $selectedDate = $this->resolveDateOrNow($date)->toDateString();
         $query = $this->baseUserTransactionQuery($userId, $selectedDate, $branchId)
-            ->whereRaw("UPPER(COALESCE(t.status, '')) = ?", ['SUCCESS']);
+            ->where('t.status', 'SUCCESS');
 
         $totalRevenue = (float) (clone $query)->sum('t.total_amount');
         $totalCount = (int) (clone $query)->count();
@@ -99,7 +98,7 @@ class ApiTransactionService
                 $end = Carbon::parse($selectedDate)->endOfDay();
                 $query->whereBetween('t.created_at', [$start, $end]);
             })
-            ->whereRaw("UPPER(COALESCE(t.status, '')) = ?", ['SUCCESS'])
+            ->where('t.status', 'SUCCESS')
             ->select('menus.name', DB::raw('SUM(td.quantity) as total_qty'))
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('total_qty')
@@ -124,7 +123,7 @@ class ApiTransactionService
             ->where('user_id', $userId)
             ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
-            ->whereRaw("UPPER(COALESCE(status, '')) = ?", ['SUCCESS'])
+            ->where('status', 'SUCCESS')
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date')
             ->get()

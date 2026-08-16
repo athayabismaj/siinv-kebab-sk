@@ -29,6 +29,7 @@ class StockService
         ?int $cashierId = null,
         ?int $branchId = null,
         ?DailyStockSession $lockedSession = null,
+        bool $invalidateCaches = true,
     ): void {
         $cashierId = (int) ($cashierId ?? 0);
         if ($cashierId <= 0) {
@@ -70,7 +71,7 @@ class StockService
                 ->whereKey($sessionId)
                 ->where('cashier_id', $cashierId)
                 ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
-                ->whereRaw("LOWER(TRIM(status)) = 'open'")
+                ->where('status', 'open')
                 ->lockForUpdate()
                 ->first();
         }
@@ -136,10 +137,12 @@ class StockService
             $usageByIngredient,
         )));
 
-        AdminCache::bumpStock();
-        AdminCache::bumpUsage();
-        AdminCache::bumpDailyStock();
-        AdminCache::bumpCatalog();
+        if ($invalidateCaches) {
+            AdminCache::bumpStock();
+            AdminCache::bumpUsage();
+            AdminCache::bumpDailyStock();
+            AdminCache::bumpCatalog();
+        }
     }
 
     public static function deductStock(
@@ -167,7 +170,7 @@ class StockService
             ->where('cashier_id', $cashierId)
             ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereDate('session_date', $sessionDate)
-            ->whereRaw("LOWER(TRIM(status)) = 'open'")
+            ->where('status', 'open')
             ->lockForUpdate()
             ->first();
 

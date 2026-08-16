@@ -59,12 +59,12 @@ class DashboardQueryService
 
                 $expenses = CashflowEntry::query()
                     ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
-                    ->whereDate('entry_date', $dateKey)
                     ->where('type', 'expense');
+                $this->applyDateFilter($expenses, 'entry_date', $dateKey);
 
                 $sessions = DailyStockSession::query()
-                    ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
-                    ->whereDate('session_date', $dateKey);
+                    ->when($branchId, fn ($query) => $query->where('branch_id', $branchId));
+                $this->applyDateFilter($sessions, 'session_date', $dateKey);
 
                 $row = DB::query()
                     ->selectSub(
@@ -112,13 +112,13 @@ class DashboardQueryService
                     )
                     ->selectSub(
                         (clone $sessions)
-                            ->whereRaw("LOWER(TRIM(status)) = 'open'")
+                            ->where('status', 'open')
                             ->selectRaw('COUNT(*)'),
                         'open_sessions'
                     )
                     ->selectSub(
                         (clone $sessions)
-                            ->whereRaw("LOWER(TRIM(status)) = 'closed'")
+                            ->where('status', 'closed')
                             ->selectRaw('COUNT(*)'),
                         'closed_sessions'
                     )
@@ -218,7 +218,7 @@ class DashboardQueryService
                 ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
                 ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
                 ->when($branchId, fn ($query) => $query->where('transactions.branch_id', $branchId))
-                ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+                ->where('transactions.status', 'SUCCESS')
                 ->whereBetween('transactions.created_at', [$start, $end])
                 ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
                 ->groupBy('menus.id', 'menus.name')
@@ -347,5 +347,16 @@ class DashboardQueryService
         $formatted = rtrim(rtrim(number_format($displayValue, 2, '.', ''), '0'), '.');
 
         return trim(($formatted === '' ? '0' : $formatted).' '.$displayUnit);
+    }
+
+    private function applyDateFilter($query, string $column, string $date): void
+    {
+        if (DB::getDriverName() === 'pgsql') {
+            $query->where($column, $date);
+
+            return;
+        }
+
+        $query->whereDate($column, $date);
     }
 }

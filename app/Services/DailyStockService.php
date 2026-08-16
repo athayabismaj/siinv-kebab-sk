@@ -19,12 +19,11 @@ class DailyStockService
         private readonly OpenDailyStockSessionAction $openDailyStockSession,
         private readonly CloseDailyStockSessionAction $closeDailyStockSession,
         private readonly TransferToDailyStockAction $transferToDailyStock,
-    ) {
-    }
+    ) {}
 
     public function reconcileSessionUsage(int $sessionId): DailyStockSession
     {
-        $session = DB::transaction(function () use ($sessionId) {
+        [$session, $hasChanges] = DB::transaction(function () use ($sessionId) {
             $session = DailyStockSession::query()
                 ->whereKey($sessionId)
                 ->lockForUpdate()
@@ -40,6 +39,8 @@ class DailyStockService
                 $items->pluck('ingredient_id')->map(fn ($id) => (int) $id)->all()
             );
 
+            $hasChanges = false;
+
             foreach ($items as $item) {
                 $opening = (float) $item->opening_qty;
                 $used = max(
@@ -51,20 +52,34 @@ class DailyStockService
                     $opening = $used;
                 }
 
-                $item->update([
+                $nextValues = [
                     'opening_qty' => $opening,
                     'used_qty' => $used,
                     'remaining_qty' => max(0, $opening - $used),
-                ]);
+                ];
+
+                $isChanged = abs((float) $item->opening_qty - $nextValues['opening_qty']) > 0.000001
+                    || abs((float) $item->used_qty - $nextValues['used_qty']) > 0.000001
+                    || abs((float) $item->remaining_qty - $nextValues['remaining_qty']) > 0.000001;
+
+                if ($isChanged) {
+                    $item->update($nextValues);
+                    $hasChanges = true;
+                }
             }
 
-            return $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']);
+            return [
+                $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']),
+                $hasChanges,
+            ];
         });
 
-        AdminCache::bumpDailyStock();
-        AdminCache::bumpDashboard();
-        AdminCache::bumpUsage();
-        AdminCache::bumpCatalog();
+        if ($hasChanges) {
+            AdminCache::bumpDailyStock();
+            AdminCache::bumpDashboard();
+            AdminCache::bumpUsage();
+            AdminCache::bumpCatalog();
+        }
 
         return $session;
     }
@@ -129,7 +144,7 @@ class DailyStockService
     }
 
     /**
-     * @param array<int, array{qty: float, note: ?string}> $transfers  Key: ingredient_id, Value: array of qty (base unit) and note
+     * @param  array<int, array{qty: float, note: ?string}>  $transfers  Key: ingredient_id, Value: array of qty (base unit) and note
      * @return array{
      *     session: DailyStockSession,
      *     processed: int,
@@ -155,7 +170,7 @@ class DailyStockService
     }
 
     /**
-     * @param array<int, float|int|string> $remainingByIngredient
+     * @param  array<int, float|int|string>  $remainingByIngredient
      */
     public function closeSession(
         int $sessionId,
@@ -243,7 +258,7 @@ class DailyStockService
                 'stock_retained_at_outlet' => false,
                 'closed_by' => null,
                 'closed_at' => null,
-                'notes' => $notes ?: trim(($session->notes ? ($session->notes . ' | ') : '') . "Reopen oleh user #{$reopenedBy}"),
+                'notes' => $notes ?: trim(($session->notes ? ($session->notes.' | ') : '')."Reopen oleh user #{$reopenedBy}"),
             ]);
 
             return $session->fresh(['items.ingredient', 'cashier', 'openedBy', 'closedBy']);
@@ -259,7 +274,7 @@ class DailyStockService
     }
 
     /**
-     * @param array<int, int> $ingredientIds
+     * @param  array<int, int>  $ingredientIds
      * @return array<int, float>
      */
     private function inferUsageFromTransactions(DailyStockSession $session, array $ingredientIds): array
@@ -297,5 +312,4 @@ class DailyStockService
 
         return $result;
     }
-
 }

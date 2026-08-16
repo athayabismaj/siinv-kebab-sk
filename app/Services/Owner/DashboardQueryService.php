@@ -68,7 +68,7 @@ class DashboardQueryService
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
             ->join('menus', 'menus.id', '=', 'transaction_details.menu_id')
             ->whereBetween('transactions.created_at', [$todayStart->toDateTimeString(), $todayEnd->toDateTimeString()])
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+            ->where('transactions.status', 'SUCCESS')
             ->selectRaw('menus.id, menus.name, SUM(transaction_details.quantity) as sold_qty')
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('sold_qty')
@@ -170,12 +170,12 @@ class DashboardQueryService
         $this->applyBranch($transactions, $branchId, 'branch_id');
 
         $expenses = CashflowEntry::query()
-            ->whereDate('entry_date', $todayKey)
             ->where('type', 'expense');
+        $this->applyDateFilter($expenses, 'entry_date', $todayKey);
         $this->applyBranch($expenses, $branchId, 'branch_id');
 
-        $sessions = DailyStockSession::query()
-            ->whereDate('session_date', $todayKey);
+        $sessions = DailyStockSession::query();
+        $this->applyDateFilter($sessions, 'session_date', $todayKey);
         $this->applyBranch($sessions, $branchId, 'branch_id');
 
         return DB::query()
@@ -201,13 +201,13 @@ class DashboardQueryService
             )
             ->selectSub(
                 (clone $sessions)
-                    ->whereRaw("LOWER(TRIM(status)) = 'open'")
+                    ->where('status', 'open')
                     ->selectRaw('COUNT(*)'),
                 'open_sessions'
             )
             ->selectSub(
                 (clone $sessions)
-                    ->whereRaw("LOWER(TRIM(status)) = 'closed'")
+                    ->where('status', 'closed')
                     ->selectRaw('COUNT(*)'),
                 'closed_sessions'
             )
@@ -260,5 +260,16 @@ class DashboardQueryService
         }
 
         BranchScope::apply($query, $branchId, $column);
+    }
+
+    private function applyDateFilter($query, string $column, string $date): void
+    {
+        if (DB::getDriverName() === 'pgsql') {
+            $query->where($column, $date);
+
+            return;
+        }
+
+        $query->whereDate($column, $date);
     }
 }

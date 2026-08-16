@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Owner;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\DirectExportResponse;
+use App\Http\Controllers\Controller;
 use App\Jobs\GenerateTransactionExport;
 use App\Models\GeneratedExport;
-use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Services\Owner\TransactionHistoryQueryService;
 use App\Services\Shared\PeriodFilterService;
@@ -49,12 +48,11 @@ class TransactionHistoryController extends Controller
         $topCashierName = $this->queryService->topCashierName($dateFrom, $dateTo, $filters);
 
         $transactions = $listQuery
-            ->paginate(10)
+            ->paginate(10, ['*'], 'page', null, $summary['total_transactions'])
             ->withQueryString();
 
         $groupedTransactions = $transactions->getCollection()
             ->groupBy(fn ($trx) => $trx->created_at->toDateString());
-
 
         $branchOptions = BranchScope::options();
         $cashiers = $this->cashiers($branchId);
@@ -63,32 +61,33 @@ class TransactionHistoryController extends Controller
             $this->periodFilter->buildNavigator($type, $dateFrom);
 
         return view('owner.transactions.index', [
-            'transactions'       => $transactions,
+            'transactions' => $transactions,
             'groupedTransactions' => $groupedTransactions,
 
-            'cashiers'           => $cashiers,
-            'dateFrom'           => $dateFrom,
-            'dateTo'             => $dateTo,
-            'totalTransactions'  => $summary['total_transactions'],
-            'totalRevenue'       => $summary['total_revenue'],
-            'avgTransaction'     => $summary['avg_transaction'],
-            'topCashierName'     => $topCashierName,
-            'type'               => $type,
-            'prevFrom'           => $prevFrom,
-            'prevTo'             => $prevTo,
-            'nextFrom'           => $nextFrom,
-            'nextTo'             => $nextTo,
-            'isFuture'           => $isFuture,
-            'inputValue'         => $inputValue,
-            'inputType'          => $inputType,
-            'branchOptions'      => $branchOptions,
-            'branchId'           => $branchId,
+            'cashiers' => $cashiers,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'totalTransactions' => $summary['total_transactions'],
+            'totalRevenue' => $summary['total_revenue'],
+            'avgTransaction' => $summary['avg_transaction'],
+            'topCashierName' => $topCashierName,
+            'type' => $type,
+            'prevFrom' => $prevFrom,
+            'prevTo' => $prevTo,
+            'nextFrom' => $nextFrom,
+            'nextTo' => $nextTo,
+            'isFuture' => $isFuture,
+            'inputValue' => $inputValue,
+            'inputType' => $inputType,
+            'branchOptions' => $branchOptions,
+            'branchId' => $branchId,
         ]);
     }
 
     public function export(Request $request)
     {
         $format = (string) $request->query('format', 'excel');
+
         return $this->exportDirect($request, $format);
     }
 
@@ -112,8 +111,8 @@ class TransactionHistoryController extends Controller
 
         $dateSuffix = $dateFrom->isSameDay($dateTo)
             ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Riwayat_Transaksi_' . $dateSuffix;
+            : $dateFrom->format('dM').'-'.$dateTo->format('dMY');
+        $fileName = 'Riwayat_Transaksi_'.$dateSuffix;
 
         $rowCount = (clone $listQuery)->count();
 
@@ -127,20 +126,20 @@ class TransactionHistoryController extends Controller
         }
 
         $summary = $this->queryService->summary($dateFrom, $dateTo, $filters);
-        
+
         // Disable pagination for export, get all data
         $transactions = $listQuery->get();
 
         $periodeLabel = $dateFrom->translatedFormat('d F Y');
-        if (!$dateFrom->isSameDay($dateTo)) {
-            $periodeLabel .= ' - ' . $dateTo->translatedFormat('d F Y');
+        if (! $dateFrom->isSameDay($dateTo)) {
+            $periodeLabel .= ' - '.$dateTo->translatedFormat('d F Y');
         }
 
         $periodLabels = [
             'daily' => 'HARIAN',
             'weekly' => 'MINGGUAN',
             'monthly' => 'BULANAN',
-            'custom' => 'KUSTOM'
+            'custom' => 'KUSTOM',
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
@@ -172,7 +171,7 @@ class TransactionHistoryController extends Controller
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
                 new \App\Exports\TransactionReportExport($viewData),
-                $fileName . '.xlsx'
+                $fileName.'.xlsx'
             ),
             'A4',
             'landscape'
@@ -194,7 +193,7 @@ class TransactionHistoryController extends Controller
                 'payment_method_id' => (int) ($filters['payment_method_id'] ?? 0),
             ],
             'status' => GeneratedExport::STATUS_PENDING,
-            'original_filename' => $fileName . '.xlsx',
+            'original_filename' => $fileName.'.xlsx',
             'expires_at' => now()->addDays(7),
         ]);
 
@@ -221,7 +220,7 @@ class TransactionHistoryController extends Controller
     private function cashiers(?int $branchId = null)
     {
         return Cache::remember(
-            AdminCache::key('transactions', 'owner:cashiers:list:' . ($branchId ?: 'all')),
+            AdminCache::key('transactions', 'owner:cashiers:list:'.($branchId ?: 'all')),
             now()->addSeconds(90),
             function () use ($branchId) {
                 $query = Transaction::query()
@@ -237,5 +236,4 @@ class TransactionHistoryController extends Controller
             }
         );
     }
-
 }

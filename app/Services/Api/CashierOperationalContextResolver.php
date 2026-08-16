@@ -7,6 +7,7 @@ use App\Models\DailyStockSession;
 use App\Models\User;
 use App\Support\DailyStockClosingWindow;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 final class CashierOperationalContextResolver
@@ -52,10 +53,14 @@ final class CashierOperationalContextResolver
             })
             ->where(function ($query) use ($sessionDates): void {
                 foreach ($sessionDates as $sessionDate) {
-                    $query->orWhereDate('session_date', $sessionDate);
+                    if (DB::getDriverName() === 'pgsql') {
+                        $query->orWhere('session_date', $sessionDate);
+                    } else {
+                        $query->orWhereDate('session_date', $sessionDate);
+                    }
                 }
             })
-            ->whereRaw("LOWER(TRIM(status)) = 'open'")
+            ->where('status', 'open')
             ->orderBy('session_date')
             ->orderBy('branch_id')
             ->orderBy('id')

@@ -157,13 +157,15 @@ class TransactionController extends Controller
 
             $result = $checkout['result'];
 
-            AdminCache::bumpDashboard();
-            AdminCache::bumpCashflow();
-            AdminCache::bumpUsage();
-            AdminCache::bumpDailyStock();
-            AdminCache::bumpTransactions();
-            AdminCache::bumpStock();
-            AdminCache::bumpCatalog();
+            defer(static function (): void {
+                AdminCache::bumpDashboard();
+                AdminCache::bumpCashflow();
+                AdminCache::bumpUsage();
+                AdminCache::bumpDailyStock();
+                AdminCache::bumpTransactions();
+                AdminCache::bumpStock();
+                AdminCache::bumpCatalog();
+            }, 'checkout-cache-invalidation:'.$result['transaction_id'])->always();
 
             return $this->successResponse('Transaksi berhasil', $result, 201);
         } catch (Throwable $e) {

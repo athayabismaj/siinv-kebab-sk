@@ -11,8 +11,10 @@ use App\Services\Analytics\DailySalesSummaryService;
 use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\StockService;
 use App\Services\VariantAvailabilityService;
+use App\Support\AdminCache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -34,8 +36,10 @@ class CheckoutTransactionAction
 
         return DB::transaction(function () use ($validated, $cashierId, $cashier) {
             if (DB::getDriverName() === 'pgsql') {
-                DB::statement("SET LOCAL lock_timeout = '5s'");
-                DB::statement("SET LOCAL statement_timeout = '12s'");
+                DB::selectOne(
+                    "SELECT set_config('lock_timeout', '5s', true),
+                            set_config('statement_timeout', '12s', true)"
+                );
             }
 
             $cashier = $cashier instanceof User
@@ -66,7 +70,16 @@ class CheckoutTransactionAction
                 ];
             }
 
-            $draft = $this->buildCheckoutDraft($validated, $cashierId, $operationalContext);
+            $references = $this->checkoutReferences(
+                $operationalContext->operationalBranchId(),
+                (int) $validated['payment_method_id'],
+            );
+            $draft = $this->buildCheckoutDraft(
+                $validated,
+                $cashierId,
+                $operationalContext,
+                $references['payment_method'],
+            );
             if (! $draft['ok']) {
                 return $draft;
             }
@@ -76,6 +89,7 @@ class CheckoutTransactionAction
                 $draft,
                 $validated['note'] ?? null,
                 $operationalContext,
+                $references['branch'],
             );
             $this->dailySalesSummaryService->recordSuccessfulTransaction(
                 $result['branch_model'],
@@ -99,21 +113,18 @@ class CheckoutTransactionAction
     }
 
     /**
-     * @return array{ok:bool,status?:int,message?:string,data?:array<string,mixed>,payment_method?:PaymentMethod,line_items?:array<int,array<string,mixed>>,ingredient_usages?:array<int,array<string,mixed>>,total_amount?:float,paid_amount?:float}
+     * @param  array{id:int,name:string}  $paymentMethod
+     * @return array{ok:bool,status?:int,message?:string,data?:array<string,mixed>,payment_method?:array{id:int,name:string},line_items?:array<int,array<string,mixed>>,ingredient_usages?:array<int,array<string,mixed>>,total_amount?:float,paid_amount?:float}
      */
     private function buildCheckoutDraft(
         array $validated,
         int $cashierId,
         CashierOperationalContext $operationalContext,
+        array $paymentMethod,
     ): array {
         $lineItems = [];
         $ingredientUsages = [];
         $totalAmount = 0.0;
-
-        $paymentMethod = PaymentMethod::query()
-            ->whereNull('deleted_at')
-            ->select('id', 'name')
-            ->findOrFail((int) $validated['payment_method_id']);
 
         $requestedVariantIds = collect($validated['items'])
             ->pluck('variant_id')
@@ -235,7 +246,8 @@ class CheckoutTransactionAction
     }
 
     /**
-     * @param  array{payment_method:PaymentMethod,line_items:array<int,array<string,mixed>>,ingredient_usages:array<int,array<string,mixed>>,total_amount:float,paid_amount:float}  $draft
+     * @param  array{payment_method:array{id:int,name:string},line_items:array<int,array<string,mixed>>,ingredient_usages:array<int,array<string,mixed>>,total_amount:float,paid_amount:float}  $draft
+     * @param  array{id:int,name:string,code:string,address:?string}  $branchData
      * @return array<string,mixed>
      */
     private function createTransaction(
@@ -243,12 +255,14 @@ class CheckoutTransactionAction
         array $draft,
         ?string $note,
         CashierOperationalContext $operationalContext,
+        array $branchData,
     ): array {
         $now = now(config('app.timezone', 'Asia/Jakarta'));
         $branchId = $operationalContext->operationalBranchId();
-        $branch = $branchId ? Branch::query()->find($branchId, ['id', 'name', 'code', 'address']) : null;
+        $branch = (new Branch)->forceFill($branchData);
+        $branch->exists = true;
 
-        if (! $branchId || ! $branch || ! $operationalContext->session) {
+        if (! $branchId || (int) $branch->id !== $branchId || ! $operationalContext->session) {
             throw new RuntimeException('Sesi stok harian kasir belum dibuka. Transaksi tidak dapat diproses.');
         }
 
@@ -260,7 +274,7 @@ class CheckoutTransactionAction
             'branch_id' => $branchId,
             'user_id' => $cashierId,
             'total_amount' => $draft['total_amount'],
-            'payment_method_id' => (int) $draft['payment_method']->id,
+            'payment_method_id' => (int) $draft['payment_method']['id'],
             'paid_amount' => $draft['paid_amount'],
             'change_amount' => $draft['paid_amount'] - $draft['total_amount'],
             'status' => 'SUCCESS',
@@ -291,6 +305,7 @@ class CheckoutTransactionAction
             $cashierId,
             $branchId,
             $operationalContext->session,
+            invalidateCaches: false,
         );
 
         return [
@@ -298,8 +313,8 @@ class CheckoutTransactionAction
             'transaction_code' => $transactionCode,
             'created_at' => $now->toIso8601String(),
             'payment_method' => [
-                'id' => $draft['payment_method']->id,
-                'name' => $draft['payment_method']->name,
+                'id' => $draft['payment_method']['id'],
+                'name' => $draft['payment_method']['name'],
             ],
             'items' => collect($draft['line_items'])->map(fn ($line) => [
                 'menu_id' => $line['menu_id'],
@@ -322,6 +337,62 @@ class CheckoutTransactionAction
             ],
             'occurred_at' => $now,
             'total_items_sold' => (int) collect($draft['line_items'])->sum('qty'),
+        ];
+    }
+
+    /**
+     * Ambil cabang dan metode pembayaran dalam satu round-trip. Hasilnya aman
+     * dicache singkat karena perubahan metode pembayaran sudah memakai versi cache.
+     *
+     * @return array{branch:array{id:int,name:string,code:string,address:?string},payment_method:array{id:int,name:string}}
+     */
+    private function checkoutReferences(?int $branchId, int $paymentMethodId): array
+    {
+        if (($branchId ?? 0) <= 0) {
+            throw new RuntimeException('Cabang operasional kasir tidak valid.');
+        }
+
+        $load = fn () => DB::table('branches as branch')
+            ->crossJoin('payment_methods as payment')
+            ->where('branch.id', $branchId)
+            ->where('payment.id', $paymentMethodId)
+            ->whereNull('payment.deleted_at')
+            ->select([
+                'branch.id as branch_id',
+                'branch.name as branch_name',
+                'branch.code as branch_code',
+                'branch.address as branch_address',
+                'payment.id as payment_method_id',
+                'payment.name as payment_method_name',
+            ])
+            ->first();
+
+        $row = app()->environment('testing')
+            ? $load()
+            : Cache::remember(
+                AdminCache::key(
+                    'payment_methods',
+                    "checkout:branch:{$branchId}:payment:{$paymentMethodId}",
+                ),
+                now()->addMinute(),
+                $load,
+            );
+
+        if (! $row) {
+            throw (new ModelNotFoundException)->setModel(PaymentMethod::class, [$paymentMethodId]);
+        }
+
+        return [
+            'branch' => [
+                'id' => (int) $row->branch_id,
+                'name' => (string) $row->branch_name,
+                'code' => (string) $row->branch_code,
+                'address' => $row->branch_address !== null ? (string) $row->branch_address : null,
+            ],
+            'payment_method' => [
+                'id' => (int) $row->payment_method_id,
+                'name' => (string) $row->payment_method_name,
+            ],
         ];
     }
 

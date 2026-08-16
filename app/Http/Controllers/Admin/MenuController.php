@@ -38,15 +38,29 @@ class MenuController extends Controller
             $query->where('category_id', $request->input('category'));
         }
 
-        $activeCount = (clone $query)->whereNull('menus.deleted_at')->count();
-        $archivedCount = (clone $query)->whereNotNull('menus.deleted_at')->count();
+        $countRow = (clone $query)
+            ->setEagerLoads([])
+            ->reorder()
+            ->select([])
+            ->selectRaw(
+                'SUM(CASE WHEN menus.deleted_at IS NULL THEN 1 ELSE 0 END) as active_count,
+                 SUM(CASE WHEN menus.deleted_at IS NOT NULL THEN 1 ELSE 0 END) as archived_count'
+            )
+            ->first();
+        $activeCount = (int) ($countRow->active_count ?? 0);
+        $archivedCount = (int) ($countRow->archived_count ?? 0);
         $allCount = $activeCount + $archivedCount;
+        $filteredTotal = match ($recordStatus) {
+            'archived' => $archivedCount,
+            'all' => $allCount,
+            default => $activeCount,
+        };
 
         $this->applyRecordStatus($query, $recordStatus);
         $this->applyLifecycleSorting($query, $recordStatus);
 
         $menus = $query
-            ->paginate(10)
+            ->paginate(10, ['*'], 'page', null, $filteredTotal)
             ->withQueryString();
 
         $categories = $this->menuCategoryOptions();
@@ -160,7 +174,7 @@ class MenuController extends Controller
         $uniqueNameRule = 'required|max:150|unique:menus,name';
 
         if ($menu) {
-            $uniqueNameRule .= ',' . $menu->id;
+            $uniqueNameRule .= ','.$menu->id;
         }
 
         return [
@@ -193,10 +207,11 @@ class MenuController extends Controller
 
         if (DB::connection()->getDriverName() === 'pgsql') {
             $query->where('name', 'ILIKE', "%{$search}%");
+
             return;
         }
 
-        $query->where('name', 'like', '%' . $search . '%');
+        $query->where('name', 'like', '%'.$search.'%');
     }
 
     private function recordStatus(Request $request): string
@@ -219,11 +234,13 @@ class MenuController extends Controller
     {
         if ($recordStatus === 'active') {
             $query->orderBy('menus.sort_order')->orderByDesc('menus.created_at')->orderByDesc('menus.id');
+
             return;
         }
 
         if ($recordStatus === 'archived') {
             $query->orderByDesc('menus.deleted_at')->orderByDesc('menus.id');
+
             return;
         }
 
@@ -234,5 +251,4 @@ class MenuController extends Controller
             ->orderByRaw('CASE WHEN menus.deleted_at IS NOT NULL THEN menus.deleted_at END DESC')
             ->orderByDesc('menus.id');
     }
-
 }

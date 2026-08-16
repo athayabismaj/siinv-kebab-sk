@@ -14,6 +14,7 @@ use App\Models\Ingredient;
 use App\Models\IngredientCategory;
 use App\Models\User;
 use App\Services\DailyStockService;
+use App\Support\AdminCache;
 use App\Support\BranchScope;
 use App\Support\IngredientUnit;
 use Carbon\Carbon;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use RuntimeException;
@@ -51,13 +53,22 @@ class DailyStockController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
         $selectedCategoryId = (int) ($validated['category_id'] ?? 0);
         $activeBranchId = BranchScope::scopedBranchIdFor(auth()->user());
+        $usesNativeDateColumns = config('database.connections.'.config('database.default').'.driver') === 'pgsql';
 
-        $cashiers = User::query()
-            ->with(['role:id,name', 'branch:id,name'])
-            ->whereHas('role', fn ($q) => $q->whereRaw("LOWER(TRIM(name)) = 'kasir'"))
+        $loadCashiers = fn () => User::query()
+            ->with('branch:id,name')
+            ->whereHas('role', fn ($q) => $q->where('name', 'kasir'))
             ->when($activeBranchId, fn (Builder $query) => $this->applyCashierBranchScope($query, (int) $activeBranchId))
             ->orderBy('name')
             ->get(['id', 'name', 'role_id', 'branch_id']);
+
+        $cashiers = app()->environment('testing')
+            ? $loadCashiers()
+            : Cache::remember(
+                AdminCache::key('daily_stock', 'cashiers:branch:'.($activeBranchId ?? 'all')),
+                now()->addMinute(),
+                $loadCashiers,
+            );
 
         $selectedCashierId = (int) ($request->input('cashier_id') ?: ($cashiers->first()->id ?? 0));
         if ($selectedCashierId > 0 && ! $cashiers->contains('id', $selectedCashierId)) {
@@ -74,24 +85,15 @@ class DailyStockController extends Controller
         );
         if ($selectedCashierId > 0) {
             $session = DailyStockSession::query()
-                ->with(['cashier:id,name', 'openedBy:id,name', 'closedBy:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price,cost_price'])
-                ->whereDate('session_date', $selectedDate->toDateString())
+                ->with(['cashier:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price,cost_price'])
+                ->when(
+                    $usesNativeDateColumns,
+                    fn ($query) => $query->where('session_date', $selectedDate->toDateString()),
+                    fn ($query) => $query->whereDate('session_date', $selectedDate->toDateString()),
+                )
                 ->where('cashier_id', $selectedCashierId)
                 ->when($activeBranchId, fn ($query) => $query->where('branch_id', $activeBranchId))
                 ->first();
-
-            if ($session && $this->isOpenStatus($session->status)) {
-                try {
-                    $session = $this->dailyStockService->reconcileSessionUsage($session->id);
-                } catch (\Throwable $e) {
-                    Log::warning('Failed to reconcile daily stock session usage', [
-                        'session_id' => $session->id,
-                        'cashier_id' => $selectedCashierId,
-                        'date' => $selectedDate->toDateString(),
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
         }
 
         if ($session) {
@@ -148,12 +150,19 @@ class DailyStockController extends Controller
 
         $sessionCategoryIds = $sessionCategoryIds ?? [];
 
+        $loadCategories = fn () => IngredientCategory::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $allCategories = app()->environment('testing')
+            ? $loadCategories()
+            : Cache::remember(
+                AdminCache::key('stock', 'ingredient_categories:list'),
+                now()->addMinutes(2),
+                $loadCategories,
+            );
         $categories = empty($sessionCategoryIds)
             ? collect()
-            : IngredientCategory::query()
-                ->whereIn('id', $sessionCategoryIds)
-                ->orderBy('name')
-                ->get(['id', 'name']);
+            : $allCategories->whereIn('id', $sessionCategoryIds)->values();
 
         return view('admin.daily_stocks.index', [
             'selectedDate' => $selectedDate,

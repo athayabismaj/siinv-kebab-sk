@@ -56,7 +56,7 @@ class SalesReportExportQuery
             ->leftJoin('menu_variants', 'menu_variants.id', '=', 'transaction_details.menu_variant_id')
             ->leftJoin('menu_categories', 'menu_categories.id', '=', 'menus.category_id')
             ->whereBetween('transactions.created_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS'])
+            ->where('transactions.status', 'SUCCESS')
             ->where(function (Builder $query) {
                 $query->whereNull('menu_categories.id')
                     ->orWhere('menu_categories.is_addon', false);
@@ -103,6 +103,6 @@ class SalesReportExportQuery
             return $variantName === '' ? $menuName : $variantName;
         }
 
-        return trim($menuName . ' ' . $variantName);
+        return trim($menuName.' '.$variantName);
     }
 }

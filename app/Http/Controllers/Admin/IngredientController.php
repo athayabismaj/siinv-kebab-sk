@@ -53,12 +53,17 @@ class IngredientController extends Controller
         $archivedCount = (int) ($countRow->archived_count ?? 0);
         $allCount = $activeCount + $archivedCount;
         $lowStockCount = (int) ($countRow->low_stock_count ?? 0);
+        $filteredTotal = match ($recordStatus) {
+            'archived' => $archivedCount,
+            'all' => $allCount,
+            default => $activeCount,
+        };
 
         $this->applyRecordStatus($query, $recordStatus);
         $this->applyLifecycleSorting($query, $recordStatus);
 
         $ingredients = $query
-            ->paginate(10)
+            ->paginate(10, ['*'], 'page', null, $filteredTotal)
             ->withQueryString();
 
         $ingredients->setCollection(

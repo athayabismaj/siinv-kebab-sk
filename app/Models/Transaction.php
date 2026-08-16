@@ -61,6 +61,6 @@ class Transaction extends Model
      */
     public function scopeSuccessful(Builder $query): Builder
     {
-        return $query->whereRaw("UPPER(COALESCE(status, '')) = ?", ['SUCCESS']);
+        return $query->where('status', 'SUCCESS');
     }
 }

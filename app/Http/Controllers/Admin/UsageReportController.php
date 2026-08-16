@@ -14,10 +14,10 @@ use App\Support\ReportPeriod;
 use App\Support\UsageQuantityFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -26,6 +26,7 @@ class UsageReportController extends Controller
     use DirectExportResponse;
 
     private const ITEMS_PER_PAGE = 10;
+
     private const DIRECT_EXPORT_LIMIT = 100;
 
     public function index(Request $request)
@@ -80,7 +81,7 @@ class UsageReportController extends Controller
 
             $runtimeError = 'Laporan pemakaian gagal dimuat sementara. Coba lagi beberapa saat.';
             $usageItems = new LengthAwarePaginator(
-                new Collection(),
+                new Collection,
                 0,
                 self::ITEMS_PER_PAGE,
                 LengthAwarePaginator::resolveCurrentPage(),
@@ -125,6 +126,7 @@ class UsageReportController extends Controller
     public function export(Request $request)
     {
         $format = (string) $request->query('format', 'excel');
+
         return $this->exportDirect($request, $format);
     }
 
@@ -134,7 +136,7 @@ class UsageReportController extends Controller
         [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
         $rangeStart = $dateFrom->copy()->startOfDay();
         $rangeEnd = $dateTo->copy()->endOfDay();
-        
+
         $selectedBranchId = $this->selectedBranchId($request);
         $branchId = $selectedBranchId ?? BranchScope::scopedBranchIdFor($request->user());
 
@@ -143,7 +145,7 @@ class UsageReportController extends Controller
         $total = DB::query()->fromSub((clone $query)->toBase(), 'usage_rows')->count();
 
         $summary = $this->summary($type, $dateFrom->toDateString(), $dateTo->toDateString(), $rangeStart, $rangeEnd, $branchId);
-        $periodeLabel = $dateFrom->translatedFormat('d F Y') . ' s/d ' . $dateTo->translatedFormat('d F Y');
+        $periodeLabel = $dateFrom->translatedFormat('d F Y').' s/d '.$dateTo->translatedFormat('d F Y');
         if ($dateFrom->toDateString() === $dateTo->toDateString()) {
             $periodeLabel = $dateFrom->translatedFormat('d F Y');
         }
@@ -152,7 +154,7 @@ class UsageReportController extends Controller
             'daily' => 'HARIAN',
             'weekly' => 'MINGGUAN',
             'monthly' => 'BULANAN',
-            'custom' => 'KUSTOM'
+            'custom' => 'KUSTOM',
         ];
         $periodLabelText = $periodLabels[$type] ?? strtoupper($type);
 
@@ -167,20 +169,20 @@ class UsageReportController extends Controller
 
         $dateSuffix = $dateFrom->isSameDay($dateTo)
             ? $dateFrom->format('dMY')
-            : $dateFrom->format('dM') . '-' . $dateTo->format('dMY');
-        $fileName = 'Pemakaian_Bahan_' . $dateSuffix;
+            : $dateFrom->format('dM').'-'.$dateTo->format('dMY');
+        $fileName = 'Pemakaian_Bahan_'.$dateSuffix;
 
         if ($format === 'excel' && $total > self::DIRECT_EXPORT_LIMIT) {
             $generatedExport = GeneratedExport::query()->create([
                 'requested_by' => $request->user()->id, 'branch_id' => $branchId,
                 'type' => 'usage_report', 'format' => 'excel',
                 'filters' => ['date_from' => $rangeStart->toDateString(), 'date_to' => $rangeEnd->toDateString()],
-                'status' => GeneratedExport::STATUS_PENDING, 'original_filename' => $fileName . '.xlsx', 'expires_at' => now()->addDays(7),
+                'status' => GeneratedExport::STATUS_PENDING, 'original_filename' => $fileName.'.xlsx', 'expires_at' => now()->addDays(7),
             ]);
             GenerateUsageReportExport::dispatch($generatedExport->id)->onConnection('database');
             $routePrefix = $request->routeIs('owner.*') ? 'owner' : 'admin';
 
-            return redirect()->route($routePrefix . '.generated-exports.show', $generatedExport)
+            return redirect()->route($routePrefix.'.generated-exports.show', $generatedExport)
                 ->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
         }
 
@@ -207,7 +209,7 @@ class UsageReportController extends Controller
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
                 new \App\Exports\UsageReportExport($rows, $periodeLabel, $summary, $periodLabelText, ReportBrand::logoPath(), $branch),
-                $fileName . '.xlsx'
+                $fileName.'.xlsx'
             )
         );
     }
@@ -248,12 +250,12 @@ class UsageReportController extends Controller
             ->where('stock_logs.type', 'daily_usage')
             ->whereBetween('stock_logs.created_at', [$rangeStart, $rangeEnd])
             ->when($branchId, fn ($query, $branchId) => $query->where('transactions.branch_id', $branchId))
-            ->whereRaw("UPPER(COALESCE(transactions.status, '')) = ?", ['SUCCESS']);
+            ->where('transactions.status', 'SUCCESS');
     }
 
     private function summary(string $type, string $from, string $to, Carbon $rangeStart, Carbon $rangeEnd, ?int $branchId = null): array
     {
-        $summaryKey = AdminCache::key('usage', 'summary:' . md5(json_encode([
+        $summaryKey = AdminCache::key('usage', 'summary:'.md5(json_encode([
             'type' => $type,
             'from' => $from,
             'to' => $to,

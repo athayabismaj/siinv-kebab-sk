@@ -92,7 +92,7 @@ class MobileCheckoutQueryBudgetTest extends TestCase
             $largeCount,
             "Checkout query growth is not flat: small={$smallCount}, large={$largeCount}",
         );
-        $this->assertLessThanOrEqual(13, $largeCount, "Checkout query budget exceeded: {$largeCount}");
+        $this->assertLessThanOrEqual(12, $largeCount, "Checkout query budget exceeded: {$largeCount}");
     }
 
     /**
