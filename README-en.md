@@ -1,99 +1,189 @@
 <div align="center">
-  <img src="public/favicon.svg" alt="Kebab SK Logo" width="100" />
-  <h1>Kebab SK - SIINV</h1>
-  <p><b>Cloud-Based Point of Sales & Supply Chain Management System</b></p>
-  
-  [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
-  [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-  [![Alpine.js](https://img.shields.io/badge/Alpine.js-8BC0D0?style=flat-square&logo=alpine.js&logoColor=white)](https://alpinejs.dev/)
-  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-  
-  <br>
-  
-  <a href="README.md"><img src="https://img.shields.io/badge/-ID-E11D48?style=for-the-badge" alt="ID" /></a>
-  &nbsp;&nbsp;
-  <a href="README-en.md"><img src="https://img.shields.io/badge/-ENG-1E40AF?style=for-the-badge" alt="ENG" /></a>
+  <img src="public/favicon.svg" alt="Kebab SK logo" width="96" />
+  <h1>Kebab SK — SIINV</h1>
+  <p><strong>An integrated inventory, branch operations, and Point of Sale backend.</strong></p>
+
+  [![Laravel 12](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+  [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase_ready-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+
+  <br><br>
+
+  <a href="README.md"><img src="https://img.shields.io/badge/Bahasa-Indonesia-E11D48?style=for-the-badge" alt="Bahasa Indonesia" /></a>
+  <a href="README-en.md"><img src="https://img.shields.io/badge/Language-English-1E40AF?style=for-the-badge" alt="English" /></a>
 </div>
 
 ---
 
-## 📖 About The Project
-**SIINV (Inventory System)** is a unified management platform designed specifically for the operational needs of Kebab SK. This system bridges the complexity of the supply chain (raw material stock) with daily cashier transaction recording (Point of Sales). SIINV separates the web-based management panel for owners and admins from the high-performance API backend designed for the mobile cashier application.
+## Public Edition
 
----
+This repository is the **public edition** of Kebab SK SIINV: a stable snapshot intended for technical documentation, portfolio presentation, evaluation, and architecture demonstrations.
 
-## ✨ Key Features
+Ongoing development—including further fixes, new features, production configuration, custom integrations, and internal modules—may be maintained privately and may not be released back to this repository. The public edition remains a self-contained application that can be installed and evaluated independently.
 
-### 👑 Owner Panel
-- 📊 **Financial Dashboard:** Monitor daily and monthly revenues, alongside real-time sales trends.
-- 🔒 **Closing Book:** Validate and archive transaction data per branch into permanent historical records.
-- 👥 **HR Management:** Role-Based Access Control (RBAC), employee account creation, and deactivated account archiving.
+> The mobile cashier application source, production credentials, operational data, and third-party service secrets are not part of the public distribution.
 
-### 💼 Admin Panel (Operations)
-- 📦 **Supply Chain:** Manage raw material data, track stock adjustments, and monitor restock history.
-- 🧾 **Product Catalog:** Detailed recipe standardization (BoM - *Bill of Materials*) for automated stock deduction.
-- 📋 **Daily Audits:** Track material usage reports, record operational expenses, and process stock transfers between branches.
+## About SIINV
 
-### 📱 Cashier API (Mobile POS)
-- 🚀 **Fast Transactions:** Lightweight and secure JSON checkout processing.
-- 🔑 **Layered Authentication:** Bearer Token system featuring OTP-based password recovery.
-- 📈 **Shift History:** Cashiers can independently track their daily generated revenue at the end of their shifts.
+SIINV connects warehouse inventory, daily outlet stock, menu recipes, cashier transactions, and cash flow in a single auditable workflow. It provides role-based web panels for owners, administrators, and developers, together with a REST API for a mobile cashier application.
 
----
+The core workflow is:
 
-## 🛠️ Architecture & Technology
-This project is built on a robust modern web architecture.
-- **Backend:** PHP 8.2+, Laravel 11
-- **Database:** PostgreSQL (Supabase integration ready)
-- **Frontend (Web):** Blade Templates, Tailwind CSS v3, Alpine.js, SweetAlert2
-- **Mobile Integration:** RESTful API (JSON Response)
+1. An administrator opens a daily stock session and verifies the previous session's remaining stock.
+2. Additional warehouse stock is recorded as a new movement without deducting carried-forward stock twice.
+3. The cashier checks out an order; menu availability is validated against its recipe and branch stock.
+4. When the session closes, ingredient usage and physical remaining quantities are reconciled.
+5. The owner reviews revenue, expenses, cash balance, inventory, and cross-branch reports.
 
----
+## Key Features
 
-## 🚀 Getting Started (Local Installation)
+### Owner
 
-To run this project on your local machine, follow these steps:
+- Revenue dashboard, sales trends, cash flow, and cross-branch summaries.
+- Branch, user, role, archive, and account recovery management.
+- Branch-filtered transaction and inventory movement history.
+- Sales, ingredient usage, and expense reports with HTML, PDF, and Excel exports.
+- Period closing and menu performance analytics.
 
-1. **Clone the Repository**
+### Operations administrator
+
+- Ingredient categories, ingredients, pack/piece units, minimum stock, restocking, and adjustments.
+- Menu catalog, variants, product images, cost/selling prices, and recipes or Bill of Materials.
+- Daily stock sessions with previous-balance carry-forward, warehouse additions, closing, reopening, and reconciliation.
+- Transaction history, daily stock reports, ingredient usage, and operational cash flow.
+- Branch-level data isolation to prevent inventory and transaction leakage.
+
+### Mobile cashier API
+
+- Token authentication, profile management, password changes, and OTP-based recovery.
+- Menu catalog with recipe- and active-stock-based availability.
+- Server-authoritative pricing, atomic stock validation, and branch-isolated checkout.
+- Transaction history, receipt details, transaction voiding, revenue, and revenue trends.
+- Session status, daily stock, session closing, and cashier expense entry.
+
+### System operations
+
+- Queue-backed exports and background jobs.
+- Health/readiness endpoint, performance logging, caching, and PostgreSQL indexes.
+- Environment-restricted database backup and restore.
+- Feature, API contract, security, export, and checkout query-budget tests.
+
+## Technology
+
+| Area | Technology |
+|---|---|
+| Backend | PHP 8.2+, Laravel 12 |
+| Database | PostgreSQL, compatible with Supabase |
+| Web UI | Blade, Tailwind CSS 3, Alpine.js |
+| Asset build | Vite 7, Node.js |
+| API | REST/JSON, token authentication |
+| Documents | Laravel Excel and DomPDF |
+| Email | Resend or a Laravel mailer |
+| Tests | PHPUnit 11 |
+
+## Local Requirements
+
+- PHP `8.2` or newer.
+- Composer `2.x`.
+- Node.js `20.19+` or `22.12+`, with npm.
+- PostgreSQL or a Supabase project. SQLite can be used for selected local development and tests.
+- PHP extensions: `ctype`, `curl`, `dom`, `fileinfo`, `gd`, `mbstring`, `openssl`, `pdo_pgsql`, `pgsql`, `simplexml`, `tokenizer`, `xml`, `xmlreader`, `xmlwriter`, and `zip`.
+
+## Local Installation
+
+1. Clone the repository and enter the project directory.
+
    ```bash
    git clone https://github.com/athayabismaj/siinv-kebab-sk.git
    cd siinv-kebab-sk
    ```
-2. **Install Dependencies**
+
+2. Install backend and frontend dependencies.
+
    ```bash
-   composer install && npm install
+   composer install
+   npm ci
    ```
-3. **Environment Configuration**
-   Copy the environment file, then configure your database credentials (ensure it is set for PostgreSQL).
+
+3. Create the local configuration and application key.
+
+   Linux/macOS:
+
    ```bash
    cp .env.example .env
    php artisan key:generate
    ```
-4. **Database Migration & Seeding**
-   *This step is mandatory to initialize basic access roles, the primary admin account, and default payment options.*
-   ```bash
-   php artisan migrate --seed
+
+   Windows PowerShell:
+
+   ```powershell
+   Copy-Item .env.example .env
+   php artisan key:generate
    ```
-5. **Run the Application**
-   Open two terminal windows to run both the frontend compiler and backend server simultaneously.
+
+4. Configure the PostgreSQL/Supabase connection in `.env`, then run the migrations.
+
    ```bash
-   npm run dev
-   php artisan serve
+   php artisan migrate
    ```
-   The application will now be accessible in your browser at `http://127.0.0.1:8000`.
 
----
+5. If sample data is required, review every seeder first, then run:
 
-## 📚 API Endpoint Summary
+   ```bash
+   php artisan db:seed
+   ```
 
-All API routes are prefixed with `/api/` and require the `Accept: application/json` header.
-- `POST /auth/login` — Authentication and session token retrieval.
-- `GET /menus` — List of active products available for order.
-- `POST /transactions` — Store customer purchase transaction data.
-- `GET /revenue/summary` — Automated daily revenue calculation for the cashier.
+   Seeders are intended for development only. They may create initial accounts with default passwords; never run them directly in production without replacing or disabling those credentials.
 
----
-<br />
-<div align="center">
-  <sub>All rights reserved. Built for <b>Kebab SK</b> operations &copy; 2026.</sub>
-</div>
+6. Start the development environment.
+
+   ```bash
+   composer run dev
+   ```
+
+   This command starts the Laravel server, queue listener, log viewer, and Vite. The web application is available at `http://127.0.0.1:8000` by default.
+
+## Build and Tests
+
+```bash
+npm run build
+composer test
+```
+
+For production, run migrations using `php artisan migrate --force`, build the frontend assets, start a queue worker, and run the Laravel scheduler. Never use `migrate:fresh` against a database containing operational data.
+
+## API Overview
+
+All endpoints use the `/api` prefix and return JSON. Operational endpoints are protected by tokens, role restrictions, and rate limits.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/auth/login` | Sign in and obtain a token |
+| `GET` | `/api/auth/me` | Retrieve the active user profile |
+| `GET` | `/api/menus` | Retrieve catalog and variant availability |
+| `POST` | `/api/transactions` | Cashier checkout |
+| `GET` | `/api/transactions` | Transaction history |
+| `GET` | `/api/revenue/summary` | Revenue summary |
+| `GET` | `/api/daily-stock-items` | Cashier daily stock balance |
+| `POST` | `/api/daily-stock-sessions/close` | Close the daily session |
+| `POST` | `/api/cashflow/expenses` | Record an operational expense |
+
+Detailed contracts are available in [`docs/API_CONTRACT_ANDROID.md`](docs/API_CONTRACT_ANDROID.md) and [`docs/api-menu-availability.md`](docs/api-menu-availability.md).
+
+## Publication Security
+
+- Never commit `.env`, database dumps, Supabase tokens, API keys, email credentials, or backup files.
+- Replace every seeded account and password before using the application outside a local environment.
+- Use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, secure cookies, and least-privilege database credentials in production.
+- Report security vulnerabilities privately to the project owner; do not publish exploit details or credentials through public issues.
+
+## Support and Contributions
+
+This repository primarily serves as a public release and technical reference. Feature requests, roadmap items, deployment support, and client-specific changes are not guaranteed for the public edition. Pull requests may be reviewed, but acceptance and release timing remain at the project owner's discretion.
+
+## Usage Rights
+
+This repository does not yet include a dedicated SIINV `LICENSE` file. Contact the project owner for permission to reuse, modify, distribute, or commercially use the project. All third-party frameworks, libraries, and dependencies remain subject to their respective licenses.
+
+Copyright © 2026 Kebab SK. All rights reserved.
