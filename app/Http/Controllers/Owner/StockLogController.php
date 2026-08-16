@@ -5,28 +5,23 @@ namespace App\Http\Controllers\Owner;
 use App\Exports\StockLogsReportExport;
 use App\Http\Controllers\Concerns\DirectExportResponse;
 use App\Http\Controllers\Controller;
-use App\Jobs\GenerateStockLogExport;
-use App\Models\GeneratedExport;
 use App\Models\StockLog;
 use App\Services\Exports\StockLogExportQuery;
+use App\Support\AdminCache;
 use App\Support\BranchScope;
 use App\Support\ReportBrand;
 use App\Support\StockLogTypeMap;
 use App\Support\StockLogView;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class StockLogController extends Controller
 {
     use DirectExportResponse;
 
-    private const DIRECT_EXCEL_EXPORT_LIMIT = 100;
-
     private const DIRECT_DOCUMENT_EXPORT_LIMIT = 500;
 
-    public function __construct(private readonly StockLogExportQuery $exportQuery)
-    {
-    }
+    public function __construct(private readonly StockLogExportQuery $exportQuery) {}
 
     public function index(Request $request)
     {
@@ -41,7 +36,7 @@ class StockLogController extends Controller
         $summaryCards = StockLogView::summaryCards($summary);
 
         $logs = $this->buildStockLogsQuery($rangeStart, $rangeEnd, $typeFilter, $branchId)
-            ->paginate(10)
+            ->paginate(10, ['*'], 'page', null, $summary['total'])
             ->withQueryString();
 
         $logs->setCollection(
@@ -56,9 +51,9 @@ class StockLogController extends Controller
                 $groupLabel = $first->created_at->translatedFormat('d F Y');
 
                 if ($first->created_at->isToday()) {
-                    $groupLabel = 'Hari ini - ' . $groupLabel;
+                    $groupLabel = 'Hari ini - '.$groupLabel;
                 } elseif ($first->created_at->isYesterday()) {
-                    $groupLabel = 'Kemarin - ' . $groupLabel;
+                    $groupLabel = 'Kemarin - '.$groupLabel;
                 }
 
                 return [
@@ -91,6 +86,7 @@ class StockLogController extends Controller
                 }
 
                 $tab['href'] = route('owner.stock-logs.index', $params);
+
                 return $tab;
             })
             ->values();
@@ -118,6 +114,7 @@ class StockLogController extends Controller
     public function export(Request $request)
     {
         $format = $request->query('format');
+
         return $this->exportDirect($request, in_array($format, ['html', 'pdf', 'excel'], true) ? $format : 'excel');
     }
 
@@ -130,38 +127,16 @@ class StockLogController extends Controller
         $branchId = BranchScope::ownerBranchId((int) $request->input('branch_id'));
 
         $query = $this->exportQuery->build($rangeStart, $rangeEnd, $typeFilter, $branchId);
-        $total = (clone $query)->count();
 
         $summary = $this->summary($rangeStart, $rangeEnd, $typeFilter, $branchId);
         $dateDisplay = StockLogView::dateDisplay($period, $selectedDate, $rangeStart, $rangeEnd);
         $typeLabel = StockLogTypeMap::tabLabel($typeFilter);
         $dateSuffix = $rangeStart->isSameDay($rangeEnd)
             ? $rangeStart->format('dMY')
-            : $rangeStart->format('dM') . '-' . $rangeEnd->format('dMY');
-        $fileName = 'Riwayat_Stok_' . $dateSuffix;
+            : $rangeStart->format('dM').'-'.$rangeEnd->format('dMY');
+        $fileName = 'Riwayat_Stok_'.$dateSuffix;
 
-        if ($format === 'excel' && $total > self::DIRECT_EXCEL_EXPORT_LIMIT) {
-            $generatedExport = GeneratedExport::query()->create([
-                'requested_by' => $request->user()->id,
-                'branch_id' => $branchId,
-                'type' => 'stock_log',
-                'format' => 'excel',
-                'filters' => [
-                    'date_from' => $rangeStart->toDateString(),
-                    'date_to' => $rangeEnd->toDateString(),
-                    'type' => $typeFilter,
-                ],
-                'status' => GeneratedExport::STATUS_PENDING,
-                'original_filename' => $fileName . '.xlsx',
-                'expires_at' => now()->addDays(7),
-            ]);
-            GenerateStockLogExport::dispatch($generatedExport->id)->onConnection('database');
-
-            return redirect()->route('owner.generated-exports.show', $generatedExport)
-                ->with('success', 'Ekspor sedang diproses. File akan tersedia setelah selesai.');
-        }
-
-        if ($format !== 'excel' && $total > self::DIRECT_DOCUMENT_EXPORT_LIMIT) {
+        if ($format !== 'excel' && (clone $query)->count() > self::DIRECT_DOCUMENT_EXPORT_LIMIT) {
             return redirect()->route('owner.stock-logs.index', $request->query())
                 ->withErrors(['export' => 'Ekspor HTML atau PDF dibatasi hingga 500 riwayat. Persempit periode atau gunakan Excel.']);
         }
@@ -203,35 +178,44 @@ class StockLogController extends Controller
             $fileName,
             fn () => \Maatwebsite\Excel\Facades\Excel::download(
                 new StockLogsReportExport($logs, $summary, $dateDisplay, $periodLabel, $typeLabel, $branch),
-                $fileName . '.xlsx'
+                $fileName.'.xlsx'
             )
         );
     }
 
     private function summary($rangeStart, $rangeEnd, ?string $typeFilter, ?int $branchId = null): array
     {
-        $summaryQuery = StockLog::query()->whereBetween('created_at', [$rangeStart, $rangeEnd]);
-        BranchScope::apply($summaryQuery, $branchId, 'branch_id');
-        $this->applyStockLogTypeFilter($summaryQuery, $typeFilter);
+        $cacheKey = AdminCache::key('stock', 'owner:stock_logs:summary:'.md5(json_encode([
+            'from' => $rangeStart->toIso8601String(),
+            'to' => $rangeEnd->toIso8601String(),
+            'type' => $typeFilter,
+            'branch_id' => $branchId,
+        ])));
 
-        $row = $summaryQuery
-            ->selectRaw(
-                'COUNT(*) as total,
-                 ' . StockLogTypeMap::restockCaseSql() . ',
-                 ' . StockLogTypeMap::usageCaseSql() . ',
-                 ' . StockLogTypeMap::returnCaseSql() . ',
-                 SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
-                ['adjustment']
-            )
-            ->first();
+        return Cache::remember($cacheKey, now()->addSeconds(90), function () use ($rangeStart, $rangeEnd, $typeFilter, $branchId): array {
+            $summaryQuery = StockLog::query()->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+            BranchScope::apply($summaryQuery, $branchId, 'branch_id');
+            $this->applyStockLogTypeFilter($summaryQuery, $typeFilter);
 
-        return [
-            'total' => (int) ($row->total ?? 0),
-            'restock' => (int) ($row->restock ?? 0),
-            'usage' => (int) ($row->usage ?? 0),
-            'return' => (int) ($row->stock_return ?? 0),
-            'adjustment' => (int) ($row->adjustment ?? 0),
-        ];
+            $row = $summaryQuery
+                ->selectRaw(
+                    'COUNT(*) as total,
+                     '.StockLogTypeMap::restockCaseSql().',
+                     '.StockLogTypeMap::usageCaseSql().',
+                     '.StockLogTypeMap::returnCaseSql().',
+                     SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as adjustment',
+                    ['adjustment']
+                )
+                ->first();
+
+            return [
+                'total' => (int) ($row->total ?? 0),
+                'restock' => (int) ($row->restock ?? 0),
+                'usage' => (int) ($row->usage ?? 0),
+                'return' => (int) ($row->stock_return ?? 0),
+                'adjustment' => (int) ($row->adjustment ?? 0),
+            ];
+        });
     }
 
     private function applyStockLogTypeFilter($query, ?string $typeFilter): void
@@ -246,9 +230,9 @@ class StockLogController extends Controller
     private function buildStockLogsQuery($rangeStart, $rangeEnd, ?string $typeFilter, ?int $branchId = null)
     {
         $query = StockLog::with([
-                'ingredient:id,name,display_unit,base_unit,pack_size',
-                'referenceTransaction:id,transaction_code',
-            ])
+            'ingredient:id,name,display_unit,base_unit,pack_size',
+            'referenceTransaction:id,transaction_code',
+        ])
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ->latest();
 

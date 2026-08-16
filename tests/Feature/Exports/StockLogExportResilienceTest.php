@@ -8,7 +8,6 @@ use App\Models\Role;
 use App\Models\StockLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class StockLogExportResilienceTest extends TestCase
@@ -37,10 +36,8 @@ class StockLogExportResilienceTest extends TestCase
         $response->assertDontSee('Log Cabang Jepara');
     }
 
-    public function test_large_owner_stock_log_excel_export_is_queued(): void
+    public function test_large_owner_stock_log_excel_export_downloads_directly(): void
     {
-        Queue::fake();
-
         $owner = $this->createOwner();
         $branch = $this->defaultBranch();
         $ingredient = Ingredient::query()->create(['name' => 'Tortilla', 'stock' => 100, 'minimum_stock' => 10, 'base_unit' => 'pcs', 'display_unit' => 'pcs']);
@@ -49,15 +46,18 @@ class StockLogExportResilienceTest extends TestCase
             $this->createLog($branch, $ingredient, 'Log ' . $number);
         }
 
-        $this->actingAs($owner)
+        $response = $this->actingAs($owner)
             ->get(route('owner.stock-logs.export', [
                 'format' => 'excel',
                 'period' => 'daily',
                 'date' => now()->toDateString(),
                 'branch_id' => $branch->id,
-            ]))
-            ->assertRedirect()
-            ->assertSessionHas('success');
+            ]));
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+        $this->assertStringContainsString('.xlsx', (string) $response->headers->get('content-disposition'));
+        $this->assertDatabaseMissing('generated_exports', ['type' => 'stock_log']);
     }
 
     public function test_admin_stock_log_html_export_supports_more_than_one_hundred_rows(): void

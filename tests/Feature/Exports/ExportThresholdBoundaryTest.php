@@ -39,7 +39,7 @@ class ExportThresholdBoundaryTest extends TestCase
         $this->assertDatabaseHas('generated_exports', ['type' => 'transaction_history', 'status' => GeneratedExport::STATUS_PENDING]);
     }
 
-    public function test_stock_log_export_uses_direct_export_at_99_and_100_then_queues_at_101(): void
+    public function test_owner_stock_log_export_stays_direct_above_the_old_queue_threshold(): void
     {
         Queue::fake();
         $owner = $this->owner('stock-logs');
@@ -54,8 +54,10 @@ class ExportThresholdBoundaryTest extends TestCase
 
         $this->stockLogs($branch, $ingredient, 1, 'SL');
         $this->stockLogRequest($owner, $branch, 'html')->assertOk();
-        $this->stockLogRequest($owner, $branch, 'excel')->assertRedirect();
-        $this->assertDatabaseHas('generated_exports', ['type' => 'stock_log', 'status' => GeneratedExport::STATUS_PENDING]);
+        $response = $this->stockLogRequest($owner, $branch, 'excel');
+        $response->assertOk()->assertHeader('content-disposition');
+        $this->assertStringContainsString('.xlsx', (string) $response->headers->get('content-disposition'));
+        $this->assertDatabaseMissing('generated_exports', ['type' => 'stock_log']);
     }
 
     public function test_usage_export_uses_direct_export_at_99_and_100_then_queues_at_101(): void
