@@ -6,6 +6,7 @@ return [
     'directory' => env('BACKUP_DIRECTORY', 'backups'),
     'temporary_directory' => env('BACKUP_TEMPORARY_DIRECTORY', 'backups/.tmp'),
     'database_connection' => env('BACKUP_DATABASE_CONNECTION', env('DB_CONNECTION', 'pgsql')),
+    'application_schema' => env('BACKUP_APPLICATION_SCHEMA'),
     'pg_dump_path' => env('PG_DUMP_PATH', 'pg_dump'),
     'pg_restore_path' => env('PG_RESTORE_PATH', 'pg_restore'),
     'psql_path' => env('PSQL_PATH', 'psql'),

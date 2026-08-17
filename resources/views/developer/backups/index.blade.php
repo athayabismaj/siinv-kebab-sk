@@ -310,7 +310,7 @@
     @endif
 
     <!-- Modals -->
-    <x-modal id="restore-manual-modal" maxWidth="md" type="warning">
+    <x-modal id="restore-manual-modal" maxWidth="lg" type="warning">
         <x-slot name="icon">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
         </x-slot>
@@ -318,34 +318,83 @@
             Restore Database Manual
         </x-slot>
         <x-slot name="description">
-            Pilih file backup (.dump/.backup) dan ketik <b class="text-slate-900 dark:text-white">RESTORE</b> untuk melanjutkan.
+            Pulihkan data aplikasi dari file backup PostgreSQL.
         </x-slot>
 
-        <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" id="form-restore-manual" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'restore-manual-modal') input = ''">
+        <form action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" id="form-restore-manual"
+              x-data="{ input: '', schema: 'laravel', fileName: '' }"
+              @open-modal.window="if ($event.detail === 'restore-manual-modal') { input = ''; schema = 'laravel'; fileName = ''; $nextTick(() => $refs.file.value = '') }">
             @csrf
-            <div class="space-y-4 pt-2">
+            <div class="space-y-5 pt-1">
                 <div>
-                    <label class="sr-only" for="backup_file">File Backup</label>
-                    <input type="file" name="backup_file" id="backup_file" required accept=".dump,.backup"
-                           class="block w-full rounded-xl border border-slate-200 text-sm text-slate-500 shadow-sm file:mr-4 file:rounded-l-xl file:border-0 file:bg-slate-100 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:file:bg-slate-700 dark:file:text-slate-300 dark:hover:file:bg-slate-600 dark:focus:ring-slate-800" />
+                    <label class="mb-2 block text-sm font-semibold text-slate-800 dark:text-slate-200" for="backup_file">File backup</label>
+                    <input x-ref="file" type="file" name="backup_file" id="backup_file" required accept=".dump,.backup" class="sr-only"
+                           @change="fileName = $event.target.files[0]?.name || ''">
+                    <label for="backup_file" class="group flex min-h-20 cursor-pointer items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-3 transition hover:border-amber-400 hover:bg-amber-50/50 focus-within:ring-4 focus-within:ring-amber-100 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-amber-500/70 dark:hover:bg-amber-500/5">
+                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-amber-600 shadow-sm ring-1 ring-slate-200 transition group-hover:ring-amber-200 dark:bg-slate-900 dark:text-amber-400 dark:ring-slate-700">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-semibold text-slate-800 dark:text-slate-100" x-text="fileName || 'Pilih file backup'"></span>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400" x-text="fileName ? 'Klik untuk mengganti file' : 'Format .dump atau .backup, maksimal 100 MB'"></span>
+                        </span>
+                        <span class="hidden shrink-0 rounded-lg bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 ring-1 ring-slate-200 sm:inline-flex dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-700">PILIH FILE</span>
+                    </label>
                 </div>
                 <div>
-                    <label class="sr-only" for="restore_confirmation">Konfirmasi</label>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">Schema aplikasi</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Pilih sesuai sumber backup</span>
+                    </div>
+                    <div class="grid grid-cols-1 auto-rows-fr gap-2.5 sm:grid-cols-2">
+                        <label class="relative block h-full cursor-pointer">
+                            <input type="radio" name="backup_schema" value="laravel" x-model="schema" class="peer sr-only" required>
+                            <span class="flex h-full min-h-[4.75rem] items-center gap-3 rounded-xl border border-slate-200 px-3.5 py-3 transition peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-1 peer-checked:ring-blue-500 dark:border-slate-700 dark:peer-checked:border-blue-400 dark:peer-checked:bg-blue-500/10 dark:peer-checked:ring-blue-400">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm font-black text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">L</span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-bold text-slate-900 dark:text-white">laravel</span>
+                                    <span class="block whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">Supabase &amp; lokal</span>
+                                </span>
+                                <svg x-show="schema === 'laravel'" x-cloak class="ml-auto h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.296-7.293a1 1 0 011.408 0z" clip-rule="evenodd"></path></svg>
+                            </span>
+                        </label>
+                        <label class="relative block h-full cursor-pointer">
+                            <input type="radio" name="backup_schema" value="public" x-model="schema" class="peer sr-only" required>
+                            <span class="flex h-full min-h-[4.75rem] items-center gap-3 rounded-xl border border-slate-200 px-3.5 py-3 transition peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-1 peer-checked:ring-blue-500 dark:border-slate-700 dark:peer-checked:border-blue-400 dark:peer-checked:bg-blue-500/10 dark:peer-checked:ring-blue-400">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-sm font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">P</span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-bold text-slate-900 dark:text-white">public</span>
+                                    <span class="block whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">Backup lokal lama</span>
+                                </span>
+                                <svg x-show="schema === 'public'" x-cloak class="ml-auto h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.296-7.293a1 1 0 011.408 0z" clip-rule="evenodd"></path></svg>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-xl bg-blue-50 px-3.5 py-3 text-xs leading-relaxed text-blue-800 dark:bg-blue-500/10 dark:text-blue-300">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p>Hanya schema aplikasi yang dipulihkan. Schema internal Supabase seperti <b>auth</b>, <b>storage</b>, dan <b>realtime</b> tetap aman.</p>
+                </div>
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <label class="text-sm font-semibold text-slate-800 dark:text-slate-200" for="restore_confirmation">Konfirmasi restore</label>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Ketik <b class="text-slate-700 dark:text-slate-200">RESTORE</b></span>
+                    </div>
                     <input type="text" name="restore_confirmation" id="restore_confirmation" 
                            x-model="input"
-                           placeholder="Ketik 'restore' untuk konfirmasi"
-                           class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                           placeholder="RESTORE"
+                           class="block w-full rounded-xl border-slate-300 px-4 py-3 text-sm font-semibold tracking-wide shadow-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500"
                            autocomplete="off"
                            @keydown.enter.prevent="if(input.toLowerCase() === 'restore') $el.closest('form').submit()" />
                 </div>
             </div>
-            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" @click="$dispatch('close-modal', 'restore-manual-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+            <div class="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-800">
+                <button type="button" @click="$dispatch('close-modal', 'restore-manual-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
                     Batal
                 </button>
                 <button type="submit" 
                         :disabled="input.toLowerCase() !== 'restore'"
-                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 sm:w-auto disabled:cursor-not-allowed disabled:opacity-40">
                     Mulai Restore
                 </button>
             </div>
@@ -360,29 +409,51 @@
             Restore dari Riwayat
         </x-slot>
         <x-slot name="description">
-            <span class="block">Anda akan memulihkan database ke versi:</span>
-            <b class="mt-1 block break-all text-rose-600 dark:text-rose-400" x-text="fileName"></b>
-            <span class="mt-3 block">Ketik <b class="text-slate-900 dark:text-white">RESTORE</b> untuk melanjutkan.</span>
+            Pulihkan data aplikasi dari snapshot yang tersimpan.
         </x-slot>
 
         <form :action="restoreUrl" method="POST" id="form-restore-riwayat" x-data="{ input: '' }" @open-modal.window="if($event.detail === 'restore-riwayat-modal') input = ''">
             @csrf
-            <div class="pt-2">
-                <label class="sr-only" for="restore_riwayat_confirmation">Konfirmasi</label>
+            <div class="space-y-5 pt-1">
+                <div>
+                    <span class="mb-2 block text-sm font-semibold text-slate-800 dark:text-slate-200">File backup</span>
+                    <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 dark:border-slate-700 dark:bg-slate-800/50">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-amber-600 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-amber-400 dark:ring-slate-700">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <b class="block truncate text-sm text-slate-900 dark:text-white" x-text="fileName"></b>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Snapshot database terverifikasi</span>
+                        </span>
+                        <span class="shrink-0 rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Siap</span>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 rounded-xl bg-amber-50 px-3.5 py-3 text-xs leading-relaxed text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z"></path></svg>
+                    <p>Data pada schema tujuan akan diganti dengan isi snapshot ini. Sistem membuat backup pengaman sebelum restore dimulai.</p>
+                </div>
+
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <label class="text-sm font-semibold text-slate-800 dark:text-slate-200" for="restore_riwayat_confirmation">Konfirmasi restore</label>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Ketik <b class="text-slate-700 dark:text-slate-200">RESTORE</b></span>
+                    </div>
                 <input type="text" name="restore_confirmation" id="restore_riwayat_confirmation" 
                        x-model="input"
-                       placeholder="Ketik 'restore' untuk konfirmasi"
-                       class="block w-full rounded-xl border-slate-300 px-4 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500" 
+                       placeholder="RESTORE"
+                       class="block w-full rounded-xl border-slate-300 px-4 py-3 text-sm font-semibold tracking-wide shadow-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 focus:border-rose-500 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-rose-500 dark:focus:ring-rose-500"
                        autocomplete="off"
                        @keydown.enter.prevent="if(input.toLowerCase() === 'restore') $el.closest('form').submit()" />
+                </div>
             </div>
-            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" @click="$dispatch('close-modal', 'restore-riwayat-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
+            <div class="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-800">
+                <button type="button" @click="$dispatch('close-modal', 'restore-riwayat-modal')" class="inline-flex w-full justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 sm:w-auto dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">
                     Batal
                 </button>
                 <button type="submit" 
                         :disabled="input.toLowerCase() !== 'restore'"
-                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 sm:w-auto disabled:cursor-not-allowed disabled:opacity-40">
                     Mulai Restore
                 </button>
             </div>
@@ -392,6 +463,7 @@
     <!-- Hidden form for Swal file upload -->
     <form id="hidden-upload-form" action="{{ route('developer.backups.restore-upload') }}" method="POST" enctype="multipart/form-data" class="hidden">
         @csrf
+        <input type="hidden" name="backup_schema" value="laravel">
     </form>
 
 </div>

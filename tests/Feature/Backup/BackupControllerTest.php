@@ -91,11 +91,12 @@ class BackupControllerTest extends TestCase
         $this->mock(PostgreSqlRestoreService::class, function ($mock) use (&$uploadedPath) {
             $mock->shouldReceive('restoreUploadedToApplication')
                 ->once()
-                ->withArgs(function (string $path) use (&$uploadedPath): bool {
+                ->withArgs(function (string $path, string $schema) use (&$uploadedPath): bool {
                     $uploadedPath = $path;
 
-                    return is_file($path) && filesize($path) > 0;
-                });
+                    return is_file($path) && filesize($path) > 0 && $schema === 'laravel';
+                })
+                ->andReturn('laravel');
         });
 
         $this->mock(PostgreSqlBackupService::class, function ($mock) {
@@ -111,6 +112,7 @@ class BackupControllerTest extends TestCase
         $this->actingAs($developer)
             ->post(route('developer.backups.restore-upload'), [
                 'backup_file' => UploadedFile::fake()->createWithContent('database.dump', 'valid-postgresql-archive-fixture'),
+                'backup_schema' => 'laravel',
                 'restore_confirmation' => 'restore',
             ])
             ->assertRedirect()

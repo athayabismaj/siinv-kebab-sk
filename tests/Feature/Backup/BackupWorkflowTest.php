@@ -40,6 +40,7 @@ class BackupWorkflowTest extends TestCase
                 'database' => 'safe_fixture',
                 'username' => 'safe_user',
                 'password' => 'never-in-command',
+                'search_path' => 'laravel',
             ],
         ]);
     }
@@ -70,6 +71,9 @@ class BackupWorkflowTest extends TestCase
         );
         $this->assertSame(hash_file('sha256', $backup['file_path']), $backup['manifest']['checksum']);
         $this->assertSame(filesize($backup['file_path']), $backup['manifest']['size_bytes']);
+        $this->assertSame('laravel', $backup['manifest']['database_schema']);
+        $this->assertContains('--schema', $runner->commands()[0]);
+        $this->assertContains('laravel', $runner->commands()[0]);
         $this->assertDirectoryDoesNotExist($this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'.tmp'.DIRECTORY_SEPARATOR.$backup['backup_id']);
         $this->assertStringNotContainsString('never-in-command', implode(' ', $runner->commands()[0]));
     }

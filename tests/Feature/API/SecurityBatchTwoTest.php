@@ -70,6 +70,7 @@ class SecurityBatchTwoTest extends TestCase
 
         $response = $this->actingAs($developer)->post(route('developer.backups.restore-upload'), [
             'backup_file' => UploadedFile::fake()->create('not-a-backup.txt', 1, 'text/plain'),
+            'backup_schema' => 'laravel',
             'restore_confirmation' => 'RESTORE',
         ]);
 
@@ -83,6 +84,7 @@ class SecurityBatchTwoTest extends TestCase
 
         $response = $this->actingAs($developer)->post(route('developer.backups.restore-upload'), [
             'backup_file' => UploadedFile::fake()->create('invalid.backup', 1, 'application/octet-stream'),
+            'backup_schema' => 'laravel',
             'restore_confirmation' => 'RESTORE',
         ]);
 

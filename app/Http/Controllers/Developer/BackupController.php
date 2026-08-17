@@ -9,6 +9,7 @@ use App\Services\Backup\PostgreSqlRestoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -18,8 +19,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class BackupController extends Controller
 {
     private const MAX_RESTORE_UPLOAD_KB = 102400;
+
     private const RESTORE_CONFIRMATION = 'restore';
+
     private const UPLOAD_RESTORE_EXTENSIONS = ['backup', 'dump'];
+
     private const RESTORE_UPLOAD_MIMES = [
         'application/octet-stream',
         'application/x-tar',
@@ -111,6 +115,7 @@ class BackupController extends Controller
     {
         $request->validate([
             'backup_file' => ['required', 'file', 'max:'.self::MAX_RESTORE_UPLOAD_KB],
+            'backup_schema' => ['required', 'string', 'max:63', 'regex:/^[a-z_][a-z0-9_]*$/'],
             'restore_confirmation' => ['required', 'string'],
         ]);
 
@@ -138,7 +143,11 @@ class BackupController extends Controller
         ));
 
         try {
-            $this->restoreApplication($backupService, fn () => $restoreService->restoreUploadedToApplication($uploadPath));
+            $backupSchema = (string) $request->input('backup_schema');
+            $this->restoreApplication(
+                $backupService,
+                fn () => $restoreService->restoreUploadedToApplication($uploadPath, $backupSchema),
+            );
 
             return redirect()->back()->with('success', 'Database berhasil dipulihkan dari file backup yang diunggah.');
         } catch (\Throwable $exception) {
@@ -158,7 +167,7 @@ class BackupController extends Controller
         return strtolower(trim((string) $request->input('restore_confirmation'))) === self::RESTORE_CONFIRMATION;
     }
 
-    /** @param callable():void $restore */
+    /** @param callable():string $restore */
     private function restoreApplication(PostgreSqlBackupService $backupService, callable $restore): void
     {
         $wasInMaintenanceMode = app()->isDownForMaintenance();
@@ -170,11 +179,9 @@ class BackupController extends Controller
         }
 
         try {
-            $restore();
+            $restoredSchema = $restore();
 
-            if (Artisan::call('migrate', ['--force' => true]) !== 0) {
-                throw new \RuntimeException('Unable to migrate the restored database.');
-            }
+            $this->migrateRestoredSchema($restoredSchema);
 
             BackupHistory::query()->create([
                 'file_name' => basename($snapshot['file_path']),
@@ -195,6 +202,32 @@ class BackupController extends Controller
             if (! $wasInMaintenanceMode) {
                 Artisan::call('up');
             }
+        }
+    }
+
+    private function migrateRestoredSchema(string $schema): void
+    {
+        $connectionName = (string) config('database.default');
+        $connection = config("database.connections.{$connectionName}");
+
+        // PostgreSQL schema switching has no equivalent on SQLite-based feature tests.
+        if (! is_array($connection) || ($connection['driver'] ?? null) !== 'pgsql') {
+            return;
+        }
+
+        $searchPathKey = "database.connections.{$connectionName}.search_path";
+        $originalSearchPath = config($searchPathKey);
+
+        try {
+            config([$searchPathKey => $schema]);
+            DB::purge($connectionName);
+
+            if (Artisan::call('migrate', ['--database' => $connectionName, '--force' => true]) !== 0) {
+                throw new \RuntimeException('Unable to migrate the restored database schema.');
+            }
+        } finally {
+            config([$searchPathKey => $originalSearchPath]);
+            DB::purge($connectionName);
         }
     }
 

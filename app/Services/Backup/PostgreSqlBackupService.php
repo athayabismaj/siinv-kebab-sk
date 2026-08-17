@@ -9,11 +9,15 @@ use RuntimeException;
 
 class PostgreSqlBackupService
 {
+    private readonly PostgreSqlApplicationSchema $schemas;
+
     public function __construct(
         private readonly BackupFilesystem $filesystem,
         private readonly BackupManifestService $manifests,
         private readonly PostgreSqlProcessRunner $processes,
+        ?PostgreSqlApplicationSchema $schemas = null,
     ) {
+        $this->schemas = $schemas ?? new PostgreSqlApplicationSchema;
     }
 
     /** @return array{backup_id:string,file_path:string,manifest_path:string,manifest:array<string,mixed>} */
@@ -32,6 +36,7 @@ class PostgreSqlBackupService
         }
 
         $connection = $this->connection();
+        $applicationSchema = $this->schemas->resolve($connection);
         $backupId = (string) Str::uuid();
         $temporaryDirectory = $this->filesystem->temporaryDirectory($backupId);
         $artifactDirectory = $this->filesystem->artifactDirectory($backupId);
@@ -52,7 +57,7 @@ class PostgreSqlBackupService
             File::ensureDirectoryExists(dirname($temporaryDump));
 
             $result = $this->processes->run(
-                $this->dumpCommand($connection, $temporaryDump),
+                $this->dumpCommand($connection, $temporaryDump, $applicationSchema),
                 ['PGPASSWORD' => (string) $connection['password']],
             );
 
@@ -70,6 +75,7 @@ class PostgreSqlBackupService
                 'completed_at' => now()->toIso8601String(),
                 'database_driver' => 'pgsql',
                 'backup_format' => 'custom',
+                'database_schema' => $applicationSchema,
                 'compressed' => true,
                 'encrypted' => false,
                 'checksum_algorithm' => 'sha256',
@@ -143,13 +149,14 @@ class PostgreSqlBackupService
     }
 
     /** @param array<string, mixed> $connection @return array<int, string> */
-    private function dumpCommand(array $connection, string $temporaryDump): array
+    private function dumpCommand(array $connection, string $temporaryDump, string $applicationSchema): array
     {
         return [
             (string) config('backup.pg_dump_path'),
             '--format=custom',
             '--no-owner',
             '--no-privileges',
+            '--schema', $applicationSchema,
             '--file', $temporaryDump,
             '--host', (string) $connection['host'],
             '--port', (string) $connection['port'],

@@ -7,11 +7,15 @@ use RuntimeException;
 
 class PostgreSqlRestoreService
 {
+    private readonly PostgreSqlApplicationSchema $schemas;
+
     public function __construct(
         private readonly BackupFilesystem $filesystem,
         private readonly BackupManifestService $manifests,
         private readonly PostgreSqlProcessRunner $processes,
+        ?PostgreSqlApplicationSchema $schemas = null,
     ) {
+        $this->schemas = $schemas ?? new PostgreSqlApplicationSchema;
     }
 
     /** @return array{target_database:string,manifest:array<string,mixed>} */
@@ -21,6 +25,10 @@ class PostgreSqlRestoreService
         $this->assertRestoreEnvironment();
         $this->assertTargetDatabase($targetDatabase, $connection);
         $manifest = $this->manifests->verify($artifactPath);
+        $applicationSchema = $this->schemas->resolve(
+            $connection,
+            is_string($manifest['database_schema'] ?? null) ? $manifest['database_schema'] : null,
+        );
 
         if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom' || ($manifest['encrypted'] ?? false) === true) {
             throw new RuntimeException('Backup artifact is not supported for restore.');
@@ -38,10 +46,21 @@ class PostgreSqlRestoreService
         ], $environment);
 
         $this->runOrFail([
+            (string) config('backup.psql_path'),
+            '--host', (string) $connection['host'],
+            '--port', (string) $connection['port'],
+            '--username', (string) $connection['username'],
+            '--dbname', $targetDatabase,
+            '--set', 'ON_ERROR_STOP=1',
+            '--command', $this->createSchemaCommand($applicationSchema),
+        ], $environment);
+
+        $this->runOrFail([
             (string) config('backup.pg_restore_path'),
             '--exit-on-error',
             '--no-owner',
             '--no-privileges',
+            '--schema', $applicationSchema,
             '--host', (string) $connection['host'],
             '--port', (string) $connection['port'],
             '--username', (string) $connection['username'],
@@ -56,7 +75,7 @@ class PostgreSqlRestoreService
             '--username', (string) $connection['username'],
             '--dbname', $targetDatabase,
             '--set', 'ON_ERROR_STOP=1',
-            '--command', "SELECT to_regclass('public.migrations') IS NOT NULL",
+            '--command', $this->migrationTableCheck($applicationSchema),
         ], $environment);
 
         return [
@@ -76,11 +95,12 @@ class PostgreSqlRestoreService
         return $result;
     }
 
-    public function drillUploaded(string $artifactPath): void
+    public function drillUploaded(string $artifactPath, ?string $applicationSchema = null): void
     {
         $connection = $this->connection();
         $this->assertRestoreEnvironment();
         $this->assertUploadedArtifact($artifactPath);
+        $applicationSchema = $this->schemas->resolve($connection, $applicationSchema);
 
         $environment = ['PGPASSWORD' => (string) $connection['password']];
 
@@ -108,10 +128,21 @@ class PostgreSqlRestoreService
             $databaseCreated = true;
 
             $this->runOrFail([
+                (string) config('backup.psql_path'),
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', $targetDatabase,
+                '--set', 'ON_ERROR_STOP=1',
+                '--command', $this->createSchemaCommand($applicationSchema),
+            ], $environment);
+
+            $this->runOrFail([
                 (string) config('backup.pg_restore_path'),
                 '--exit-on-error',
                 '--no-owner',
                 '--no-privileges',
+                '--schema', $applicationSchema,
                 '--host', (string) $connection['host'],
                 '--port', (string) $connection['port'],
                 '--username', (string) $connection['username'],
@@ -126,7 +157,7 @@ class PostgreSqlRestoreService
                 '--username', (string) $connection['username'],
                 '--dbname', $targetDatabase,
                 '--set', 'ON_ERROR_STOP=1',
-                '--command', "SELECT to_regclass('public.migrations') IS NOT NULL",
+                '--command', $this->migrationTableCheck($applicationSchema),
             ], $environment);
         } finally {
             if ($databaseCreated) {
@@ -135,26 +166,35 @@ class PostgreSqlRestoreService
         }
     }
 
-    public function restoreToApplication(string $artifactPath): void
+    public function restoreToApplication(string $artifactPath): string
     {
         $connection = $this->connection();
         $this->assertRestoreEnvironment();
         $manifest = $this->manifests->verify($artifactPath);
+        $applicationSchema = $this->schemas->resolve(
+            $connection,
+            is_string($manifest['database_schema'] ?? null) ? $manifest['database_schema'] : null,
+        );
 
         if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom' || ($manifest['encrypted'] ?? false) === true) {
             throw new RuntimeException('Backup artifact is not supported for restore.');
         }
 
-        $this->restoreArchiveToApplication($artifactPath, $connection);
+        $this->restoreArchiveToApplication($artifactPath, $connection, $applicationSchema);
+
+        return $applicationSchema;
     }
 
-    public function restoreUploadedToApplication(string $artifactPath): void
+    public function restoreUploadedToApplication(string $artifactPath, ?string $applicationSchema = null): string
     {
         $connection = $this->connection();
         $this->assertRestoreEnvironment();
         $this->assertUploadedArtifact($artifactPath);
+        $applicationSchema = $this->schemas->resolve($connection, $applicationSchema);
 
-        $this->restoreArchiveToApplication($artifactPath, $connection);
+        $this->restoreArchiveToApplication($artifactPath, $connection, $applicationSchema);
+
+        return $applicationSchema;
     }
 
     public function dropDisposableDatabase(string $targetDatabase): void
@@ -202,7 +242,7 @@ class PostgreSqlRestoreService
     }
 
     /** @param array<string, mixed> $connection */
-    private function restoreArchiveToApplication(string $artifactPath, array $connection): void
+    private function restoreArchiveToApplication(string $artifactPath, array $connection, string $applicationSchema): void
     {
         $environment = ['PGPASSWORD' => (string) $connection['password']];
 
@@ -214,12 +254,23 @@ class PostgreSqlRestoreService
         ], $environment);
 
         $this->runOrFail([
+            (string) config('backup.psql_path'),
+            '--host', (string) $connection['host'],
+            '--port', (string) $connection['port'],
+            '--username', (string) $connection['username'],
+            '--dbname', (string) $connection['database'],
+            '--set', 'ON_ERROR_STOP=1',
+            '--command', $this->createSchemaCommand($applicationSchema),
+        ], $environment);
+
+        $this->runOrFail([
             (string) config('backup.pg_restore_path'),
             '--clean',
             '--if-exists',
             '--exit-on-error',
             '--no-owner',
             '--no-privileges',
+            '--schema', $applicationSchema,
             '--host', (string) $connection['host'],
             '--port', (string) $connection['port'],
             '--username', (string) $connection['username'],
@@ -234,8 +285,18 @@ class PostgreSqlRestoreService
             '--username', (string) $connection['username'],
             '--dbname', (string) $connection['database'],
             '--set', 'ON_ERROR_STOP=1',
-            '--command', "SELECT to_regclass('public.migrations') IS NOT NULL",
+            '--command', $this->migrationTableCheck($applicationSchema),
         ], $environment);
+    }
+
+    private function migrationTableCheck(string $applicationSchema): string
+    {
+        return "DO \$verify\$ BEGIN IF to_regclass('{$applicationSchema}.migrations') IS NULL THEN RAISE EXCEPTION 'Application migrations table was not restored'; END IF; END \$verify\$";
+    }
+
+    private function createSchemaCommand(string $applicationSchema): string
+    {
+        return 'CREATE SCHEMA IF NOT EXISTS '.$this->quoteIdentifier($applicationSchema);
     }
 
     /** @param array<int, string> $command @param array<string, string> $environment */

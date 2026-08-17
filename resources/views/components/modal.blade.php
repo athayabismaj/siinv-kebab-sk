@@ -7,7 +7,7 @@
     @close-modal.window="if ($event.detail === name) show = false"
     @keydown.escape.window="show = false"
     style="display: none;"
-    class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overflow-x-hidden p-4 sm:p-6"
+    class="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto overflow-x-hidden p-4 sm:items-center sm:p-6"
     x-cloak
 >
     <!-- Backdrop -->

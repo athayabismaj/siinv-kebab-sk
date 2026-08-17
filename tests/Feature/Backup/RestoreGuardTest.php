@@ -41,6 +41,7 @@ class RestoreGuardTest extends TestCase
                 'database' => 'application_database',
                 'username' => 'safe_user',
                 'password' => 'never-in-command',
+                'search_path' => 'public',
             ],
         ]);
     }
@@ -107,10 +108,11 @@ class RestoreGuardTest extends TestCase
 
         $commands = $runner->commands();
 
-        $this->assertCount(5, $commands);
+        $this->assertCount(6, $commands);
         $this->assertContains('--list', $commands[0]);
         $this->assertStringContainsString('siinv_restore_test_', implode(' ', $commands[1]));
-        $this->assertStringContainsString('DROP DATABASE', implode(' ', $commands[4]));
+        $this->assertStringContainsString('CREATE SCHEMA IF NOT EXISTS', implode(' ', $commands[2]));
+        $this->assertStringContainsString('DROP DATABASE', implode(' ', $commands[5]));
     }
 
     public function test_uploaded_dump_is_validated_then_restored_to_the_configured_application_database(): void
@@ -123,12 +125,64 @@ class RestoreGuardTest extends TestCase
 
         $commands = $runner->commands();
 
-        $this->assertCount(3, $commands);
+        $this->assertCount(4, $commands);
         $this->assertContains('--list', $commands[0]);
-        $this->assertContains('--clean', $commands[1]);
-        $this->assertContains('--if-exists', $commands[1]);
-        $this->assertContains('application_database', $commands[1]);
-        $this->assertStringContainsString("to_regclass('public.migrations')", implode(' ', $commands[2]));
+        $this->assertStringContainsString('CREATE SCHEMA IF NOT EXISTS', implode(' ', $commands[1]));
+        $this->assertContains('--clean', $commands[2]);
+        $this->assertContains('--if-exists', $commands[2]);
+        $this->assertContains('--schema', $commands[2]);
+        $this->assertContains('public', $commands[2]);
+        $this->assertContains('application_database', $commands[2]);
+        $this->assertStringContainsString("to_regclass('public.migrations')", implode(' ', $commands[3]));
+    }
+
+    public function test_uploaded_supabase_dump_restores_only_the_selected_application_schema(): void
+    {
+        $artifact = $this->storageRoot.DIRECTORY_SEPARATOR.'supabase.dump';
+        File::put($artifact, 'uploaded-dump-content');
+        $runner = new PostgreSqlProcessRunner(fn () => Process::result());
+
+        $restoredSchema = $this->restoreService($runner)->restoreUploadedToApplication($artifact, 'laravel');
+        $commands = $runner->commands();
+
+        $this->assertSame('laravel', $restoredSchema);
+        $this->assertStringContainsString('CREATE SCHEMA IF NOT EXISTS', implode(' ', $commands[1]));
+        $this->assertContains('--schema', $commands[2]);
+        $this->assertContains('laravel', $commands[2]);
+        $this->assertStringContainsString("to_regclass('laravel.migrations')", implode(' ', $commands[3]));
+        $schemaIndex = array_search('--schema', $commands[2], true);
+        $this->assertSame('laravel', $commands[2][$schemaIndex + 1]);
+    }
+
+    public function test_uploaded_restore_rejects_reserved_supabase_schema_before_running_processes(): void
+    {
+        $artifact = $this->storageRoot.DIRECTORY_SEPARATOR.'supabase.dump';
+        File::put($artifact, 'uploaded-dump-content');
+        $runner = new PostgreSqlProcessRunner(fn () => Process::result());
+
+        $this->expectException(RuntimeException::class);
+
+        try {
+            $this->restoreService($runner)->restoreUploadedToApplication($artifact, 'auth');
+        } finally {
+            $this->assertSame([], $runner->commands());
+        }
+    }
+
+    public function test_uploaded_restore_fails_when_selected_schema_has_no_migrations_table(): void
+    {
+        $artifact = $this->storageRoot.DIRECTORY_SEPARATOR.'wrong-schema.dump';
+        File::put($artifact, 'uploaded-dump-content');
+        $runner = new PostgreSqlProcessRunner(function (array $command) {
+            if (str_contains(implode(' ', $command), 'Application migrations table was not restored')) {
+                return Process::result('', 'schema verification failed', 1);
+            }
+
+            return Process::result();
+        });
+
+        $this->expectException(RuntimeException::class);
+        $this->restoreService($runner)->restoreUploadedToApplication($artifact, 'laravel');
     }
 
     private function validArtifact(): string
