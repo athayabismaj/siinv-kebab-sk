@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="public/favicon.svg" alt="Logo Kebab SK" width="96" />
+  <img src="public/favicon.svg" alt="Kebab SK logo" width="96" />
   <h1>Kebab SK — SIINV</h1>
-  <p><strong>Sistem inventaris, operasional cabang, dan backend Point of Sale terintegrasi.</strong></p>
+  <p><strong>Integrated inventory, branch operations, reporting, and Point of Sale backend.</strong></p>
 
   [![Laravel 12](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
   [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
@@ -10,105 +10,110 @@
 
   <br><br>
 
-  <a href="README.md"><img src="https://img.shields.io/badge/Bahasa-Indonesia-E11D48?style=for-the-badge" alt="Bahasa Indonesia" /></a>
-  <a href="README-en.md"><img src="https://img.shields.io/badge/Language-English-1E40AF?style=for-the-badge" alt="English" /></a>
+  <a href="README.md"><img src="https://img.shields.io/badge/Language-English-1E40AF?style=for-the-badge" alt="English" /></a>
+  <a href="README-id.md"><img src="https://img.shields.io/badge/Bahasa-Indonesia-E11D48?style=for-the-badge" alt="Bahasa Indonesia" /></a>
 </div>
 
 ---
 
-## Edisi Publik
+## Overview
 
-Repositori ini adalah **edisi publik** SIINV Kebab SK: sebuah snapshot stabil yang ditujukan untuk dokumentasi teknis, portofolio, evaluasi, serta demonstrasi arsitektur sistem.
+SIINV is the operational backbone of Kebab SK. It connects warehouse inventory, daily outlet stock, menu recipes, cashier transactions, expenses, and management reporting in one auditable system.
 
-Pengembangan aktif berikutnya—termasuk perbaikan lanjutan, fitur baru, konfigurasi produksi, integrasi khusus, dan modul yang bersifat internal—dapat dikelola secara privat dan tidak selalu diterbitkan kembali ke repositori ini. Edisi publik tetap berdiri sebagai aplikasi yang dapat dipasang dan diuji secara mandiri.
+The application provides role-based web interfaces for owners and operational administrators, together with a REST API consumed by the SIPOS Android cashier application. Server-side validation remains authoritative for prices, branch access, active stock sessions, recipe requirements, and inventory mutations.
 
-> Kode aplikasi kasir mobile, kredensial produksi, data operasional, dan rahasia layanan pihak ketiga tidak menjadi bagian dari distribusi publik.
+## Operational Workflow
 
-## Tentang SIINV
+1. An administrator opens a daily stock session for a cashier and outlet.
+2. Remaining stock from the previous closed session is carried forward and physically verified.
+3. Only new quantities taken from the warehouse create warehouse deduction movements.
+4. SIPOS submits cashier transactions; SIINV validates the session, prices, recipes, and ingredient availability atomically.
+5. At closing, physical remaining stock is reconciled against sales and recorded usage.
+6. Owners review revenue, expenses, cash balance, stock movements, and cross-branch performance.
 
-SIINV menghubungkan stok gudang, saldo bahan harian outlet, resep menu, transaksi kasir, dan arus kas dalam satu alur yang dapat diaudit. Aplikasi menyediakan panel web berbasis peran untuk owner, admin, dan developer, serta REST API untuk aplikasi kasir mobile.
+## Key Features
 
-Alur utamanya:
+### Inventory and recipes
 
-1. Admin membuka sesi stok harian dan memverifikasi sisa sesi sebelumnya.
-2. Tambahan bahan dari gudang dicatat sebagai mutasi baru tanpa memotong ulang stok carry-forward.
-3. Kasir melakukan checkout; ketersediaan menu divalidasi berdasarkan resep dan stok cabang.
-4. Saat sesi ditutup, pemakaian dan sisa fisik bahan direkonsiliasi.
-5. Owner memantau omzet, pengeluaran, saldo kas, stok, dan laporan lintas cabang.
+- Ingredient categories, ingredients, pack/piece conversions, minimum stock, restocking, and adjustments.
+- Menu catalog, variants, product images, cost and selling prices, and Bill of Materials recipes.
+- Recipe-based menu availability using the active branch stock balance.
+- Auditable stock movement history with branch and date filters.
+- Protection against fractional residue and duplicate warehouse deductions.
 
-## Fitur Utama
+### Daily stock operations
 
-### Owner
+- Daily session opening, closing, reopening, and reconciliation.
+- Previous-session carry-forward with editable physical verification.
+- Explicit separation between carried stock and new warehouse additions.
+- Cashier usage and remaining-stock reports across outlets.
+- Branch-level isolation for sessions, inventory, transactions, and reports.
 
-- Dashboard pendapatan, tren penjualan, arus kas, dan ringkasan lintas cabang.
-- Manajemen cabang, akun pengguna, hak akses, arsip, dan pemulihan akun.
-- Riwayat transaksi dan mutasi stok dengan filter cabang.
-- Laporan penjualan, pemakaian bahan, pengeluaran, serta ekspor HTML, PDF, dan Excel.
-- Closing periode dan analisis performa menu.
+### Sales and finance
 
-### Admin operasional
+- Transaction history, receipt details, cancellation controls, and inventory consequences.
+- Revenue dashboards, sales trends, menu performance, and period closing.
+- Operational expense records with descriptions and audit history.
+- Transparent cash flow: revenue minus expenses and the resulting cash balance.
+- HTML, PDF, and Excel exports for operational reports.
 
-- Manajemen kategori bahan, bahan baku, satuan pack/pcs, stok minimum, restock, dan penyesuaian.
-- Katalog menu, varian, gambar produk, harga modal/jual, serta resep atau Bill of Materials.
-- Sesi stok harian dengan carry-forward sisa sebelumnya, tambahan gudang, tutup sesi, buka ulang, dan rekonsiliasi.
-- Riwayat transaksi, laporan stok harian, pemakaian bahan, dan arus kas operasional.
-- Pemisahan data berdasarkan cabang untuk mencegah stok dan transaksi tercampur.
+### Mobile cashier API
 
-### API kasir mobile
+- Token authentication, profiles, password management, and OTP recovery.
+- Paginated menu catalog with recipe- and stock-based availability.
+- Server-authoritative checkout with atomic stock validation.
+- Transaction history, receipts, cancellation, revenue, and trends.
+- Daily stock status, session closing, and operational expense entry.
 
-- Autentikasi token, profil, ganti kata sandi, dan pemulihan melalui OTP.
-- Katalog menu dengan status ketersediaan berbasis resep dan stok aktif.
-- Checkout dengan harga dari server, validasi stok atomik, dan isolasi cabang.
-- Riwayat transaksi, detail struk, void transaksi, omzet, dan tren pendapatan.
-- Status sesi, stok harian, penutupan sesi, dan pencatatan pengeluaran kasir.
+### Reliability and operations
 
-### Operasional sistem
+- Queue-backed exports and background jobs.
+- Health and readiness endpoints, performance logging, caching, and PostgreSQL indexes.
+- Environment-restricted database backup and restore tooling.
+- Feature, security, API contract, export, concurrency, and query-budget tests.
 
-- Queue untuk ekspor dan pekerjaan latar belakang.
-- Health/readiness endpoint, pencatatan performa, cache, dan indeks PostgreSQL.
-- Backup dan restore database dengan pembatasan lingkungan.
-- Pengujian fitur, kontrak API, keamanan, ekspor, serta query-budget checkout.
+## Technology Stack
 
-## Teknologi
-
-| Bagian | Teknologi |
+| Area | Technology |
 |---|---|
 | Backend | PHP 8.2+, Laravel 12 |
-| Database | PostgreSQL, kompatibel dengan Supabase |
-| Web UI | Blade, Tailwind CSS 3, Alpine.js |
-| Asset build | Vite 7, Node.js |
-| API | REST/JSON, token authentication |
-| Dokumen | Laravel Excel dan DomPDF |
-| Email | Resend atau mailer Laravel |
-| Test | PHPUnit 11 |
+| Database | PostgreSQL, compatible with Supabase |
+| Web interface | Blade, Tailwind CSS 3, Alpine.js |
+| Frontend build | Vite 7, Node.js |
+| API | REST/JSON with token authentication |
+| Documents | Laravel Excel, DomPDF |
+| Email | Resend or Laravel-compatible mailer |
+| Testing | PHPUnit 11 |
 
-## Persyaratan Lokal
+## Requirements
 
-- PHP `8.2` atau lebih baru.
+- PHP `8.2` or newer.
 - Composer `2.x`.
-- Node.js `20.19+` atau `22.12+` dan npm.
-- PostgreSQL atau proyek Supabase. SQLite dapat dipakai untuk sebagian pengembangan dan test lokal.
-- Ekstensi PHP: `ctype`, `curl`, `dom`, `fileinfo`, `gd`, `mbstring`, `openssl`, `pdo_pgsql`, `pgsql`, `simplexml`, `tokenizer`, `xml`, `xmlreader`, `xmlwriter`, dan `zip`.
+- Node.js `20.19+` or `22.12+`, with npm.
+- PostgreSQL or a Supabase project.
+- PHP extensions: `ctype`, `curl`, `dom`, `fileinfo`, `gd`, `mbstring`, `openssl`, `pdo_pgsql`, `pgsql`, `simplexml`, `tokenizer`, `xml`, `xmlreader`, `xmlwriter`, and `zip`.
 
-## Instalasi Lokal
+SQLite can be used for selected local tests, but PostgreSQL is recommended for development that exercises production-equivalent queries and concurrency behavior.
 
-1. Kloning repositori dan masuk ke direktori proyek.
+## Getting Started
+
+1. Clone the repository.
 
    ```bash
    git clone https://github.com/athayabismaj/siinv-kebab-sk.git
    cd siinv-kebab-sk
    ```
 
-2. Pasang dependensi backend dan frontend.
+2. Install backend and frontend dependencies.
 
    ```bash
    composer install
    npm ci
    ```
 
-3. Buat konfigurasi lokal dan application key.
+3. Create the local environment file and application key.
 
-   Linux/macOS:
+   Linux or macOS:
 
    ```bash
    cp .env.example .env
@@ -122,68 +127,95 @@ Alur utamanya:
    php artisan key:generate
    ```
 
-4. Atur koneksi PostgreSQL/Supabase pada `.env`, kemudian jalankan migrasi.
+4. Configure the database connection in `.env`, then migrate the schema.
 
    ```bash
    php artisan migrate
    ```
 
-5. Jika membutuhkan data contoh, tinjau seluruh seeder terlebih dahulu, lalu jalankan:
+5. Optionally review and run the development seeders.
 
    ```bash
    php artisan db:seed
    ```
 
-   Seeder hanya ditujukan untuk pengembangan. Seeder dapat membuat akun awal dengan kata sandi bawaan; jangan menjalankannya langsung pada produksi tanpa mengganti atau menonaktifkan kredensial tersebut.
+   Seeders may create development accounts with default credentials. Review them before use and never carry default credentials into a deployed environment.
 
-6. Jalankan lingkungan pengembangan.
+6. Start the development services.
 
    ```bash
    composer run dev
    ```
 
-   Perintah tersebut menjalankan server Laravel, queue listener, log viewer, dan Vite. Aplikasi web tersedia secara default di `http://127.0.0.1:8000`.
+   This starts the Laravel server, queue listener, log viewer, and Vite development server. The application is available at `http://127.0.0.1:8000` by default.
 
-## Build dan Pengujian
+## Build and Test
 
 ```bash
 npm run build
 composer test
 ```
 
-Untuk production, jalankan migrasi dengan `php artisan migrate --force`, bangun aset frontend, aktifkan queue worker, dan jalankan scheduler Laravel. Jangan gunakan `migrate:fresh` pada database yang berisi data operasional.
+Laravel Pint can be used to normalize PHP formatting:
 
-## Ringkasan API
+```bash
+./vendor/bin/pint
+```
 
-Semua endpoint berada di bawah prefiks `/api` dan menggunakan respons JSON. Endpoint operasional dilindungi token, pembatasan peran, dan rate limit.
+## API Overview
 
-| Method | Endpoint | Fungsi |
+All API endpoints use the `/api` prefix and return JSON. Protected endpoints enforce authentication, role checks, branch context, and rate limits.
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/auth/login` | Login dan memperoleh token |
-| `GET` | `/api/auth/me` | Profil pengguna aktif |
-| `GET` | `/api/menus` | Katalog dan ketersediaan varian |
-| `POST` | `/api/transactions` | Checkout kasir |
-| `GET` | `/api/transactions` | Riwayat transaksi |
-| `GET` | `/api/revenue/summary` | Ringkasan omzet |
-| `GET` | `/api/daily-stock-items` | Saldo stok harian kasir |
-| `POST` | `/api/daily-stock-sessions/close` | Tutup sesi harian |
-| `POST` | `/api/cashflow/expenses` | Catat pengeluaran operasional |
+| `POST` | `/api/auth/login` | Authenticate and obtain a token |
+| `GET` | `/api/auth/me` | Retrieve the authenticated profile |
+| `GET` | `/api/menus` | Retrieve the menu catalog and availability |
+| `POST` | `/api/transactions` | Submit a cashier checkout |
+| `GET` | `/api/transactions` | Retrieve transaction history |
+| `GET` | `/api/revenue/summary` | Retrieve the revenue summary |
+| `GET` | `/api/daily-stock-items` | Retrieve the cashier's daily stock balance |
+| `POST` | `/api/daily-stock-sessions/close` | Close a daily stock session |
+| `POST` | `/api/cashflow/expenses` | Record an operational expense |
 
-Kontrak yang lebih rinci tersedia di [`docs/API_CONTRACT_ANDROID.md`](docs/API_CONTRACT_ANDROID.md) dan [`docs/api-menu-availability.md`](docs/api-menu-availability.md).
+See [Android API contract](docs/API_CONTRACT_ANDROID.md), [menu availability](docs/api-menu-availability.md), and [mobile contract matrix](docs/MOBILE_API_CONTRACT_MATRIX.md) for integration details.
 
-## Keamanan Publikasi
+## Production Operations
 
-- Jangan commit `.env`, dump database, token Supabase, API key, kredensial email, atau file backup.
-- Ganti seluruh akun dan kata sandi hasil seeder sebelum memakai aplikasi di luar lingkungan lokal.
-- Gunakan `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, cookie aman, serta kredensial database dengan hak akses minimum pada production.
-- Laporkan celah keamanan secara privat kepada pemilik proyek; jangan mempublikasikan data eksploitasi atau kredensial melalui issue publik.
+Before deployment:
 
-## Dukungan dan Kontribusi
+- Set `APP_ENV=production` and `APP_DEBUG=false`.
+- Configure HTTPS, secure cookies, trusted proxies, and least-privilege database credentials.
+- Run `php artisan migrate --force` and `npm run build`.
+- Keep the queue worker and Laravel scheduler running under a process supervisor.
+- Use `composer run prod:optimize` after the production environment is configured.
+- Validate backup and restore procedures before accepting operational data.
 
-Repositori ini berfungsi terutama sebagai rilis publik dan referensi teknis. Permintaan fitur, roadmap, dukungan deployment, dan perubahan khusus klien tidak dijamin tersedia pada edisi publik. Pull request dapat ditinjau, tetapi penerimaan dan jadwal rilis sepenuhnya mengikuti kebijakan pemilik proyek.
+Never use `migrate:fresh` on a database containing operational records.
 
-## Hak Penggunaan
+## Technical Documentation
 
-Repositori ini belum menyertakan berkas `LICENSE` khusus SIINV. Hubungi pemilik proyek untuk izin penggunaan ulang, modifikasi, distribusi, atau pemakaian komersial. Seluruh framework, library, dan dependensi pihak ketiga tetap mengikuti lisensinya masing-masing.
+- [Deployment safety](docs/DEPLOYMENT_SAFETY.md)
+- [Queue worker operations](docs/QUEUE_WORKER_OPERATIONS.md)
+- [Scheduler operations](docs/SCHEDULER_OPERATIONS.md)
+- [Backup and restore](docs/BACKUP_RESTORE_OPERATIONS.md)
+- [Monitoring and health](docs/MONITORING_AND_HEALTH_OPERATIONS.md)
+- [PostgreSQL performance and concurrency QA](docs/POSTGRESQL_CONCURRENCY_PERFORMANCE_QA.md)
+- [Security deployment checklist](docs/security-deployment-checklist.md)
 
-Hak cipta © 2026 Kebab SK. Seluruh hak dilindungi.
+## Security
+
+- Never commit `.env`, database dumps, Supabase credentials, API keys, email credentials, or backup archives.
+- Replace all seeded accounts and passwords before deployment.
+- Keep authorization, price calculation, branch isolation, and inventory validation on the server.
+- Report suspected vulnerabilities privately to the project owner and avoid including credentials or operational data in issue reports.
+
+## Contributing
+
+Use focused commits, include tests for behavioral changes, and document API contract changes that affect SIPOS. Pull requests are reviewed according to project priorities and compatibility requirements.
+
+## License
+
+This repository does not currently include a project-specific license. Contact the project owner before reuse, modification, redistribution, or commercial use. Third-party dependencies remain subject to their respective licenses.
+
+Copyright © 2026 Kebab SK. All rights reserved.
