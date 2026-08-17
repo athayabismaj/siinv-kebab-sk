@@ -30,7 +30,7 @@ class MenuVariantImageTest extends TestCase
                 'sell_price' => 18000,
                 'sort_order' => 1,
                 'is_available' => 1,
-                'image' => UploadedFile::fake()->image('jumbo.jpg', 600, 600),
+                'image' => UploadedFile::fake()->image('jumbo.jpg', 1200, 800),
             ])
             ->assertRedirect(route('admin.menu-variants.index', $menu));
 
@@ -39,6 +39,12 @@ class MenuVariantImageTest extends TestCase
 
         $this->assertNotNull($oldImagePath);
         Storage::disk('public')->assertExists($oldImagePath);
+        if (function_exists('imagewebp')) {
+            $this->assertStringEndsWith('.webp', $oldImagePath);
+            $dimensions = getimagesizefromstring(Storage::disk('public')->get($oldImagePath));
+            $this->assertIsArray($dimensions);
+            $this->assertLessThanOrEqual(640, max($dimensions[0], $dimensions[1]));
+        }
 
         $this->actingAs($admin)
             ->put(route('admin.menu-variants.update', [$menu, $variant]), [
@@ -47,7 +53,7 @@ class MenuVariantImageTest extends TestCase
                 'sell_price' => 19000,
                 'sort_order' => 1,
                 'is_available' => 1,
-                'image' => UploadedFile::fake()->image('jumbo-baru.png', 600, 600),
+                'image' => UploadedFile::fake()->image('jumbo-baru.png', 800, 1200),
             ])
             ->assertRedirect(route('admin.menu-variants.index', $menu));
 

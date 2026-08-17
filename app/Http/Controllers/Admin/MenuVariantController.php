@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuVariant;
+use App\Services\MenuVariantImageService;
 use App\Support\AdminCache;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class MenuVariantController extends Controller {
+    public function __construct(
+        private readonly MenuVariantImageService $imageService,
+    ) {
+    }
+
     /*** INDEX */
     public function index(Menu $menu) {
         $variants = $menu->variants()
@@ -42,7 +46,9 @@ class MenuVariantController extends Controller {
             ? (int) $validated['sort_order']
             : ($menu->variants()->max('sort_order') + 1);
 
-        $imagePath = $this->storeImage($request);
+        $imagePath = $request->hasFile('image')
+            ? $this->imageService->store($request->file('image'))
+            : null;
 
         try {
             $menu->variants()->create([
@@ -56,7 +62,7 @@ class MenuVariantController extends Controller {
                 'is_available' => $request->boolean('is_available'),
             ]);
         } catch (Throwable $exception) {
-            $this->deleteImage($imagePath);
+            $this->imageService->delete($imagePath);
             throw $exception;
         }
 
@@ -91,7 +97,9 @@ class MenuVariantController extends Controller {
         ]);
 
         $oldImagePath = $menuVariant->image_path;
-        $newImagePath = $this->storeImage($request);
+        $newImagePath = $request->hasFile('image')
+            ? $this->imageService->store($request->file('image'))
+            : null;
         $imagePath = $newImagePath
             ?? ($request->boolean('remove_image') ? null : $oldImagePath);
 
@@ -108,12 +116,12 @@ class MenuVariantController extends Controller {
                 'is_available' => $request->boolean('is_available'),
             ]);
         } catch (Throwable $exception) {
-            $this->deleteImage($newImagePath);
+            $this->imageService->delete($newImagePath);
             throw $exception;
         }
 
         if ($oldImagePath !== $imagePath) {
-            $this->deleteImage($oldImagePath);
+            $this->imageService->delete($oldImagePath);
         }
 
         AdminCache::bumpCatalog();
@@ -130,7 +138,7 @@ class MenuVariantController extends Controller {
 
         $imagePath = $menuVariant->image_path;
         $menuVariant->delete();
-        $this->deleteImage($imagePath);
+        $this->imageService->delete($imagePath);
         AdminCache::bumpCatalog();
 
         return redirect()
@@ -138,27 +146,4 @@ class MenuVariantController extends Controller {
             ->with('success', 'Variant berhasil dihapus.');
     }
 
-    private function storeImage(Request $request): ?string
-    {
-        if (! $request->hasFile('image')) {
-            return null;
-        }
-
-        $path = $request->file('image')->store('menu-variants', 'public');
-
-        if ($path === false) {
-            throw ValidationException::withMessages([
-                'image' => 'Gambar varian gagal disimpan. Silakan coba lagi.',
-            ]);
-        }
-
-        return $path;
-    }
-
-    private function deleteImage(?string $path): void
-    {
-        if ($path) {
-            Storage::disk('public')->delete($path);
-        }
-    }
 }
