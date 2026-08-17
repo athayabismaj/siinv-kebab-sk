@@ -7,6 +7,16 @@ Dokumen ini menjadi kontrak stabil untuk client mobile terkait availability vari
 - `GET /api/menus`
 - `GET /api/menus/unavailable-variants` (owner/admin monitoring)
 
+`GET /api/menus` menerima parameter:
+
+- `category_id` (opsional)
+- `search` (opsional, mencari nama menu atau varian)
+- `page` (default `1`)
+- `per_page` (default `20`, maksimum `50`)
+
+Pagination dilakukan langsung terhadap `menu_variants`. Struktur
+`menus[].variants[]` dipertahankan agar client lama tetap kompatibel.
+
 ## Rules (Server-side Source of Truth)
 
 - `is_available` dihitung dari kombinasi:
@@ -27,7 +37,6 @@ Setiap varian pada `GET /api/menus` memiliki field:
 - `price` (number)
 - `is_available` (bool)
 - `unavailable_reason` (string|null)
-- `required_ingredients` (array, opsional tapi disediakan)
 - `sort_order` (int)
 
 Contoh:
@@ -40,15 +49,27 @@ Contoh:
   "price": 28000,
   "is_available": false,
   "unavailable_reason": "INSUFFICIENT_STOCK",
-  "required_ingredients": [
-    {
-      "ingredient_id": 2,
-      "ingredient_name": "Roti Burger",
-      "required_qty": 1,
-      "remaining_qty": 0
-    }
-  ],
   "sort_order": 1
+}
+```
+
+`required_ingredients` sengaja tidak dikirim pada katalog POS untuk
+memperkecil payload. Field tersebut tetap tersedia pada endpoint diagnostik
+`/api/menus/unavailable-variants`, sedangkan resep tetap digunakan oleh
+backend untuk availability dan validasi checkout.
+
+Response katalog juga memuat:
+
+```json
+{
+  "categories": [{"id": 1, "name": "Kebab"}],
+  "pagination": {
+    "current_page": 1,
+    "last_page": 5,
+    "per_page": 20,
+    "total": 93,
+    "has_more": true
+  }
 }
 ```
 

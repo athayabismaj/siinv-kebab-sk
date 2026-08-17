@@ -24,7 +24,7 @@ untuk memilih cabang transaksi.
 | Logout | POST | `/api/auth/logout` | - | success, message | Ya | 200 |
 | Profil | GET | `/api/auth/me` | - | user, role, `branch?` | Ya | 200 |
 | Ubah profil | PUT | `/api/auth/profile` | name, username, email | user, role, `branch?` | Ya | 200 |
-| Menu | GET | `/api/menus` | - | user, menus dan variants | Ya | 200 |
+| Menu | GET | `/api/menus` | `category_id?`, `search?`, `page?`, `per_page?` | user, categories, menus/variants, pagination | Ya | 200 |
 | Metode bayar | GET | `/api/payment-methods` | - | user, payment_methods | Ya | 200 |
 | Status sesi | GET | `/api/sessions/current-status` | - | active dan data sesi | Ya | 200/404 |
 | Stok sesi | GET | `/api/daily-stock-items` | - | `session_id?:integer`, items | Ya | 200 |
@@ -48,6 +48,8 @@ untuk memilih cabang transaksi.
 - Setiap varian pada katalog menu memiliki `image_url:string|null`. Client POS
   menampilkan URL tersebut sebagai gambar kartu varian dan memakai placeholder
   ketika nilainya `null`.
+- Pagination katalog berorientasi pada varian. `per_page` default 20 dan
+  maksimum 50; gunakan `pagination.has_more` sebelum meminta halaman berikutnya.
 - Timestamp checkout adalah string ISO-8601. Detail receipt menerima string
   `Y-m-d H:i:s`; label riwayat adalah string tampilan Indonesia.
 - Status riwayat adalah string tampilan backend (contoh `Sukses`/`Void`).

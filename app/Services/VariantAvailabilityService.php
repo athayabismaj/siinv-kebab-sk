@@ -28,9 +28,14 @@ class VariantAvailabilityService
      * @param Collection<int, MenuVariant> $variants
      * @return array<int, array<string, mixed>>
      */
-    public function evaluateForCashier(Collection $variants, int $cashierId, ?Carbon $businessTime = null): array
+    public function evaluateForCashier(
+        Collection $variants,
+        int $cashierId,
+        ?Carbon $businessTime = null,
+        ?CashierOperationalContext $operationalContext = null,
+    ): array
     {
-        $context = $this->buildSessionContext($cashierId, $businessTime);
+        $context = $this->buildSessionContext($cashierId, $businessTime, $operationalContext);
         $results = [];
 
         foreach ($variants as $variant) {
