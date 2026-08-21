@@ -18,6 +18,11 @@ class PaymentMethodController extends Controller
             AdminCache::key('payment_methods', 'api:list'),
             now()->addSeconds(120),
             function () {
+                $cash = PaymentMethod::withTrashed()->firstOrCreate(['name' => 'Cash']);
+                if ($cash->trashed()) {
+                    $cash->restore();
+                }
+
                 $methods = PaymentMethod::query()
                     ->whereNull('deleted_at')
                     ->select('id', 'name')
@@ -29,25 +34,7 @@ class PaymentMethodController extends Controller
                     ])
                     ->values();
 
-                if ($methods->isNotEmpty()) {
-                    return $methods;
-                }
-
-                PaymentMethod::query()->updateOrCreate(
-                    ['name' => 'Cash'],
-                    ['name' => 'Cash']
-                );
-
-                return PaymentMethod::query()
-                    ->whereNull('deleted_at')
-                    ->select('id', 'name')
-                    ->orderBy('name')
-                    ->get()
-                    ->map(fn ($method) => [
-                        'id' => $method->id,
-                        'name' => $method->name,
-                    ])
-                    ->values();
+                return $methods;
             }
         );
 
@@ -65,4 +52,3 @@ class PaymentMethodController extends Controller
         ]);
     }
 }
-

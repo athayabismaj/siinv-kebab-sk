@@ -6,6 +6,7 @@ use App\Http\Controllers\API\DailyStockController;
 use App\Http\Controllers\API\MenuController;
 use App\Http\Controllers\API\PaymentMethodController;
 use App\Http\Controllers\API\TransactionController;
+use App\Http\Controllers\API\QrisPaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -50,6 +51,9 @@ Route::get('/menus/unavailable-variants', [MenuController::class , 'unavailableV
 
 Route::get('/payment-methods', [PaymentMethodController::class , 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);
+
+Route::post('/payments/qris/generate', [QrisPaymentController::class, 'generate'])
+    ->middleware(['api.token', 'api.role:kasir', 'throttle:api-checkout-role-aware']);
 
 Route::get('/daily-stock-items', [DailyStockController::class, 'index'])
     ->middleware(['api.token', 'throttle:api-read-role-aware']);

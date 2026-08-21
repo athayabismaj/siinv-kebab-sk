@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\DailyStockReportController;
 use App\Http\Controllers\Admin\BranchContextController;
 use App\Http\Controllers\System\ReadinessController;
 use App\Http\Controllers\MenuVariantImageController;
+use App\Http\Controllers\QrisConfigController;
 
 Route::get('/', [LoginController::class, 'showLogin'])->name('login');
 Route::get('/health/ready', ReadinessController::class)->name('health.ready');
@@ -91,6 +92,13 @@ Route::middleware(['auth', 'role:owner', 'perf.log'])->prefix('owner')->name('ow
         // ================= PANEL =================
         Route::get('/panel', [OwnerDashboardController::class, 'index'])->name('panel');
         Route::post('/branch-context', [OwnerBranchContextController::class, 'switch'])->name('branch-context.switch');
+
+        Route::prefix('qris')->name('qris.')->group(function () {
+            Route::get('/', [QrisConfigController::class, 'index'])->name('index');
+            Route::post('/', [QrisConfigController::class, 'store'])->name('store');
+            Route::patch('/{qrisConfig}/activate', [QrisConfigController::class, 'activate'])->name('activate');
+            Route::patch('/{qrisConfig}/deactivate', [QrisConfigController::class, 'deactivate'])->name('deactivate');
+        });
 
         // ================= USER MANAGEMENT =================
         Route::prefix('branches')->name('branches.')->group(function () {
@@ -190,6 +198,13 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
         // ===== PANEL =====
         Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
         Route::post('/branch-context', [BranchContextController::class, 'switch'])->name('branch-context.switch');
+
+        Route::prefix('qris')->name('qris.')->group(function () {
+            Route::get('/', [QrisConfigController::class, 'index'])->name('index');
+            Route::post('/', [QrisConfigController::class, 'store'])->name('store');
+            Route::patch('/{qrisConfig}/activate', [QrisConfigController::class, 'activate'])->name('activate');
+            Route::patch('/{qrisConfig}/deactivate', [QrisConfigController::class, 'deactivate'])->name('deactivate');
+        });
 
         // ===== INGREDIENT CATEGORIES =====
         Route::prefix('ingredient-categories')->name('ingredient-categories.')->group(function () {

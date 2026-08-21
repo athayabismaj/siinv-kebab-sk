@@ -40,4 +40,8 @@ class Branch extends Model
         return $this->hasMany(DailyStockSession::class);
     }
 
+    public function qrisConfigs(): HasMany
+    {
+        return $this->hasMany(QrisConfig::class);
+    }
 }

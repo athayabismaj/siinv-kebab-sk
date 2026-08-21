@@ -71,4 +71,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(DailyStockSession::class, 'closed_by');
     }
+
+    public function createdQrisConfigs(): HasMany
+    {
+        return $this->hasMany(QrisConfig::class, 'created_by');
+    }
+
+    public function updatedQrisConfigs(): HasMany
+    {
+        return $this->hasMany(QrisConfig::class, 'updated_by');
+    }
 }

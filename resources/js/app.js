@@ -11,3 +11,4 @@ import './reports/closing-cancel';
 import './reports/date-navigation';
 import './reports/sales-report';
 import './daily-stock/close-session';
+import './qris/image-decoder';

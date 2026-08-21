@@ -28,6 +28,7 @@ class OwnerNavigation extends SidebarNavigation
             ]],
             ['label' => 'Manajemen', 'items' => [
                 $this->item('Cabang Operasional', 'owner.branches.index', 'owner.branches.*', 'branch'),
+                $this->item('Pengaturan QRIS', 'owner.qris.index', 'owner.qris.*', 'qris'),
                 $this->item('Daftar Pengguna', 'owner.users.index', ['owner.users.index', 'owner.users.create', 'owner.users.edit', 'owner.users.reset.*', 'owner.users.archive'], 'users'),
             ]],
         ];

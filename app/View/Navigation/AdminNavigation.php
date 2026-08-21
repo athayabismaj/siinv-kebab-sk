@@ -12,6 +12,7 @@ class AdminNavigation extends SidebarNavigation
             ]],
             ['label' => 'Penjualan', 'items' => [
                 $this->item('Riwayat Transaksi', 'admin.transactions.index', 'admin.transactions.*', 'transaction-history'),
+                $this->item('Pengaturan QRIS', 'admin.qris.index', 'admin.qris.*', 'qris'),
             ]],
             ['label' => 'Produk & Menu', 'items' => [
                 $this->item('Kategori Menu', 'admin.menu-categories.index', 'admin.menu-categories.*', 'menu-category'),

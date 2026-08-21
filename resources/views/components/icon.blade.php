@@ -6,7 +6,7 @@
         'menu-category', 'menu-management', 'recipe-book', 'menu', 'clipboard', 'book', 'edit' => 'icon-anim-wiggle',
         'ingredient-category', 'ingredient-item', 'stock-adjustment', 'cube', 'archive-stack', 'tag', 'archive', 'plus', 'minus' => 'icon-anim-bounce',
         'transaction-history', 'daily-session', 'stock-history', 'stock-log', 'clock', 'return', 'settings' => 'icon-anim-timer',
-        'operational-expense', 'money', 'cart', 'lock', 'branch', 'users', 'owner-users', 'database', 'building' => 'icon-anim-flutter',
+        'operational-expense', 'money', 'cart', 'lock', 'branch', 'users', 'owner-users', 'database', 'building', 'qris' => 'icon-anim-flutter',
         default => 'icon-anim-default',
     };
 @endphp
@@ -125,6 +125,9 @@
             @break
         @case('building')
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            @break
+        @case('qris')
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h2v2h-2v-2zm4 0h2v6h-6v-2h4v-4zm-4 4h2v2h-2v-2z" />
             @break
         @case('close')
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

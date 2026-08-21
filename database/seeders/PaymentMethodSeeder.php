@@ -9,8 +9,11 @@ class PaymentMethodSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['Cash'] as $name) {
-            PaymentMethod::firstOrCreate(['name' => $name]);
+        foreach (['Cash', 'QRIS'] as $name) {
+            PaymentMethod::withTrashed()->updateOrCreate(
+                ['name' => $name],
+                ['deleted_at' => null],
+            );
         }
     }
 }
