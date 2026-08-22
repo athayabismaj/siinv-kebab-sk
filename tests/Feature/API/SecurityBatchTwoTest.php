@@ -108,7 +108,7 @@ class SecurityBatchTwoTest extends TestCase
         $tokenA = $this->createApiToken($user);
         $tokenB = $this->createApiToken($user);
 
-        $this->withHeader('Authorization', 'Bearer ' . $tokenA)
+        $this->withHeader('Authorization', 'Bearer '.$tokenA)
             ->postJson('/api/auth/change-password', [
                 'current_password' => 'old-password',
                 'password' => 'new-password',
@@ -118,11 +118,11 @@ class SecurityBatchTwoTest extends TestCase
 
         $this->assertDatabaseMissing('api_tokens', ['user_id' => $user->id]);
 
-        $this->withHeader('Authorization', 'Bearer ' . $tokenB)
+        $this->withHeader('Authorization', 'Bearer '.$tokenB)
             ->getJson('/api/auth/me')
             ->assertUnauthorized();
 
-        $this->withHeader('Authorization', 'Bearer ' . $tokenA)
+        $this->withHeader('Authorization', 'Bearer '.$tokenA)
             ->getJson('/api/auth/me')
             ->assertUnauthorized();
     }
@@ -133,9 +133,9 @@ class SecurityBatchTwoTest extends TestCase
         [$cashierB] = $this->createUserWithToken('kasir');
         [$transaction, $session] = $this->createVoidableTransaction($cashierB);
 
-        $this->withHeader('Authorization', 'Bearer ' . $tokenA)
+        $this->withHeader('Authorization', 'Bearer '.$tokenA)
             ->withHeader('X-Idempotency-Key', 'void-cross-user')
-            ->postJson('/api/transactions/' . $transaction->id . '/void', [
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [
                 'current_session_id' => $session->id,
                 'reason' => 'restock',
             ])
@@ -150,8 +150,8 @@ class SecurityBatchTwoTest extends TestCase
         [$cashier, $token] = $this->createUserWithToken('kasir');
         [$transaction] = $this->createVoidableTransaction($cashier);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->postJson('/api/transactions/' . $transaction->id . '/void', [])
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [])
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'Data yang dikirim tidak valid.')
@@ -169,9 +169,9 @@ class SecurityBatchTwoTest extends TestCase
         [$transaction] = $this->createVoidableTransaction($cashier);
         $wrongSession = $this->openSession($cashier->id, now('Asia/Jakarta')->subDay()->toDateString());
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->withHeader('X-Idempotency-Key', 'void-wrong-session')
-            ->postJson('/api/transactions/' . $transaction->id . '/void', [
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [
                 'current_session_id' => $wrongSession->id,
                 'reason' => 'restock',
             ])
@@ -187,9 +187,9 @@ class SecurityBatchTwoTest extends TestCase
         [$transaction, $session] = $this->createVoidableTransaction($cashier);
         $transaction->update(['status' => 'VOID']);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->withHeader('X-Idempotency-Key', 'void-already-void')
-            ->postJson('/api/transactions/' . $transaction->id . '/void', [
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [
                 'current_session_id' => $session->id,
                 'reason' => 'restock',
             ])
@@ -202,9 +202,9 @@ class SecurityBatchTwoTest extends TestCase
         [$cashier, $token] = $this->createUserWithToken('kasir');
         [$transaction, $session, $ingredient] = $this->createVoidableTransaction($cashier);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->withHeader('X-Idempotency-Key', 'void-success-audit')
-            ->postJson('/api/transactions/' . $transaction->id . '/void', [
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [
                 'current_session_id' => $session->id,
                 'reason' => 'restock',
             ])
@@ -231,6 +231,34 @@ class SecurityBatchTwoTest extends TestCase
         ]);
     }
 
+    public function test_voiding_pending_qris_restores_stock_without_creating_refund(): void
+    {
+        [$cashier, $token] = $this->createUserWithToken('kasir');
+        [$transaction, $session, $ingredient] = $this->createVoidableTransaction($cashier);
+        $transaction->update([
+            'status' => Transaction::STATUS_PENDING_PAYMENT,
+            'paid_amount' => 0,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('X-Idempotency-Key', 'void-pending-qris')
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [
+                'current_session_id' => $session->id,
+                'reason' => 'restock',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.new_drawer_balance', 0);
+
+        $this->assertSame('VOID', $transaction->fresh()->status);
+        $this->assertDatabaseCount('cashflow_entries', 0);
+        $this->assertDatabaseHas('daily_stock_items', [
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => $ingredient->id,
+            'remaining_qty' => 10,
+            'used_qty' => 0,
+        ]);
+    }
+
     public function test_void_rebuilds_the_summary_for_the_transaction_branch(): void
     {
         [$cashier, $token] = $this->createUserWithToken('kasir');
@@ -247,9 +275,9 @@ class SecurityBatchTwoTest extends TestCase
             'total_items_sold' => 2,
         ]);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->withHeader('X-Idempotency-Key', 'void-rebuild-summary')
-            ->postJson('/api/transactions/' . $transaction->id . '/void', [
+            ->postJson('/api/transactions/'.$transaction->id.'/void', [
                 'current_session_id' => $session->id,
                 'reason' => 'restock',
             ])
@@ -293,13 +321,13 @@ class SecurityBatchTwoTest extends TestCase
 
         return User::factory()->create([
             'role_id' => $role->id,
-            'branch_id' => $this->testBranch()->id,
+            'branch_id' => $this->branchFixture()->id,
         ]);
     }
 
     private function createApiToken(User $user): string
     {
-        $plainToken = 'tok_' . bin2hex(random_bytes(12));
+        $plainToken = 'tok_'.bin2hex(random_bytes(12));
         ApiToken::query()->create([
             'user_id' => $user->id,
             'name' => 'test-token',
@@ -316,7 +344,7 @@ class SecurityBatchTwoTest extends TestCase
     private function createVoidableTransaction(User $cashier): array
     {
         $session = $this->openSession($cashier->id);
-        $payment = PaymentMethod::query()->create(['name' => 'Cash ' . uniqid()]);
+        $payment = PaymentMethod::query()->create(['name' => 'Cash '.uniqid()]);
         [$variant, $ingredient] = $this->createSellableVariant(price: 25000, requiredQty: 1);
 
         DailyStockItem::query()->create([
@@ -329,7 +357,7 @@ class SecurityBatchTwoTest extends TestCase
         ]);
 
         $transaction = Transaction::query()->create([
-            'transaction_code' => 'TRX-' . uniqid(),
+            'transaction_code' => 'TRX-'.uniqid(),
             'user_id' => $cashier->id,
             'total_amount' => 50000,
             'payment_method_id' => $payment->id,
@@ -358,7 +386,7 @@ class SecurityBatchTwoTest extends TestCase
     private function createSellableVariant(float $price, float $requiredQty): array
     {
         $menu = Menu::query()->create([
-            'name' => 'Menu Recipe ' . uniqid(),
+            'name' => 'Menu Recipe '.uniqid(),
             'description' => null,
             'is_active' => true,
             'sort_order' => 0,
@@ -373,7 +401,7 @@ class SecurityBatchTwoTest extends TestCase
         ]);
 
         $ingredient = Ingredient::query()->create([
-            'name' => 'Bahan ' . uniqid(),
+            'name' => 'Bahan '.uniqid(),
             'display_unit' => 'pcs',
             'base_unit' => 'pcs',
             'pack_size' => 1,
@@ -400,13 +428,13 @@ class SecurityBatchTwoTest extends TestCase
             'session_date' => $sessionDate ?? now('Asia/Jakarta')->toDateString(),
             'cashier_id' => $cashierId,
             'opened_by' => $cashierId,
-            'branch_id' => $this->testBranch()->id,
+            'branch_id' => $this->branchFixture()->id,
             'status' => 'open',
             'opened_at' => now(),
         ]);
     }
 
-    private function testBranch(): Branch
+    private function branchFixture(): Branch
     {
         return $this->branch ??= Branch::query()->firstOrCreate(
             ['code' => 'default'],

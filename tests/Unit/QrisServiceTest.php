@@ -61,6 +61,25 @@ class QrisServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_embeds_a_unique_reference_in_additional_data(): void
+    {
+        $first = $this->service->generateDynamic(
+            QrisTestPayload::make('MERCHANT TEST'),
+            '10000.00',
+            'QRS-ABCDEFGHIJKLMNOPQRST',
+        );
+        $second = $this->service->generateDynamic(
+            QrisTestPayload::make('MERCHANT TEST'),
+            '10000.00',
+            'QRS-ZYXWVUTSRQPONMLKJIHG',
+        );
+
+        $this->assertNotSame($first, $second);
+        $this->assertStringContainsString('0524QRS-ABCDEFGHIJKLMNOPQRST', $first);
+        $this->assertTrue($this->service->validate($first)['valid']);
+    }
+
+    #[Test]
     public function it_replaces_an_existing_amount_and_rejects_non_positive_amount(): void
     {
         $first = $this->service->generateDynamic(QrisTestPayload::make(), 10000);

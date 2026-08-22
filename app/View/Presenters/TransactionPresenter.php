@@ -37,6 +37,7 @@ final class TransactionPresenter
         return match ($statusKey = $this->normalizeStatus($status)) {
             'success' => 'Berhasil',
             'void' => 'Dibatalkan',
+            'pending_payment' => 'Menunggu Pembayaran',
             default => ucwords(str_replace('_', ' ', $statusKey)),
         };
     }
@@ -68,7 +69,7 @@ final class TransactionPresenter
     {
         return match ($statusKey) {
             'success' => 'success',
-            'void' => 'warning',
+            'void', 'pending_payment' => 'warning',
             default => 'danger',
         };
     }

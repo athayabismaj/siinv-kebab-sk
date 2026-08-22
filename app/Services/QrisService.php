@@ -115,7 +115,7 @@ class QrisService
         ];
     }
 
-    public function generateDynamic(string $masterPayload, int|string $amount): string
+    public function generateDynamic(string $masterPayload, int|string $amount, ?string $reference = null): string
     {
         $validation = $this->validate($masterPayload);
         if (! $validation['valid']) {
@@ -123,9 +123,11 @@ class QrisService
         }
 
         $amount = $this->normalizeAmount($amount);
+        $reference = $this->normalizeReference($reference);
         $elements = $this->parse($masterPayload);
         $result = [];
         $amountInserted = false;
+        $referenceInserted = false;
 
         foreach ($elements as $element) {
             if (in_array($element['tag'], ['54', '55', '56', '57', '63'], true)) {
@@ -142,11 +144,22 @@ class QrisService
                 $amountInserted = true;
             }
 
+            if ($element['tag'] === '62' && $reference !== null) {
+                $element = $this->additionalDataWithReference($element, $reference);
+                $referenceInserted = true;
+            }
+
             $result[] = $element;
         }
 
         if (! $amountInserted) {
             throw new InvalidArgumentException('Country Code QRIS tidak ditemukan.');
+        }
+
+        if ($reference !== null && ! $referenceInserted) {
+            $result[] = $this->element('62', $this->buildTlv([
+                $this->element('05', $reference),
+            ]));
         }
 
         $withoutCrc = $this->buildTlv($result);
@@ -256,6 +269,38 @@ class QrisService
         }
 
         return $normalized;
+    }
+
+    private function normalizeReference(?string $reference): ?string
+    {
+        if ($reference === null) {
+            return null;
+        }
+
+        $reference = strtoupper(trim($reference));
+        if (! preg_match('/^[A-Z0-9-]{1,25}$/', $reference)) {
+            throw new InvalidArgumentException('Referensi QRIS tidak valid.');
+        }
+
+        return $reference;
+    }
+
+    /**
+     * Reference Label (sub-tag 05) pada Additional Data Field Template (tag 62)
+     * membuat payload setiap attempt unik dan siap dicocokkan oleh provider.
+     *
+     * @param  array{tag:string,length:int,value:string,children?:array}  $element
+     * @return array{tag:string,length:int,value:string}
+     */
+    private function additionalDataWithReference(array $element, string $reference): array
+    {
+        $children = collect($element['children'] ?? $this->parseTlv((string) $element['value']))
+            ->reject(fn (array $child): bool => $child['tag'] === '05')
+            ->values()
+            ->all();
+        $children[] = $this->element('05', $reference);
+
+        return $this->element('62', $this->buildTlv($children));
     }
 
     private function calculateCrc(string $payload): string

@@ -6,9 +6,11 @@ use App\Models\ApiToken;
 use App\Models\Branch;
 use App\Models\PaymentMethod;
 use App\Models\QrisConfig;
+use App\Models\QrisPaymentAttempt;
 use App\Models\Role;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Owner\TransactionHistoryQueryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\QrisTestPayload;
 use Tests\TestCase;
@@ -45,7 +47,8 @@ class QrisPaymentApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.branch_id', $branchA->id)
             ->assertJsonPath('data.merchant_name', 'MERCHANT CABANG A LENGKAP')
-            ->assertJsonPath('data.amount', 25000);
+            ->assertJsonPath('data.amount', 25000)
+            ->assertJsonStructure(['data' => ['qris_reference', 'generated_at', 'expires_at']]);
 
         $responseB = $this->withToken($tokenB)->postJson('/api/payments/qris/generate', [
             'transaction_id' => $transactionB->id,
@@ -93,6 +96,122 @@ class QrisPaymentApiTest extends TestCase
         $this->withToken($token)->postJson('/api/payments/qris/generate', [
             'transaction_id' => 999999,
         ])->assertNotFound()->assertJsonPath('message', 'Transaksi tidak ditemukan.');
+    }
+
+    public function test_pending_payment_becomes_success_with_manual_audit_and_enters_revenue_once(): void
+    {
+        [$branch, $cashier, $token] = $this->cashierContext('CONFIRM');
+        $this->config($branch, $cashier, 'MERCHANT CONFIRM', 'CONFIRM000001');
+        $transaction = $this->transaction($branch, $cashier, '25000.00', 'CONFIRM');
+
+        $this->withToken($token)->getJson('/api/revenue/summary')
+            ->assertOk()->assertJsonPath('data.total_revenue', 0)->assertJsonPath('data.total_count', 0);
+        $pendingReport = app(TransactionHistoryQueryService::class)->summary(
+            now()->subDay(),
+            now()->addDay(),
+            ['branch_id' => $branch->id],
+        );
+        $this->assertSame(0, $pendingReport['total_transactions']);
+        $this->assertSame(0.0, $pendingReport['total_revenue']);
+
+        $generated = $this->withToken($token)->postJson('/api/payments/qris/generate', [
+            'transaction_id' => $transaction->id,
+            'amount' => 1,
+        ])->assertOk();
+
+        $reference = (string) $generated->json('data.qris_reference');
+        $this->withToken($token)->postJson('/api/payments/qris/confirm', [
+            'transaction_id' => $transaction->id,
+            'qris_reference' => $reference,
+        ])->assertOk()
+            ->assertJsonPath('data.status', Transaction::STATUS_SUCCESS)
+            ->assertJsonPath('data.confirmed_by.id', $cashier->id)
+            ->assertJsonPath('data.confirmation_source', 'manual_cashier');
+
+        $transaction->refresh();
+        $this->assertSame(Transaction::STATUS_SUCCESS, $transaction->status);
+        $this->assertSame($cashier->id, (int) $transaction->payment_confirmed_by);
+        $this->assertNotNull($transaction->payment_confirmed_at);
+        $this->assertSame(25000.0, (float) $transaction->getRawOriginal('paid_amount'));
+
+        $this->withToken($token)->getJson('/api/revenue/summary')
+            ->assertOk()->assertJsonPath('data.total_revenue', 25000)->assertJsonPath('data.total_count', 1);
+        $confirmedReport = app(TransactionHistoryQueryService::class)->summary(
+            now()->subDay(),
+            now()->addDay(),
+            ['branch_id' => $branch->id],
+        );
+        $this->assertSame(1, $confirmedReport['total_transactions']);
+        $this->assertSame(25000.0, $confirmedReport['total_revenue']);
+
+        $this->withToken($token)->postJson('/api/payments/qris/confirm', [
+            'transaction_id' => $transaction->id,
+            'qris_reference' => $reference,
+        ])->assertStatus(409)->assertJsonPath('message', 'Pembayaran QRIS sudah pernah dikonfirmasi.');
+
+        $this->withToken($token)->getJson('/api/revenue/summary')
+            ->assertOk()->assertJsonPath('data.total_revenue', 25000)->assertJsonPath('data.total_count', 1);
+    }
+
+    public function test_expired_qr_is_rejected_and_a_new_reference_replaces_it(): void
+    {
+        [$branch, $cashier, $token] = $this->cashierContext('EXPIRED');
+        $this->config($branch, $cashier, 'MERCHANT EXPIRED', 'EXPIRED000001');
+        $transaction = $this->transaction($branch, $cashier, '12000.00', 'EXPIRED');
+
+        $first = $this->withToken($token)->postJson('/api/payments/qris/generate', [
+            'transaction_id' => $transaction->id,
+        ])->assertOk();
+        $firstReference = (string) $first->json('data.qris_reference');
+        $firstPayload = (string) $first->json('data.qris_payload');
+        QrisPaymentAttempt::query()->where('reference', $firstReference)->update(['expires_at' => now()->subSecond()]);
+
+        $this->withToken($token)->postJson('/api/payments/qris/confirm', [
+            'transaction_id' => $transaction->id,
+            'qris_reference' => $firstReference,
+        ])->assertStatus(410)
+            ->assertJsonPath('message', 'QRIS sudah kedaluwarsa. Buat QRIS baru untuk melanjutkan.');
+
+        $this->assertSame(Transaction::STATUS_PENDING_PAYMENT, $transaction->fresh()->status);
+        $this->assertDatabaseHas('qris_payment_attempts', [
+            'reference' => $firstReference,
+            'status' => QrisPaymentAttempt::STATUS_EXPIRED,
+        ]);
+
+        $second = $this->withToken($token)->postJson('/api/payments/qris/generate', [
+            'transaction_id' => $transaction->id,
+        ])->assertOk();
+        $this->assertNotSame($firstReference, (string) $second->json('data.qris_reference'));
+        $this->assertNotSame($firstPayload, (string) $second->json('data.qris_payload'));
+    }
+
+    public function test_reference_cannot_be_reused_for_another_transaction_or_by_another_cashier(): void
+    {
+        [$branch, $cashier, $token] = $this->cashierContext('REUSE');
+        [, , $foreignToken] = $this->cashierContext('FOREIGN');
+        $this->config($branch, $cashier, 'MERCHANT REUSE', 'REUSE0000001');
+        $first = $this->transaction($branch, $cashier, '10000.00', 'R1');
+        $second = $this->transaction($branch, $cashier, '10000.00', 'R2');
+
+        $generated = $this->withToken($token)->postJson('/api/payments/qris/generate', [
+            'transaction_id' => $first->id,
+        ])->assertOk();
+        $reference = (string) $generated->json('data.qris_reference');
+
+        $this->withToken($token)->postJson('/api/payments/qris/confirm', [
+            'transaction_id' => $second->id,
+            'qris_reference' => $reference,
+        ])->assertStatus(409)
+            ->assertJsonPath('message', 'Referensi QRIS sudah tidak aktif atau telah digunakan.');
+
+        $this->withToken($foreignToken)->postJson('/api/payments/qris/confirm', [
+            'transaction_id' => $first->id,
+            'qris_reference' => $reference,
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Anda tidak memiliki akses untuk mengonfirmasi transaksi ini.');
+
+        $this->assertSame(Transaction::STATUS_PENDING_PAYMENT, $first->fresh()->status);
+        $this->assertSame(Transaction::STATUS_PENDING_PAYMENT, $second->fresh()->status);
     }
 
     /** @return array{Branch,User,string} */
@@ -143,9 +262,9 @@ class QrisPaymentApiTest extends TestCase
             'user_id' => $cashier->id,
             'total_amount' => $amount,
             'payment_method_id' => $payment->id,
-            'paid_amount' => $amount,
+            'paid_amount' => 0,
             'change_amount' => 0,
-            'status' => 'SUCCESS',
+            'status' => Transaction::STATUS_PENDING_PAYMENT,
         ]);
     }
 }

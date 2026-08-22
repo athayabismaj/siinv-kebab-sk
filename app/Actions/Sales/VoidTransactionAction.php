@@ -11,8 +11,8 @@ use App\Models\DailyStockSession;
 use App\Models\Ingredient;
 use App\Models\StockLog;
 use App\Models\Transaction;
-use App\Services\Api\CashierOperationalContextResolver;
 use App\Services\Analytics\DailySalesSummaryService;
+use App\Services\Api\CashierOperationalContextResolver;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
 use Carbon\Carbon;
@@ -24,12 +24,11 @@ class VoidTransactionAction
     public function __construct(
         private readonly DailySalesSummaryService $dailySalesSummaryService,
         private readonly CashierOperationalContextResolver $operationalContextResolver,
-    ) {
-    }
+    ) {}
 
     public function execute(VoidTransactionRequestDto $requestDto): float
     {
-        $idempotencyKey = 'void_tx_lock_' . $requestDto->idempotencyKey;
+        $idempotencyKey = 'void_tx_lock_'.$requestDto->idempotencyKey;
         if (! Cache::add($idempotencyKey, true, now()->addMinutes(5))) {
             throw new \Exception("Idempotency conflict: Permintaan void untuk key {$requestDto->idempotencyKey} sedang diproses atau sudah selesai.");
         }
@@ -52,6 +51,7 @@ class VoidTransactionAction
                 if (strtoupper((string) $lockedTransaction->status) === 'VOID') {
                     throw new \Exception('Transaksi ini sudah dibatalkan sebelumnya.');
                 }
+                $wasSuccessful = strtoupper((string) $lockedTransaction->status) === Transaction::STATUS_SUCCESS;
 
                 if (
                     (int) $lockedTransaction->daily_stock_session_id !== (int) $lockedSession->id
@@ -116,15 +116,17 @@ class VoidTransactionAction
                     }
                 }
 
-                CashflowEntry::create([
-                    'branch_id' => $lockedTransaction->branch_id,
-                    'entry_date' => now()->toDateString(),
-                    'type' => 'expense',
-                    'amount' => $lockedTransaction->total_amount,
-                    'source' => 'Transaction Void',
-                    'note' => "Refund untuk Void Transaksi: {$lockedTransaction->transaction_code} pada Sesi {$lockedSession->id}; alasan: {$requestDto->inventoryAction->value}",
-                    'created_by' => $requestDto->actor->id,
-                ]);
+                if ($wasSuccessful) {
+                    CashflowEntry::create([
+                        'branch_id' => $lockedTransaction->branch_id,
+                        'entry_date' => now()->toDateString(),
+                        'type' => 'expense',
+                        'amount' => $lockedTransaction->total_amount,
+                        'source' => 'Transaction Void',
+                        'note' => "Refund untuk Void Transaksi: {$lockedTransaction->transaction_code} pada Sesi {$lockedSession->id}; alasan: {$requestDto->inventoryAction->value}",
+                        'created_by' => $requestDto->actor->id,
+                    ]);
+                }
 
                 $lockedTransaction->status = 'VOID';
                 $lockedTransaction->voided_by = $requestDto->actor->id;
@@ -132,9 +134,11 @@ class VoidTransactionAction
                 $lockedTransaction->void_reason = $requestDto->inventoryAction->value;
                 $lockedTransaction->save();
 
-                $branch = Branch::query()->findOrFail($lockedTransaction->branch_id);
-                $saleDate = Carbon::parse($lockedTransaction->created_at, config('app.timezone', 'Asia/Jakarta'));
-                $this->dailySalesSummaryService->rebuildForDate($branch, $saleDate);
+                if ($wasSuccessful) {
+                    $branch = Branch::query()->findOrFail($lockedTransaction->branch_id);
+                    $saleDate = Carbon::parse($lockedTransaction->created_at, config('app.timezone', 'Asia/Jakarta'));
+                    $this->dailySalesSummaryService->rebuildForDate($branch, $saleDate);
+                }
 
                 return (float) Transaction::query()
                     ->where('user_id', $lockedSession->cashier_id)

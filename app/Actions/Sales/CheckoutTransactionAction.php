@@ -6,6 +6,7 @@ use App\DTOs\CashierOperationalContext;
 use App\Models\Branch;
 use App\Models\MenuVariant;
 use App\Models\PaymentMethod;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Analytics\DailySalesSummaryService;
 use App\Services\Api\CashierOperationalContextResolver;
@@ -91,12 +92,14 @@ class CheckoutTransactionAction
                 $operationalContext,
                 $references['branch'],
             );
-            $this->dailySalesSummaryService->recordSuccessfulTransaction(
-                $result['branch_model'],
-                $result['occurred_at'],
-                (float) $result['total_amount'],
-                (int) $result['total_items_sold'],
-            );
+            if ($result['status'] === Transaction::STATUS_SUCCESS) {
+                $this->dailySalesSummaryService->recordSuccessfulTransaction(
+                    $result['branch_model'],
+                    $result['occurred_at'],
+                    (float) $result['total_amount'],
+                    (int) $result['total_items_sold'],
+                );
+            }
 
             unset(
                 $result['branch_id'],
@@ -221,8 +224,9 @@ class CheckoutTransactionAction
             }
         }
 
-        $paidAmount = (float) $validated['paid_amount'];
-        if ($paidAmount < $totalAmount) {
+        $isQris = strtolower(trim((string) $paymentMethod['name'])) === 'qris';
+        $paidAmount = $isQris ? 0.0 : (float) $validated['paid_amount'];
+        if (! $isQris && $paidAmount < $totalAmount) {
             return [
                 'ok' => false,
                 'status' => 422,
@@ -268,6 +272,9 @@ class CheckoutTransactionAction
 
         $transactionCode = $this->generateTransactionCode($now, $branchId, (string) $branch->code);
         $activeSessionId = $operationalContext->sessionId();
+        $isQris = strtolower(trim((string) $draft['payment_method']['name'])) === 'qris';
+        $status = $isQris ? Transaction::STATUS_PENDING_PAYMENT : Transaction::STATUS_SUCCESS;
+        $changeAmount = $isQris ? 0.0 : $draft['paid_amount'] - $draft['total_amount'];
 
         $transactionId = DB::table('transactions')->insertGetId([
             'transaction_code' => $transactionCode,
@@ -276,8 +283,8 @@ class CheckoutTransactionAction
             'total_amount' => $draft['total_amount'],
             'payment_method_id' => (int) $draft['payment_method']['id'],
             'paid_amount' => $draft['paid_amount'],
-            'change_amount' => $draft['paid_amount'] - $draft['total_amount'],
-            'status' => 'SUCCESS',
+            'change_amount' => $changeAmount,
+            'status' => $status,
             'daily_stock_session_id' => $activeSessionId,
             'created_at' => $now,
             'updated_at' => $now,
@@ -311,6 +318,7 @@ class CheckoutTransactionAction
         return [
             'transaction_id' => $transactionId,
             'transaction_code' => $transactionCode,
+            'status' => $status,
             'created_at' => $now->toIso8601String(),
             'payment_method' => [
                 'id' => $draft['payment_method']['id'],
@@ -327,7 +335,7 @@ class CheckoutTransactionAction
             ])->values(),
             'total_amount' => round($draft['total_amount'], 2),
             'paid_amount' => round($draft['paid_amount'], 2),
-            'change_amount' => round($draft['paid_amount'] - $draft['total_amount'], 2),
+            'change_amount' => round($changeAmount, 2),
             'branch_id' => $branchId,
             'branch_model' => $branch,
             'branch' => [

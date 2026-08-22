@@ -23,6 +23,7 @@ class TransactionPresenterTest extends TestCase
             ' SUCCESS ' => ['success', 'Berhasil', 'success'],
             'void' => ['void', 'Dibatalkan', 'warning'],
             ' VOID ' => ['void', 'Dibatalkan', 'warning'],
+            'PENDING_PAYMENT' => ['pending_payment', 'Menunggu Pembayaran', 'warning'],
             'payment_pending' => ['payment_pending', 'Payment Pending', 'danger'],
             '' => ['', '', 'danger'],
         ] as $input => [$key, $label, $tone]) {

@@ -54,15 +54,15 @@ class TransactionHistoryQueryService
             });
         }
 
-        if (!empty($filters['user_id'])) {
+        if (! empty($filters['user_id'])) {
             $query->where('user_id', (int) $filters['user_id']);
         }
 
-        if (!empty($filters['payment_method_id'])) {
+        if (! empty($filters['payment_method_id'])) {
             $query->where('payment_method_id', (int) $filters['payment_method_id']);
         }
 
-        if (!empty($filters['branch_id'])) {
+        if (! empty($filters['branch_id'])) {
             BranchScope::apply($query, (int) $filters['branch_id'], 'transactions.branch_id');
         }
 
@@ -76,7 +76,7 @@ class TransactionHistoryQueryService
             now()->addSeconds(90),
             function () use ($dateFrom, $dateTo, $filters) {
                 $aggregateRow = $this->applyFilters(
-                    $this->baseFilterQuery($dateFrom, $dateTo),
+                    $this->baseFilterQuery($dateFrom, $dateTo)->successful(),
                     $filters
                 )
                     ->selectRaw('COUNT(*) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue')
@@ -101,7 +101,7 @@ class TransactionHistoryQueryService
             now()->addSeconds(90),
             function () use ($dateFrom, $dateTo, $filters) {
                 $topCashierRow = $this->applyFilters(
-                    $this->baseFilterQuery($dateFrom, $dateTo),
+                    $this->baseFilterQuery($dateFrom, $dateTo)->successful(),
                     $filters
                 )
                     ->join('users', 'users.id', '=', 'transactions.user_id')
@@ -117,7 +117,7 @@ class TransactionHistoryQueryService
 
     private function key(string $metric, Carbon $dateFrom, Carbon $dateTo, array $filters): string
     {
-        return AdminCache::key('transactions', 'owner:transaction_history:' . $metric . ':' . md5(json_encode([
+        return AdminCache::key('transactions', 'owner:transaction_history:'.$metric.':'.md5(json_encode([
             'from' => $dateFrom->toDateString(),
             'to' => $dateTo->toDateString(),
             'search' => trim((string) ($filters['search'] ?? '')),
@@ -127,4 +127,3 @@ class TransactionHistoryQueryService
         ])));
     }
 }
-

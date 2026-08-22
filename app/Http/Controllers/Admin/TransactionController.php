@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Support\AdminCache;
 use App\Support\BranchScope;
@@ -27,7 +26,7 @@ class TransactionController extends Controller
             $request->query->remove('payment_method_id');
         }
 
-        if (!$isOwnerView) {
+        if (! $isOwnerView) {
             $type = ReportPeriod::resolveType((string) $request->input('type', 'daily'));
             [$dateFrom, $dateTo] = ReportPeriod::resolveDateRange($request, $type, true);
             $selectedDate = $dateFrom->copy();
@@ -131,8 +130,7 @@ class TransactionController extends Controller
         $query,
         Request $request,
         bool $includeUserFilter = false
-    ): void
-    {
+    ): void {
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
             $query->where(function ($q) use ($search) {
@@ -153,6 +151,7 @@ class TransactionController extends Controller
     {
         if ($isOwnerView) {
             $this->applyOwnerDateRange($query, $request);
+
             return;
         }
 
@@ -241,7 +240,7 @@ class TransactionController extends Controller
     private function cashierOptions()
     {
         return Cache::remember(
-            AdminCache::key('transactions', 'cashiers:list:' . (string) (BranchScope::scopedBranchIdFor(auth()->user()) ?? 'all')),
+            AdminCache::key('transactions', 'cashiers:list:'.(string) (BranchScope::scopedBranchIdFor(auth()->user()) ?? 'all')),
             now()->addSeconds(90),
             fn () => Transaction::query()
                 ->join('users', 'users.id', '=', 'transactions.user_id')
@@ -264,7 +263,7 @@ class TransactionController extends Controller
             }
         }
 
-        $suffix = 'summary:' . md5(json_encode([
+        $suffix = 'summary:'.md5(json_encode([
             'search' => (string) $request->input('search', ''),
             'user_id' => (int) $request->input('user_id', 0),
             'date_from' => $request->input('date_from'),
@@ -279,7 +278,7 @@ class TransactionController extends Controller
             AdminCache::key('transactions', $suffix),
             now()->addSeconds(90),
             function () use ($request, $selectedDate, $summaryEndDate) {
-                $summaryQuery = Transaction::query();
+                $summaryQuery = Transaction::query()->successful();
                 $this->applyBranchScope($summaryQuery, false);
                 $this->applyCommonFilters(
                     $summaryQuery,
