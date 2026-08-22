@@ -47,40 +47,36 @@ class StockController extends Controller
             $this->applyIngredientFilters($query, $request);
         };
 
-        $categoriesQuery = IngredientCategory::query()
-            ->whereHas('ingredients', $ingredientFilter)
-            ->withCount(['ingredients as filtered_ingredients_count' => $ingredientFilter])
-            ->with([
-                'ingredients' => function ($query) use ($ingredientFilter) {
-                    $ingredientFilter($query);
-                    $query->orderBy('name');
-                },
-            ]);
+        $ingredientsQuery = Ingredient::query()
+            ->select([
+                'id',
+                'category_id',
+                'name',
+                'display_unit',
+                'base_unit',
+                'pack_size',
+                'stock',
+                'minimum_stock',
+                'selling_price',
+            ])
+            ->with('category:id,name');
+
+        $ingredientFilter($ingredientsQuery);
 
         if ($request->filled('category')) {
-            $categoriesQuery->where('id', $request->category);
+            $ingredientsQuery->where('category_id', $request->integer('category'));
         }
 
-        $categories = $categoriesQuery
+        $ingredients = $ingredientsQuery
             ->orderBy('name')
             ->paginate(10)
             ->withQueryString();
 
-        $categories->setCollection(
-            $categories->getCollection()->map(function (IngredientCategory $category) {
-                $ingredients = $category->ingredients->map(function (Ingredient $ingredient) {
-                    $ingredient->stock_meta = IngredientStockView::fromIngredient($ingredient);
-                    return $ingredient;
-                });
+        $ingredients->setCollection(
+            $ingredients->getCollection()->map(function (Ingredient $ingredient) {
+                $ingredient->stock_meta = IngredientStockView::fromIngredient($ingredient);
 
-                $category->setRelation('ingredients', $ingredients);
-
-                $category->stock_summary = [
-                    'out' => $ingredients->filter(fn (Ingredient $ingredient) => (bool) ($ingredient->stock_meta['is_out'] ?? false))->count(),
-                    'low' => $ingredients->filter(fn (Ingredient $ingredient) => (bool) ($ingredient->stock_meta['is_low'] ?? false))->count(),
-                ];
-
-                return $category;
+                return $ingredient;
             })
         );
 
@@ -158,7 +154,7 @@ class StockController extends Controller
         return view(
             'admin.stocks.index',
             compact(
-                'categories',
+                'ingredients',
                 'allCategories',
                 'lowStockCount'
             )

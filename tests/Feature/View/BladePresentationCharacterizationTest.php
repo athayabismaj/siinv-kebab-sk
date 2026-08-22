@@ -3,6 +3,8 @@
 namespace Tests\Feature\View;
 
 use App\Models\Branch;
+use App\Models\Ingredient;
+use App\Models\IngredientCategory;
 use App\Models\PaymentMethod;
 use App\Models\Role;
 use App\Models\Transaction;
@@ -58,6 +60,49 @@ class BladePresentationCharacterizationTest extends TestCase
             ->assertSee('Aktivitas Hari Ini')
             ->assertSee(route('admin.transactions.index'), false)
             ->assertSee(route('admin.daily-stocks.index'), false);
+    }
+
+    public function test_stock_management_uses_the_compact_responsive_list_contract(): void
+    {
+        $admin = $this->userForRole('admin');
+        $category = IngredientCategory::query()->create(['name' => 'Daging']);
+        $ingredient = Ingredient::query()->create([
+            'category_id' => $category->id,
+            'name' => 'Patty Beef',
+            'display_unit' => 'pcs',
+            'base_unit' => 'pcs',
+            'pack_size' => 10,
+            'stock' => 2,
+            'minimum_stock' => 10,
+            'selling_price' => 2500,
+        ]);
+        collect(range(1, 10))->each(function (int $number) use ($category): void {
+            Ingredient::query()->create([
+                'category_id' => $category->id,
+                'name' => 'Stok Tambahan '.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
+                'display_unit' => 'pcs',
+                'base_unit' => 'pcs',
+                'pack_size' => 1,
+                'stock' => 20,
+                'minimum_stock' => 5,
+            ]);
+        });
+
+        $this->actingAs($admin)
+            ->get(route('admin.stocks.index'))
+            ->assertOk()
+            ->assertViewHas('ingredients', fn ($paginator) => $paginator->count() === 10 && $paginator->total() === 11)
+            ->assertSee('Restok &amp; Penyesuaian', false)
+            ->assertSee('data-stock-filters', false)
+            ->assertSee('data-stock-list', false)
+            ->assertSee('data-stock-ingredient="'.$ingredient->id.'"', false)
+            ->assertSee('Patty Beef')
+            ->assertSee('Stok saat ini')
+            ->assertSee('Restok')
+            ->assertSee('Sesuaikan')
+            ->assertSee('Riwayat')
+            ->assertDontSee('Stok Tambahan 10')
+            ->assertDontSee('x-collapse', false);
     }
 
     public function test_transaction_views_keep_shared_status_payment_and_void_semantics(): void
