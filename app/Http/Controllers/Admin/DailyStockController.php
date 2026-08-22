@@ -85,7 +85,7 @@ class DailyStockController extends Controller
         );
         if ($selectedCashierId > 0) {
             $session = DailyStockSession::query()
-                ->with(['cashier:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,selling_price,cost_price'])
+                ->with(['cashier:id,name', 'items.ingredient:id,category_id,name,display_unit,base_unit,pack_size,stock,selling_price,cost_price'])
                 ->when(
                     $usesNativeDateColumns,
                     fn ($query) => $query->where('session_date', $selectedDate->toDateString()),
@@ -496,13 +496,22 @@ class DailyStockController extends Controller
                 $returnedCount = (int) ($transferResult['returned'] ?? 0);
                 $reconciledCount = (int) ($transferResult['reconciled'] ?? 0);
                 $skippedTransfers = $transferResult['skipped'] ?? [];
-                $redirect = redirect()
-                    ->route('admin.daily-stocks.transfer.form', [
-                        'session_id' => $session->id,
-                        'search' => $request->query('search'),
-                        'category_id' => $request->query('category_id'),
-                        'page' => $request->query('page'),
-                    ]);
+                if (($validated['return_to'] ?? 'transfer') === 'index') {
+                    $redirect = redirect()->route('admin.daily-stocks.index', array_filter([
+                        'date' => $session->session_date->toDateString(),
+                        'cashier_id' => $session->cashier_id,
+                        'category_id' => $validated['return_category_id'] ?? null,
+                        'page' => $validated['return_page'] ?? null,
+                    ], fn ($value) => $value !== null && $value !== ''));
+                } else {
+                    $redirect = redirect()
+                        ->route('admin.daily-stocks.transfer.form', [
+                            'session_id' => $session->id,
+                            'search' => $request->query('search'),
+                            'category_id' => $request->query('category_id'),
+                            'page' => $request->query('page'),
+                        ]);
+                }
 
                 if ($processedCount > 0 || $returnedCount > 0 || $reconciledCount > 0) {
                     $messages = [];

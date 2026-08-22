@@ -60,6 +60,87 @@ class DailyStockFlowTest extends TestCase
         ]);
     }
 
+    public function test_open_session_item_supports_quick_add_and_returns_to_daily_stock_index(): void
+    {
+        [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset();
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.open'), [
+            'date' => now()->toDateString(),
+            'cashier_id' => $cashier->id,
+        ])->assertRedirect();
+
+        $session = DailyStockSession::query()->firstOrFail();
+
+        $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
+            'session_id' => $session->id,
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 10,
+                    'transfer_unit' => 'pcs',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $indexResponse = $this->actingAs($admin)
+            ->get(route('admin.daily-stocks.index', [
+                'date' => now()->toDateString(),
+                'cashier_id' => $cashier->id,
+            ]))
+            ->assertOk()
+            ->assertViewHas('sessionItems', function ($items) use ($ingredient): bool {
+                $item = $items->firstWhere('ingredient_id', $ingredient->id);
+
+                return $item !== null
+                    && $item->ingredient !== null
+                    && (float) $item->ingredient->stock === 90.0;
+            })
+            ->assertSee('Kelola Semua Bahan')
+            ->assertSee('data-quick-add-item="'.$ingredient->id.'"', false)
+            ->assertSee('@click="openQuickAdd(JSON.parse(', false)
+            ->assertDontSee("@click='openQuickAdd(JSON.parse(", false)
+            ->assertDontSee('data-quick-add-item-mobile', false)
+            ->assertSee('Tambah Cepat');
+
+        $this->assertSame(
+            1,
+            substr_count($indexResponse->getContent(), 'data-quick-add-item="'.$ingredient->id.'"'),
+            'Setiap bahan harus memakai satu baris responsif, bukan duplikasi desktop dan mobile.'
+        );
+
+        $response = $this->actingAs($admin)->post(route('admin.daily-stocks.transfer'), [
+            'session_id' => $session->id,
+            'return_to' => 'index',
+            'transfers' => [
+                $ingredient->id => [
+                    'quantity' => 3,
+                    'transfer_unit' => 'pcs',
+                    'note' => 'Tambahan cepat untuk jam sibuk',
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertRedirect(route('admin.daily-stocks.index', [
+                'date' => $session->session_date->toDateString(),
+                'cashier_id' => $cashier->id,
+            ]))
+            ->assertSessionHas('success', '1 bahan tambahan berhasil diambil dari gudang.');
+
+        $this->assertSame(87.0, (float) $ingredient->fresh()->stock);
+        $this->assertDatabaseHas('daily_stock_items', [
+            'daily_stock_session_id' => $session->id,
+            'ingredient_id' => $ingredient->id,
+            'opening_qty' => 13.00,
+            'remaining_qty' => 13.00,
+        ]);
+        $this->assertDatabaseHas('stock_logs', [
+            'ingredient_id' => $ingredient->id,
+            'type' => 'transfer_daily',
+            'quantity' => -3.00,
+            'reference_id' => $session->id,
+        ]);
+    }
+
     public function test_transfer_fails_when_warehouse_stock_is_insufficient(): void
     {
         [$admin, $cashier, $ingredient] = $this->baseDailyStockDataset(stock: 10);

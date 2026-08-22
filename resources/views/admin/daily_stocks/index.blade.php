@@ -7,7 +7,41 @@
 @section('title', 'Stok Harian Kasir')
 
 @section('content')
-<div class="w-full space-y-6 overflow-x-hidden pb-10">
+<div
+    x-data="{
+        quickAddOpen: false,
+        quickItem: null,
+        quantity: 0,
+        note: '',
+        submitting: false,
+        openQuickAdd(item) {
+            this.quickItem = item;
+            this.quantity = item.step;
+            this.note = '';
+            this.submitting = false;
+            this.quickAddOpen = true;
+            this.$nextTick(() => this.$refs.quickQuantity?.focus());
+        },
+        closeQuickAdd() {
+            if (this.submitting) return;
+            this.quickAddOpen = false;
+            this.quickItem = null;
+        },
+        changeQuickQuantity(direction) {
+            const next = Math.max(0, (parseFloat(this.quantity) || 0) + (direction * (this.quickItem?.step || 1)));
+            this.quantity = Number(next.toFixed(3));
+        },
+        canSubmitQuickAdd() {
+            const value = parseFloat(this.quantity) || 0;
+            return this.quickItem && value > 0 && value <= (this.quickItem.warehouse + .0001) && !this.submitting;
+        },
+        formatQuantity(value) {
+            return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 }).format(Number(value) || 0);
+        }
+    }"
+    @keydown.escape.window="closeQuickAdd()"
+    class="w-full space-y-6 overflow-x-hidden pb-10"
+>
 
     <x-page-header 
         title="Stok Harian Kasir" 
@@ -207,7 +241,8 @@
                             <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14m7-7H5"></path>
                             </svg>
-                            <span class="whitespace-nowrap">Tambah Bahan</span>
+                            <span class="whitespace-nowrap sm:hidden">Kelola Bahan</span>
+                            <span class="hidden whitespace-nowrap sm:inline">Kelola Semua Bahan</span>
                         </a>
 
                         {{-- Tutup Sesi --}}
@@ -358,18 +393,18 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead class="hidden md:table-header-group">
-                        <tr class="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-                            <th class="px-6 py-4 whitespace-nowrap text-left rounded-tl-xl">Bahan Baku</th>
-                            <th class="px-6 py-4 whitespace-nowrap text-right">Dibawa</th>
-                            <th class="px-6 py-4 whitespace-nowrap text-right">Sisa (Akhir)</th>
-                            <th class="px-6 py-4 whitespace-nowrap text-right text-blue-600 dark:text-blue-400">Total Terpakai</th>
-                            <th class="px-6 py-4 whitespace-nowrap text-right text-rose-500 rounded-tr-xl">Est. Nilai</th>
+                        <tr class="border-b border-slate-200 bg-slate-50/80 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-800/30">
+                            <th class="px-6 py-3 whitespace-nowrap text-left rounded-tl-xl">Bahan <span class="ml-1 normal-case tracking-normal text-blue-500">· klik untuk tambah</span></th>
+                            <th class="px-6 py-3 whitespace-nowrap text-right">Stok Awal</th>
+                            <th class="px-6 py-3 whitespace-nowrap text-right">Sisa</th>
+                            <th class="px-6 py-3 whitespace-nowrap text-right text-blue-600 dark:text-blue-400">Terpakai</th>
+                            <th class="px-6 py-3 whitespace-nowrap text-right rounded-tr-xl">Estimasi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100/80 dark:divide-slate-800/60">
+                    <tbody class="block space-y-2 bg-slate-50/70 p-3 dark:bg-slate-950/40 md:table-row-group md:space-y-0 md:bg-transparent md:p-0 md:dark:bg-transparent">
                         @forelse($sessionItems as $item)
                             
-                            {{-- ROW DESKTOP --}}
+                            {{-- Satu baris responsif: tabel desktop, kartu ringkas mobile --}}
                             @php
                                 $usedQty  = (float) $item->used_qty;
                                 $costPrice = (float) ($item->ingredient->cost_price ?? 0);
@@ -380,24 +415,42 @@
                                     'pcs'     => ($usedQty / $packSize) * $costPrice,
                                     default   => $usedQty * $costPrice,
                                 };
+                                $warehouseDisplay = in_array($dispUnit, ['kg', 'l'], true)
+                                    ? round((float) $item->ingredient->stock / 1000, 3)
+                                    : (float) $item->ingredient->stock;
+                                $quickStep = in_array($dispUnit, ['kg', 'l'], true) ? 0.01 : 1;
+                                $quickAddPayload = [
+                                    'id' => (int) $item->ingredient_id,
+                                    'name' => (string) $item->ingredient->name,
+                                    'unit' => strtolower((string) $item->display_unit),
+                                    'warehouse' => $warehouseDisplay,
+                                    'opening' => (float) $item->opening_display,
+                                    'remaining' => (float) $item->remaining_display,
+                                    'step' => $quickStep,
+                                ];
                             @endphp
-                            <tr class="hidden md:table-row hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group">
-                                <td class="px-6 py-5 whitespace-nowrap align-middle">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                                            <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            <tr
+                                @if($isSessionOpen)
+                                    @click="openQuickAdd(@js($quickAddPayload))"
+                                    @keydown.enter.prevent="openQuickAdd(@js($quickAddPayload))"
+                                    @keydown.space.prevent="openQuickAdd(@js($quickAddPayload))"
+                                    tabindex="0"
+                                    role="button"
+                                    data-quick-add-item="{{ $item->ingredient_id }}"
+                                @endif
+                                class="group grid grid-cols-3 overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900 md:table-row md:rounded-none md:border-0 md:shadow-none {{ $isSessionOpen ? 'cursor-pointer hover:border-blue-200 hover:bg-blue-50/50 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:hover:border-blue-900/60 dark:hover:bg-blue-500/5' : '' }}"
+                            >
+                                <td class="col-span-3 block px-4 pb-2 pt-3.5 align-middle md:table-cell md:px-6 md:py-3">
+                                    <div class="flex min-w-0 items-center justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="truncate text-[14px] font-extrabold text-slate-900 transition-colors group-hover:text-blue-600 dark:text-white">{{ $item->ingredient->name }}</p>
+                                            @if($costPrice > 0)<p class="mt-0.5 text-[10px] font-medium text-slate-400">Rp {{ number_format($costPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}</p>@endif
                                         </div>
-                                        <div>
-                                            <p class="font-bold text-[14px] text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors">{{ $item->ingredient->name }}</p>
-                                            @if($costPrice > 0)
-                                                <p class="text-[11px] text-slate-400 font-medium mt-0.5">
-                                                    Rp {{ number_format($costPrice, 0, ',', '.') }} / {{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
-                                                </p>
-                                            @endif
-                                        </div>
+                                        @if($isSessionOpen)<span class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 text-[10px] font-bold text-blue-600 dark:bg-blue-500/10 dark:text-blue-300"><i class="fa-solid fa-plus text-[9px]"></i><span class="md:hidden">Tambah</span></span>@endif
                                     </div>
                                 </td>
-                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                <td class="block px-2 py-2 text-center align-middle md:table-cell md:px-6 md:py-3 md:text-right">
+                                    <span class="mb-1 block text-[8px] font-bold uppercase tracking-wider text-slate-400 md:hidden">Awal</span>
                                     <div class="inline-flex items-baseline gap-1">
                                         <span class="text-[14px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
                                             {{ rtrim(rtrim(number_format((float) $item->opening_display, 2, '.', ''), '0'), '.') }}
@@ -413,7 +466,8 @@
                                         </p>
                                     @endif
                                 </td>
-                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                <td class="block px-2 py-2 text-center align-middle md:table-cell md:px-6 md:py-3 md:text-right">
+                                    <span class="mb-1 block text-[8px] font-bold uppercase tracking-wider text-slate-400 md:hidden">Sisa</span>
                                     <div class="inline-flex items-baseline gap-1">
                                         <span class="text-[14px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
                                             {{ rtrim(rtrim(number_format((float) $item->remaining_display, 2, '.', ''), '0'), '.') }}
@@ -421,15 +475,17 @@
                                         <span class="text-[10px] font-semibold text-slate-400 uppercase">{{ $item->display_unit }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
-                                    <div class="inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50/50 dark:bg-blue-900/10">
+                                <td class="block px-2 py-2 text-center align-middle md:table-cell md:px-6 md:py-3 md:text-right">
+                                    <span class="mb-1 block text-[8px] font-bold uppercase tracking-wider text-blue-500 md:hidden">Terpakai</span>
+                                    <div class="inline-flex items-center justify-end gap-1.5">
                                         <span class="text-[15px] font-black text-blue-600 dark:text-blue-400 tabular-nums">
                                             {{ rtrim(rtrim(number_format((float) $item->used_display, 2, '.', ''), '0'), '.') }}
                                         </span>
                                         <span class="text-[10px] font-bold text-blue-500 uppercase">{{ $item->display_unit }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-5 whitespace-nowrap text-right align-middle">
+                                <td class="col-span-3 flex items-center justify-between border-t border-slate-100 px-4 py-2.5 text-right align-middle dark:border-slate-800 md:table-cell md:border-0 md:px-6 md:py-3">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 md:hidden">Estimasi pemakaian</span>
                                     @if($itemValue > 0)
                                         <div class="inline-flex items-baseline gap-1">
                                             <span class="text-[10px] font-bold text-rose-400">Rp</span>
@@ -438,49 +494,6 @@
                                     @else
                                         <span class="text-[12px] text-slate-300 dark:text-slate-600 font-medium">—</span>
                                     @endif
-                                </td>
-                            </tr>
-
-                            {{-- CARD MOBILE --}}
-                            <tr class="md:hidden border-b border-slate-100 dark:border-slate-800/50 last:border-0">
-                                <td class="p-0">
-                                    <div class="p-4 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                                        <div class="flex justify-between items-start mb-3 gap-2">
-                                            <div>
-                                                <p class="font-bold text-slate-900 dark:text-white text-[14px] leading-tight">{{ $item->ingredient->name }}</p>
-                                                @if((float) $item->carry_forward_qty > 0)
-                                                    <p class="mt-1 text-[9px] font-bold text-amber-600 dark:text-amber-400">Sisa kemarin {{ rtrim(rtrim(number_format((float) $item->carry_forward_display, 2, '.', ''), '0'), '.') }} {{ strtoupper($item->display_unit) }}</p>
-                                                @endif
-                                                @if($costPrice > 0)
-                                                    <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                                                        Rp {{ number_format($costPrice, 0, ',', '.') }}/{{ $dispUnit === 'pcs' ? 'pack' : $dispUnit }}
-                                                    </p>
-                                                @endif
-                                            </div>
-                                            @if($itemValue > 0)
-                                                <div class="text-right">
-                                                    <span class="text-[9px] font-bold text-rose-400">Rp</span>
-                                                    <span class="text-[13px] font-black text-rose-600 dark:text-rose-400 tabular-nums">{{ number_format($itemValue, 0, ',', '.') }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        
-                                        {{-- Metric Grid Mobile --}}
-                                        <div class="flex items-center bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-100 dark:border-slate-700/50 text-center divide-x divide-slate-200/60 dark:divide-slate-700/60">
-                                            <div class="flex-1">
-                                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dibawa</p>
-                                                <p class="font-bold text-slate-700 dark:text-slate-300 text-[11px] tabular-nums">{{ rtrim(rtrim(number_format((float) $item->opening_display, 2, '.', ''), '0'), '.') }} <span class="text-[8px] font-normal uppercase">{{ $item->display_unit }}</span></p>
-                                            </div>
-                                            <div class="flex-1">
-                                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sisa</p>
-                                                <p class="font-bold text-slate-700 dark:text-slate-300 text-[11px] tabular-nums">{{ rtrim(rtrim(number_format((float) $item->remaining_display, 2, '.', ''), '0'), '.') }} <span class="text-[8px] font-normal uppercase">{{ $item->display_unit }}</span></p>
-                                            </div>
-                                            <div class="flex-1 bg-blue-50/50 dark:bg-blue-900/10 rounded-r-lg -my-2.5 py-2.5">
-                                                <p class="text-[8px] font-bold text-blue-500 uppercase tracking-widest mb-1">Pakai</p>
-                                                <p class="font-black text-blue-600 dark:text-blue-400 text-[12px] tabular-nums">{{ rtrim(rtrim(number_format((float) $item->used_display, 2, '.', ''), '0'), '.') }} <span class="text-[8px] font-bold uppercase">{{ $item->display_unit }}</span></p>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </td>
                             </tr>
 
@@ -504,6 +517,54 @@
             'paginator' => $sessionItems,
             'label' => 'data',
         ])
+
+        @if($isSessionOpen)
+            <div x-show="quickAddOpen" x-cloak class="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="quick-add-title">
+                <button type="button" @click="closeQuickAdd()" class="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" aria-label="Tutup tambah cepat"></button>
+                <template x-if="quickItem">
+                    <form method="POST" action="{{ route('admin.daily-stocks.transfer') }}" @submit="submitting = true" class="relative w-full rounded-t-3xl bg-white shadow-2xl dark:bg-slate-900 sm:max-w-lg sm:rounded-3xl">
+                        @csrf
+                        <input type="hidden" name="session_id" value="{{ $session->id }}">
+                        <input type="hidden" name="return_to" value="index">
+                        <input type="hidden" name="return_page" value="{{ max(1, (int) request('page', 1)) }}">
+                        @if($selectedCategoryId > 0)<input type="hidden" name="return_category_id" value="{{ $selectedCategoryId }}">@endif
+                        <input type="hidden" :name="'transfers[' + quickItem.id + '][transfer_unit]'" :value="quickItem.unit">
+
+                        <div class="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-200 sm:hidden dark:bg-slate-700"></div>
+                        <div class="flex items-start justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+                            <div class="min-w-0"><p class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Tambah Cepat</p><h3 id="quick-add-title" class="mt-1 truncate text-lg font-black text-slate-900 dark:text-white" x-text="quickItem.name"></h3><p class="mt-0.5 text-xs text-slate-500">Ambil tambahan satu bahan dari gudang.</p></div>
+                            <button type="button" @click="closeQuickAdd()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 dark:bg-slate-800 dark:hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+
+                        <div class="space-y-4 px-5 py-4">
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950/50"><span class="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Tersedia di sesi</span><strong class="mt-1 block text-sm text-slate-800 dark:text-slate-200"><span x-text="formatQuantity(quickItem.remaining)"></span> <small x-text="quickItem.unit.toUpperCase()"></small></strong></div>
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950/50"><span class="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Stok gudang</span><strong class="mt-1 block text-sm text-slate-800 dark:text-slate-200"><span x-text="formatQuantity(quickItem.warehouse)"></span> <small x-text="quickItem.unit.toUpperCase()"></small></strong></div>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">Tambahan dari Gudang</label>
+                                <div class="flex h-14 items-center rounded-2xl border border-slate-200 bg-slate-50 p-1.5 shadow-inner focus-within:border-blue-400 dark:border-slate-700 dark:bg-slate-950">
+                                    <button type="button" @click="changeQuickQuantity(-1)" class="flex h-11 w-14 items-center justify-center rounded-xl bg-white text-xl font-black text-slate-600 shadow-sm dark:bg-slate-800 dark:text-slate-300">&minus;</button>
+                                    <div class="flex min-w-0 flex-1 items-center px-3"><input x-ref="quickQuantity" type="number" x-model="quantity" :name="'transfers[' + quickItem.id + '][quantity]'" min="0" :max="quickItem.warehouse" :step="quickItem.step" required class="w-full border-0 bg-transparent p-0 text-center text-xl font-black tabular-nums text-slate-900 outline-none focus:ring-0 dark:text-white"><span class="text-xs font-black text-slate-400" x-text="quickItem.unit.toUpperCase()"></span></div>
+                                    <button type="button" @click="changeQuickQuantity(1)" class="flex h-11 w-14 items-center justify-center rounded-xl bg-white text-xl font-black text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400">+</button>
+                                </div>
+                                <p x-show="(parseFloat(quantity) || 0) > quickItem.warehouse" x-cloak class="mt-2 text-xs font-semibold text-rose-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Jumlah melebihi stok gudang.</p>
+                            </div>
+
+                            <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs dark:border-emerald-900/50 dark:bg-emerald-500/10"><span class="font-semibold text-emerald-700 dark:text-emerald-300">Saldo tersedia setelah ditambah</span><strong class="text-sm text-emerald-800 dark:text-emerald-200"><span x-text="formatQuantity(quickItem.remaining + (parseFloat(quantity) || 0))"></span> <span x-text="quickItem.unit.toUpperCase()"></span></strong></div>
+
+                            <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Catatan <span class="font-medium normal-case text-slate-400">(opsional)</span></label><input type="text" x-model="note" :name="'transfers[' + quickItem.id + '][note]'" maxlength="255" placeholder="Contoh: tambahan untuk jam sibuk" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"></div>
+                        </div>
+
+                        <div class="grid grid-cols-[96px_minmax(0,1fr)] gap-2 border-t border-slate-100 px-5 pt-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] dark:border-slate-800 sm:pb-4">
+                            <button type="button" @click="closeQuickAdd()" class="h-11 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">Batal</button>
+                            <button type="submit" :disabled="!canSubmitQuickAdd()" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-extrabold text-white shadow-md shadow-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700"><i class="fa-solid fa-plus"></i><span x-text="submitting ? 'Menyimpan...' : 'Tambah ' + formatQuantity(quantity) + ' ' + quickItem.unit.toUpperCase()"></span></button>
+                        </div>
+                    </form>
+                </template>
+            </div>
+        @endif
     @endif
 </div>
 
