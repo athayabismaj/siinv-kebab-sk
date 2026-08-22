@@ -67,6 +67,164 @@ class RecipeControllerTest extends TestCase
         $response->assertDontSee('Burger Spesial');
     }
 
+    public function test_recipe_index_paginates_variants_without_loading_ingredient_details(): void
+    {
+        $admin = $this->createAdminUser();
+        $menuCategory = MenuCategory::create(['name' => 'Kebab']);
+        $ingredientCategory = IngredientCategory::create(['name' => 'Bahan Rahasia']);
+        $menu = Menu::create([
+            'category_id' => $menuCategory->id,
+            'name' => 'Menu Skala Besar',
+            'description' => null,
+            'image_path' => null,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+        $ingredient = Ingredient::create([
+            'category_id' => $ingredientCategory->id,
+            'name' => 'BAHAN TIDAK BOLEH DIMUAT DI INDEX',
+            'display_unit' => 'gram',
+            'base_unit' => 'gram',
+            'stock' => 1000,
+            'minimum_stock' => 100,
+        ]);
+
+        $variants = collect(range(1, 16))->map(function (int $number) use ($menu, $ingredient): MenuVariant {
+            $variant = MenuVariant::create([
+                'menu_id' => $menu->id,
+                'name' => 'Varian '.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
+                'price' => 10000 + $number,
+                'is_available' => true,
+                'sort_order' => $number,
+            ]);
+            $variant->ingredients()->attach($ingredient->id, ['quantity' => 5]);
+
+            return $variant;
+        });
+
+        $firstPage = $this->actingAs($admin)
+            ->get(route('admin.recipes.index'))
+            ->assertOk()
+            ->assertViewHas('variants', fn ($paginator) => $paginator->count() === 10 && $paginator->total() === 16)
+            ->assertSee('data-recipe-variant-list', false)
+            ->assertSee('@input.debounce.500ms=', false)
+            ->assertDontSee('>Cari</button>', false)
+            ->assertDontSee('Detail bahan dimuat saat dibutuhkan')
+            ->assertDontSee('Menampilkan')
+            ->assertDontSee($ingredient->name);
+
+        $this->assertSame(10, substr_count($firstPage->getContent(), 'data-recipe-variant="'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.recipes.index', ['page' => 2]))
+            ->assertOk()
+            ->assertViewHas('variants', fn ($paginator) => $paginator->count() === 6 && $paginator->total() === 16);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.recipes.details', $variants->first()))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.ingredients_count', 1)
+            ->assertJsonPath('data.ingredients.0.name', $ingredient->name)
+            ->assertJsonPath('data.ingredients.0.quantity', 5)
+            ->assertJsonPath('data.ingredients.0.unit', 'GRAM');
+    }
+
+    public function test_edit_recipe_uses_a_single_compact_responsive_row_per_ingredient(): void
+    {
+        $admin = $this->createAdminUser();
+        [$variant, $ingredientA, $ingredientB] = $this->createRecipeDataset();
+        $variant->ingredients()->attach($ingredientA->id, ['quantity' => 2.50]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.recipes.edit', $variant))
+            ->assertOk()
+            ->assertSee('Edit Resep')
+            ->assertSee($variant->menu->name.' · '.$variant->name)
+            ->assertSee('data-recipe-edit-list', false)
+            ->assertSee('Daftar Bahan')
+            ->assertSee('1 digunakan')
+            ->assertSee('Simpan Semua')
+            ->assertSee('sessionStorage.setItem', false)
+            ->assertSee('@input="remember(', false)
+            ->assertDontSee('Simpan Perubahan')
+            ->assertDontSee('x-collapse', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), 'data-recipe-ingredient="'.$ingredientA->id.'"'));
+        $this->assertSame(1, substr_count($response->getContent(), 'data-recipe-ingredient="'.$ingredientB->id.'"'));
+        $this->assertStringContainsString('data-recipe-actions', $response->getContent());
+    }
+
+    public function test_edit_recipe_loads_only_ten_ingredients_and_preserves_the_filter_after_save(): void
+    {
+        $admin = $this->createAdminUser();
+        [$variant, $ingredientA] = $this->createRecipeDataset();
+        $category = $ingredientA->category;
+
+        collect(range(1, 14))->each(function (int $number) use ($category): void {
+            Ingredient::create([
+                'category_id' => $category->id,
+                'name' => 'Tambahan '.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
+                'display_unit' => 'gram',
+                'base_unit' => 'gram',
+                'stock' => 100,
+                'minimum_stock' => 10,
+            ]);
+        });
+
+        $firstPage = $this->actingAs($admin)
+            ->get(route('admin.recipes.edit', $variant))
+            ->assertOk()
+            ->assertViewHas('ingredients', fn ($paginator) => $paginator->count() === 10 && $paginator->total() === 16)
+            ->assertSee('Tambahan 08')
+            ->assertDontSee('Tambahan 09');
+
+        $this->assertSame(10, substr_count($firstPage->getContent(), 'data-recipe-ingredient="'));
+        $this->assertLessThan(
+            strpos($firstPage->getContent(), 'data-recipe-pagination'),
+            strpos($firstPage->getContent(), 'data-recipe-actions'),
+            'Tombol aksi harus menjadi footer tabel sebelum pagination.'
+        );
+
+        $secondPage = $this->actingAs($admin)
+            ->get(route('admin.recipes.edit', ['variant' => $variant, 'category' => $category->id, 'page' => 2]))
+            ->assertOk()
+            ->assertViewHas('ingredients', fn ($paginator) => $paginator->count() === 6 && $paginator->total() === 16)
+            ->assertSee('Tambahan 09');
+
+        $firstPageIngredientId = (int) $firstPage->viewData('ingredients')->first()->id;
+        $secondPageIngredientId = (int) $secondPage->viewData('ingredients')->first()->id;
+
+        $this->actingAs($admin)
+            ->put(route('admin.recipes.update', $variant), [
+                'return_to' => 'edit',
+                'return_category' => $category->id,
+                'return_page' => 2,
+                'visible_ingredients' => [$firstPageIngredientId, $secondPageIngredientId],
+                'ingredients' => [
+                    $firstPageIngredientId => 2,
+                    $secondPageIngredientId => 3,
+                ],
+            ])
+            ->assertRedirect(route('admin.recipes.edit', [
+                'variant' => $variant,
+                'category' => $category->id,
+                'page' => 2,
+            ]))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $firstPageIngredientId,
+            'quantity' => 2.00,
+        ]);
+        $this->assertDatabaseHas('menu_variant_ingredients', [
+            'menu_variant_id' => $variant->id,
+            'ingredient_id' => $secondPageIngredientId,
+            'quantity' => 3.00,
+        ]);
+    }
+
     public function test_admin_can_update_recipe_successfully(): void
     {
         $admin = $this->createAdminUser();

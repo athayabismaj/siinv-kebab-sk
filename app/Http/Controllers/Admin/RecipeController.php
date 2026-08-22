@@ -11,6 +11,7 @@ use App\Models\MenuVariant;
 use App\Support\AdminCache;
 use App\Support\IngredientUnit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -22,38 +23,90 @@ class RecipeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Menu::with([
-            'category',
-            'variants.ingredients',
-        ]);
+        $query = MenuVariant::query()
+            ->select(['id', 'menu_id', 'name', 'is_available', 'sort_order'])
+            ->with([
+                'menu:id,category_id,name,is_active',
+                'menu.category:id,name',
+            ])
+            ->withCount('ingredients')
+            ->whereHas('menu', fn ($menuQuery) => $menuQuery->whereNull('menus.deleted_at'));
 
         // Filter kategori
         if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+            $query->whereHas('menu', fn ($menuQuery) => $menuQuery
+                ->where('category_id', (int) $request->input('category'))
+                ->whereNull('menus.deleted_at'));
         }
 
         // Search
         if ($request->filled('search')) {
             $search = strtolower($request->search);
 
-            $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                    ->orWhereHas('category', function ($q2) use ($search) {
-                        $q2->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+            $query->where(function ($variantQuery) use ($search) {
+                $variantQuery->whereRaw('LOWER(menu_variants.name) LIKE ?', ["%{$search}%"])
+                    ->orWhereHas('menu', function ($menuQuery) use ($search) {
+                        $menuQuery->whereRaw('LOWER(menus.name) LIKE ?', ["%{$search}%"]);
                     })
-                    ->orWhereHas('variants', function ($q3) use ($search) {
-                        $q3->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    ->orWhereHas('menu.category', function ($categoryQuery) use ($search) {
+                        $categoryQuery->whereRaw('LOWER(menu_categories.name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
 
-        $menus = $query->orderBy('name')
+        $variants = $query
+            ->orderBy(Menu::query()
+                ->select('name')
+                ->whereColumn('menus.id', 'menu_variants.menu_id'))
+            ->orderBy('name')
+            ->orderBy('id')
             ->paginate(10)
             ->withQueryString();
 
-        $categories = MenuCategory::orderBy('name')->get();
+        $categories = MenuCategory::query()
+            ->select(['id', 'name'])
+            ->orderBy('name')
+            ->get();
 
-        return view('admin.recipes.index', compact('menus', 'categories'));
+        return view('admin.recipes.index', compact('variants', 'categories'));
+    }
+
+    public function details(MenuVariant $variant)
+    {
+        $recipe = Cache::remember(
+            AdminCache::key('catalog', 'recipe-detail:'.$variant->id),
+            now()->addMinutes(5),
+            function () use ($variant): array {
+                $loadedVariant = MenuVariant::query()
+                    ->select(['id', 'menu_id', 'name'])
+                    ->with([
+                        'menu:id,name',
+                        'ingredients' => fn ($ingredientQuery) => $ingredientQuery
+                            ->select(['ingredients.id', 'ingredients.name', 'ingredients.base_unit'])
+                            ->orderBy('ingredients.name'),
+                    ])
+                    ->findOrFail($variant->id);
+
+                return [
+                    'id' => (int) $loadedVariant->id,
+                    'menu_name' => (string) $loadedVariant->menu?->name,
+                    'variant_name' => (string) $loadedVariant->name,
+                    'ingredients_count' => $loadedVariant->ingredients->count(),
+                    'ingredients' => $loadedVariant->ingredients->map(fn ($ingredient) => [
+                        'id' => (int) $ingredient->id,
+                        'name' => (string) $ingredient->name,
+                        'quantity' => (float) $ingredient->pivot->quantity,
+                        'unit' => strtoupper((string) $ingredient->base_unit),
+                    ])->values()->all(),
+                ];
+            },
+        );
+        $recipe['edit_url'] = route('admin.recipes.edit', $variant);
+
+        return response()->json([
+            'success' => true,
+            'data' => $recipe,
+        ]);
     }
 
     /**
@@ -61,28 +114,49 @@ class RecipeController extends Controller
      */
     public function edit(Request $request, MenuVariant $variant)
     {
-        $variant->load([
-            'menu.category',
-            'ingredients',
-        ]);
+        $variant->load('menu.category:id,name');
 
-        $query = IngredientCategory::with([
-            'ingredients' => function ($q) {
-                $q->orderBy('name');
-            },
-        ])->orderBy('name');
+        $ingredientQuery = Ingredient::query()
+            ->select(['id', 'category_id', 'name', 'display_unit', 'base_unit'])
+            ->with('category:id,name')
+            ->orderBy('name')
+            ->orderBy('id');
 
         if ($request->filled('category')) {
-            $query->where('id', $request->category);
+            $ingredientQuery->where('category_id', (int) $request->input('category'));
         }
 
-        $ingredientCategories = $query->get();
-        $allCategories = IngredientCategory::orderBy('name')->get();
+        if ($request->filled('search')) {
+            $search = strtolower(trim((string) $request->input('search')));
+            $ingredientQuery->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+        }
+
+        $ingredients = $ingredientQuery
+            ->paginate(10)
+            ->withQueryString();
+
+        $quantities = DB::table('menu_variant_ingredients')
+            ->where('menu_variant_id', $variant->id)
+            ->whereIn('ingredient_id', $ingredients->getCollection()->pluck('id'))
+            ->pluck('quantity', 'ingredient_id');
+
+        $recipeIngredientCount = DB::table('menu_variant_ingredients')
+            ->where('menu_variant_id', $variant->id)
+            ->where('quantity', '>', 0)
+            ->count();
+
+        $allCategories = IngredientCategory::query()
+            ->select(['id', 'name'])
+            ->whereHas('ingredients')
+            ->orderBy('name')
+            ->get();
 
         return view('admin.recipes.edit', compact(
             'variant',
-            'ingredientCategories',
-            'allCategories'
+            'ingredients',
+            'quantities',
+            'recipeIngredientCount',
+            'allCategories',
         ));
     }
 
@@ -93,11 +167,15 @@ class RecipeController extends Controller
     {
         try {
 
-            $request->validate([
+            $validated = $request->validate([
                 'ingredients' => 'required|array',
                 'ingredients.*' => 'nullable|numeric|min:0',
                 'visible_ingredients' => 'nullable|array',
                 'visible_ingredients.*' => 'integer',
+                'return_to' => 'nullable|in:index,edit',
+                'return_search' => 'nullable|string|max:100',
+                'return_category' => 'nullable|integer|min:1',
+                'return_page' => 'nullable|integer|min:1',
             ]);
 
             $submittedIngredients = $request->input('ingredients', []);
@@ -193,6 +271,17 @@ class RecipeController extends Controller
 
             AdminCache::bumpCatalog();
             AdminCache::bumpDailyStock();
+
+            if (($validated['return_to'] ?? 'index') === 'edit') {
+                return redirect()
+                    ->route('admin.recipes.edit', array_filter([
+                        'variant' => $variant->id,
+                        'search' => $validated['return_search'] ?? null,
+                        'category' => $validated['return_category'] ?? null,
+                        'page' => $validated['return_page'] ?? null,
+                    ], fn ($value) => $value !== null && $value !== ''))
+                    ->with('success', 'Semua perubahan resep berhasil disimpan.');
+            }
 
             return redirect()
                 ->route('admin.recipes.index')

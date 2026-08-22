@@ -1,4 +1,4 @@
 @include('partials.pagination_simple', [
-    'paginator' => $menus,
-    'label' => 'menu',
+    'paginator' => $variants,
+    'label' => 'varian',
 ])

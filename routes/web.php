@@ -299,6 +299,7 @@ Route::middleware(['auth', 'role:admin', 'perf.log'])->prefix('admin')->name('ad
 
         Route::prefix('recipes')->name('recipes.')->group(function () {
                 Route::get('/', [RecipeController::class, 'index'])->name('index');
+                Route::get('/{variant}/details', [RecipeController::class, 'details'])->name('details');
                 Route::get('/{variant}/edit', [RecipeController::class, 'edit'])->name('edit');
                 Route::put('/{variant}', [RecipeController::class, 'update'])->name('update');
         });
