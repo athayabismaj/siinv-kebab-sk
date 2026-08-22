@@ -289,7 +289,7 @@ class CarryForwardDailyStockActionTest extends TestCase
         $this->assertSame(10.0, (float) $item->opening_qty);
         $this->assertSame(10.0, (float) $item->remaining_qty);
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->get(route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]))
             ->assertOk()
             ->assertSeeText('Saldo Sesi: 10 PCS')
@@ -299,17 +299,27 @@ class CarryForwardDailyStockActionTest extends TestCase
     public function test_transfer_form_labels_the_editable_previous_remainder(): void
     {
         [$branch, $admin, $cashier, $ingredient] = $this->context();
+        $ingredient->update(['pack_size' => 10]);
         $session = $this->openTodayFromPreviousRemainder($branch, $admin, $cashier, $ingredient, 5);
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->get(route('admin.daily-stocks.transfer.form', ['session_id' => $session->id]))
             ->assertOk()
             ->assertSee('Sisa Kemarin')
             ->assertSee('Stok Awal Hari Ini')
             ->assertSee('Tambahan Gudang')
             ->assertSee('Saldo Sesi')
-            ->assertSee('Langkah (+/-)')
+            ->assertDontSee('Langkah (+/-)')
+            ->assertDontSee('value="pack"', false)
+            ->assertSee('Input saldo awal tetap menggunakan PCS.')
+            ->assertSee('data-responsive-stock-list', false)
             ->assertSee('transfers['.$ingredient->id.'][opening_quantity]', false);
+
+        $this->assertSame(
+            1,
+            substr_count($response->getContent(), 'name="transfers['.$ingredient->id.'][opening_quantity]"'),
+            'Setiap bahan harus dirender sebagai satu input responsif, bukan salinan desktop dan mobile.'
+        );
     }
 
     public function test_total_opening_input_keeps_carry_forward_without_reducing_warehouse(): void
