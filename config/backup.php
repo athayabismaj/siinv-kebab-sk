@@ -16,6 +16,7 @@ return [
     'maintenance_database' => env('FASE4D_PG_MAINTENANCE_DATABASE', 'postgres'),
     'encryption' => [
         'enabled' => env('BACKUP_ENCRYPTION_ENABLED', false),
+        'scheme' => 'AES-256-GCM-CHUNKED-V1',
         'key' => env('BACKUP_ENCRYPTION_KEY'),
     ],
     'retention' => [

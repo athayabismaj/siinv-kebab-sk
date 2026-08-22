@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Backup;
 
+use App\Services\Backup\BackupEncryptionService;
 use App\Services\Backup\BackupFilesystem;
 use App\Services\Backup\BackupManifestService;
 use App\Services\Backup\PostgreSqlProcessRunner;
@@ -34,6 +35,7 @@ class RestoreGuardTest extends TestCase
             'backup.restore_allowed_environments' => ['local', 'testing'],
             'backup.restore_database_prefix' => 'siinv_restore_test_',
             'backup.maintenance_database' => 'postgres',
+            'backup.encryption.scheme' => 'AES-256-GCM-CHUNKED-V1',
             'database.connections.backup-test' => [
                 'driver' => 'pgsql',
                 'host' => '127.0.0.1',
@@ -185,6 +187,30 @@ class RestoreGuardTest extends TestCase
         $this->restoreService($runner)->restoreUploadedToApplication($artifact, 'laravel');
     }
 
+    public function test_encrypted_managed_backup_is_decrypted_only_for_the_restore_process(): void
+    {
+        config(['backup.encryption.key' => 'base64:'.base64_encode(random_bytes(32))]);
+        $artifact = $this->encryptedArtifact();
+        $observedContents = [];
+        $runner = new PostgreSqlProcessRunner(function (array $command) use (&$observedContents) {
+            foreach ($command as $argument) {
+                if (is_string($argument) && is_file($argument) && basename($argument) === 'database.dump') {
+                    $observedContents[] = File::get($argument);
+                }
+            }
+
+            return Process::result();
+        });
+
+        $this->restoreService($runner)->restoreToApplication($artifact);
+
+        $this->assertNotEmpty($observedContents);
+        $this->assertSame(['encrypted-restore-fixture'], array_values(array_unique($observedContents)));
+        $this->assertDirectoryDoesNotExist(
+            $this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'.tmp',
+        );
+    }
+
     private function validArtifact(): string
     {
         $directory = $this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'artifact-safe';
@@ -193,7 +219,7 @@ class RestoreGuardTest extends TestCase
         $artifact = $directory.DIRECTORY_SEPARATOR.'siinv-db-safe.dump';
         File::put($artifact, 'fixture-dump-content');
 
-        (new BackupManifestService())->write($artifact, [
+        (new BackupManifestService)->write($artifact, [
             'backup_id' => 'artifact-safe',
             'created_at' => now()->toIso8601String(),
             'completed_at' => now()->toIso8601String(),
@@ -212,11 +238,42 @@ class RestoreGuardTest extends TestCase
         return $artifact;
     }
 
+    private function encryptedArtifact(): string
+    {
+        $directory = $this->storageRoot.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'artifact-encrypted';
+        File::ensureDirectoryExists($directory);
+        $plain = $directory.DIRECTORY_SEPARATOR.'source.dump';
+        $artifact = $directory.DIRECTORY_SEPARATOR.'siinv-db-safe.dump.enc';
+        File::put($plain, 'encrypted-restore-fixture');
+        (new BackupEncryptionService)->encryptFile($plain, $artifact);
+        File::delete($plain);
+
+        (new BackupManifestService)->write($artifact, [
+            'backup_id' => 'artifact-encrypted',
+            'created_at' => now()->toIso8601String(),
+            'completed_at' => now()->toIso8601String(),
+            'database_driver' => 'pgsql',
+            'backup_format' => 'custom',
+            'database_schema' => 'public',
+            'compressed' => true,
+            'encrypted' => true,
+            'encryption_scheme' => 'AES-256-GCM-CHUNKED-V1',
+            'checksum_algorithm' => 'sha256',
+            'checksum' => hash_file('sha256', $artifact),
+            'size_bytes' => filesize($artifact),
+            'application_version' => 'test',
+            'migration_state' => ['available' => false],
+            'status' => 'success',
+        ]);
+
+        return $artifact;
+    }
+
     private function restoreService(PostgreSqlProcessRunner $runner): PostgreSqlRestoreService
     {
         return new PostgreSqlRestoreService(
-            new BackupFilesystem(),
-            new BackupManifestService(),
+            new BackupFilesystem,
+            new BackupManifestService,
             $runner,
         );
     }

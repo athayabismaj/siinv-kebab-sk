@@ -2,6 +2,7 @@
 
 namespace App\Services\Backup;
 
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -9,13 +10,17 @@ class PostgreSqlRestoreService
 {
     private readonly PostgreSqlApplicationSchema $schemas;
 
+    private readonly BackupEncryptionService $encryption;
+
     public function __construct(
         private readonly BackupFilesystem $filesystem,
         private readonly BackupManifestService $manifests,
         private readonly PostgreSqlProcessRunner $processes,
         ?PostgreSqlApplicationSchema $schemas = null,
+        ?BackupEncryptionService $encryption = null,
     ) {
         $this->schemas = $schemas ?? new PostgreSqlApplicationSchema;
+        $this->encryption = $encryption ?? new BackupEncryptionService;
     }
 
     /** @return array{target_database:string,manifest:array<string,mixed>} */
@@ -30,58 +35,57 @@ class PostgreSqlRestoreService
             is_string($manifest['database_schema'] ?? null) ? $manifest['database_schema'] : null,
         );
 
-        if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom' || ($manifest['encrypted'] ?? false) === true) {
+        if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom') {
             throw new RuntimeException('Backup artifact is not supported for restore.');
         }
 
-        $environment = ['PGPASSWORD' => (string) $connection['password']];
-        $this->runOrFail([
-            (string) config('backup.psql_path'),
-            '--host', (string) $connection['host'],
-            '--port', (string) $connection['port'],
-            '--username', (string) $connection['username'],
-            '--dbname', (string) config('backup.maintenance_database'),
-            '--set', 'ON_ERROR_STOP=1',
-            '--command', 'CREATE DATABASE '.$this->quoteIdentifier($targetDatabase).' OWNER '.$this->quoteIdentifier((string) $connection['username']),
-        ], $environment);
+        return $this->withReadableArtifact($artifactPath, $manifest, function (string $restoreArtifact) use ($connection, $targetDatabase, $applicationSchema, $manifest): array {
+            $environment = ['PGPASSWORD' => (string) $connection['password']];
+            $this->runOrFail([
+                (string) config('backup.psql_path'),
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', (string) config('backup.maintenance_database'),
+                '--set', 'ON_ERROR_STOP=1',
+                '--command', 'CREATE DATABASE '.$this->quoteIdentifier($targetDatabase).' OWNER '.$this->quoteIdentifier((string) $connection['username']),
+            ], $environment);
 
-        $this->runOrFail([
-            (string) config('backup.psql_path'),
-            '--host', (string) $connection['host'],
-            '--port', (string) $connection['port'],
-            '--username', (string) $connection['username'],
-            '--dbname', $targetDatabase,
-            '--set', 'ON_ERROR_STOP=1',
-            '--command', $this->createSchemaCommand($applicationSchema),
-        ], $environment);
+            $this->runOrFail([
+                (string) config('backup.psql_path'),
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', $targetDatabase,
+                '--set', 'ON_ERROR_STOP=1',
+                '--command', $this->createSchemaCommand($applicationSchema),
+            ], $environment);
 
-        $this->runOrFail([
-            (string) config('backup.pg_restore_path'),
-            '--exit-on-error',
-            '--no-owner',
-            '--no-privileges',
-            '--schema', $applicationSchema,
-            '--host', (string) $connection['host'],
-            '--port', (string) $connection['port'],
-            '--username', (string) $connection['username'],
-            '--dbname', $targetDatabase,
-            $artifactPath,
-        ], $environment);
+            $this->runOrFail([
+                (string) config('backup.pg_restore_path'),
+                '--exit-on-error',
+                '--no-owner',
+                '--no-privileges',
+                '--schema', $applicationSchema,
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', $targetDatabase,
+                $restoreArtifact,
+            ], $environment);
 
-        $this->runOrFail([
-            (string) config('backup.psql_path'),
-            '--host', (string) $connection['host'],
-            '--port', (string) $connection['port'],
-            '--username', (string) $connection['username'],
-            '--dbname', $targetDatabase,
-            '--set', 'ON_ERROR_STOP=1',
-            '--command', $this->migrationTableCheck($applicationSchema),
-        ], $environment);
+            $this->runOrFail([
+                (string) config('backup.psql_path'),
+                '--host', (string) $connection['host'],
+                '--port', (string) $connection['port'],
+                '--username', (string) $connection['username'],
+                '--dbname', $targetDatabase,
+                '--set', 'ON_ERROR_STOP=1',
+                '--command', $this->migrationTableCheck($applicationSchema),
+            ], $environment);
 
-        return [
-            'target_database' => $targetDatabase,
-            'manifest' => $manifest,
-        ];
+            return ['target_database' => $targetDatabase, 'manifest' => $manifest];
+        });
     }
 
     /** @return array{target_database:string,manifest:array<string,mixed>} */
@@ -176,11 +180,15 @@ class PostgreSqlRestoreService
             is_string($manifest['database_schema'] ?? null) ? $manifest['database_schema'] : null,
         );
 
-        if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom' || ($manifest['encrypted'] ?? false) === true) {
+        if (($manifest['database_driver'] ?? null) !== 'pgsql' || ($manifest['backup_format'] ?? null) !== 'custom') {
             throw new RuntimeException('Backup artifact is not supported for restore.');
         }
 
-        $this->restoreArchiveToApplication($artifactPath, $connection, $applicationSchema);
+        $this->withReadableArtifact(
+            $artifactPath,
+            $manifest,
+            fn (string $restoreArtifact) => $this->restoreArchiveToApplication($restoreArtifact, $connection, $applicationSchema),
+        );
 
         return $applicationSchema;
     }
@@ -328,5 +336,28 @@ class PostgreSqlRestoreService
     private function quoteIdentifier(string $identifier): string
     {
         return '"'.str_replace('"', '""', $identifier).'"';
+    }
+
+    private function withReadableArtifact(string $artifactPath, array $manifest, callable $callback): mixed
+    {
+        if (($manifest['encrypted'] ?? false) !== true) {
+            return $callback($artifactPath);
+        }
+
+        if (($manifest['encryption_scheme'] ?? null) !== (string) config('backup.encryption.scheme')) {
+            throw new RuntimeException('Backup encryption scheme is not supported.');
+        }
+
+        $temporaryDirectory = $this->filesystem->temporaryDirectory('decrypt-'.Str::uuid());
+        $decryptedPath = $temporaryDirectory.DIRECTORY_SEPARATOR.'database.dump';
+        File::ensureDirectoryExists($temporaryDirectory);
+
+        try {
+            $this->encryption->decryptFile($artifactPath, $decryptedPath);
+
+            return $callback($decryptedPath);
+        } finally {
+            $this->filesystem->deleteDirectory($temporaryDirectory);
+        }
     }
 }

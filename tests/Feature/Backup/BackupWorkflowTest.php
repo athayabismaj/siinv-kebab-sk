@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Backup;
 
+use App\Services\Backup\BackupEncryptionService;
 use App\Services\Backup\BackupFilesystem;
 use App\Services\Backup\BackupManifestService;
 use App\Services\Backup\PostgreSqlBackupService;
@@ -166,19 +167,36 @@ class BackupWorkflowTest extends TestCase
         $this->backupService($runner)->create('manual');
     }
 
-    public function test_encryption_cannot_be_silently_claimed_when_no_approved_implementation_exists(): void
+    public function test_encrypted_backup_is_published_without_plaintext_artifact(): void
     {
-        config(['backup.encryption.enabled' => true, 'backup.encryption.key' => 'test-secret']);
+        config([
+            'backup.encryption.enabled' => true,
+            'backup.encryption.key' => 'base64:'.base64_encode(random_bytes(32)),
+        ]);
+        $runner = new PostgreSqlProcessRunner(function (array $command) {
+            $outputIndex = array_search('--file', $command, true) + 1;
+            File::put($command[$outputIndex], 'encrypted-fixture-dump');
 
-        $this->expectException(RuntimeException::class);
-        $this->backupService(new PostgreSqlProcessRunner(fn () => Process::result()))->create('manual');
+            return Process::result();
+        });
+
+        $backup = $this->backupService($runner)->create('manual');
+
+        $this->assertStringEndsWith('.dump.enc', $backup['file_path']);
+        $this->assertTrue($backup['manifest']['encrypted']);
+        $this->assertSame('AES-256-GCM-CHUNKED-V1', $backup['manifest']['encryption_scheme']);
+        $this->assertFileDoesNotExist(substr($backup['file_path'], 0, -4));
+
+        $decrypted = $this->storageRoot.DIRECTORY_SEPARATOR.'decrypted.dump';
+        (new BackupEncryptionService)->decryptFile($backup['file_path'], $decrypted);
+        $this->assertSame('encrypted-fixture-dump', File::get($decrypted));
     }
 
     private function backupService(PostgreSqlProcessRunner $runner): PostgreSqlBackupService
     {
         return new PostgreSqlBackupService(
-            new BackupFilesystem(),
-            new BackupManifestService(),
+            new BackupFilesystem,
+            new BackupManifestService,
             $runner,
         );
     }

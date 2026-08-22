@@ -11,13 +11,17 @@ class PostgreSqlBackupService
 {
     private readonly PostgreSqlApplicationSchema $schemas;
 
+    private readonly BackupEncryptionService $encryption;
+
     public function __construct(
         private readonly BackupFilesystem $filesystem,
         private readonly BackupManifestService $manifests,
         private readonly PostgreSqlProcessRunner $processes,
         ?PostgreSqlApplicationSchema $schemas = null,
+        ?BackupEncryptionService $encryption = null,
     ) {
         $this->schemas = $schemas ?? new PostgreSqlApplicationSchema;
+        $this->encryption = $encryption ?? new BackupEncryptionService;
     }
 
     /** @return array{backup_id:string,file_path:string,manifest_path:string,manifest:array<string,mixed>} */
@@ -27,12 +31,9 @@ class PostgreSqlBackupService
             throw new RuntimeException('Backup is disabled.');
         }
 
-        if (config('backup.encryption.enabled')) {
-            if (blank(config('backup.encryption.key'))) {
-                throw new RuntimeException('Backup encryption requires a configured key.');
-            }
-
-            throw new RuntimeException('Encrypted backups are not available until an approved encryption implementation is configured.');
+        $encryptBackup = (bool) config('backup.encryption.enabled');
+        if ($encryptBackup && blank(config('backup.encryption.key'))) {
+            throw new RuntimeException('Backup encryption requires a configured key.');
         }
 
         $connection = $this->connection();
@@ -69,6 +70,13 @@ class PostgreSqlBackupService
                 throw new RuntimeException('Database backup process failed.');
             }
 
+            $artifactPath = $temporaryDump;
+            if ($encryptBackup) {
+                $artifactPath = $temporaryDump.'.enc';
+                $this->encryption->encryptFile($temporaryDump, $artifactPath);
+                File::delete($temporaryDump);
+            }
+
             $manifest = [
                 'backup_id' => $backupId,
                 'created_at' => now()->toIso8601String(),
@@ -77,19 +85,20 @@ class PostgreSqlBackupService
                 'backup_format' => 'custom',
                 'database_schema' => $applicationSchema,
                 'compressed' => true,
-                'encrypted' => false,
+                'encrypted' => $encryptBackup,
+                'encryption_scheme' => $encryptBackup ? 'AES-256-GCM-CHUNKED-V1' : null,
                 'checksum_algorithm' => 'sha256',
-                'checksum' => hash_file('sha256', $temporaryDump),
-                'size_bytes' => filesize($temporaryDump),
+                'checksum' => hash_file('sha256', $artifactPath),
+                'size_bytes' => filesize($artifactPath),
                 'application_version' => app()->version(),
                 'migration_state' => ['available' => false],
                 'status' => 'success',
                 'type' => $type,
             ];
-            $temporaryManifest = $this->manifests->write($temporaryDump, $manifest);
+            $temporaryManifest = $this->manifests->write($artifactPath, $manifest);
             $this->filesystem->publish($temporaryDirectory, $artifactDirectory);
 
-            $filePath = $artifactDirectory.DIRECTORY_SEPARATOR.basename($temporaryDump);
+            $filePath = $artifactDirectory.DIRECTORY_SEPARATOR.basename($artifactPath);
             $manifestPath = $artifactDirectory.DIRECTORY_SEPARATOR.basename($temporaryManifest);
 
             Log::info('Database backup completed.', [
