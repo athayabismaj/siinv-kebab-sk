@@ -7,6 +7,7 @@ use App\Models\ApiToken;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\BranchScope;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -137,7 +138,7 @@ class UserManagementController extends Controller
         $this->ensureUserManageable($user);
 
         $request->validate([
-            'password' => 'required|min:6|confirmed',
+            'password' => PasswordPolicy::rulesForUser($user),
         ]);
 
         $user->update([
@@ -200,7 +201,10 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:100',
             'username' => 'required|string|max:100|unique:users,username',
             'email' => 'required|email|max:150|unique:users,email',
-            'password' => 'required|min:6',
+            'password' => PasswordPolicy::rulesForRole(
+                $this->roleNameFromId((int) $request->input('role_id')),
+                confirmed: false,
+            ),
             'role_id' => 'required|exists:roles,id',
         ];
 
@@ -211,12 +215,20 @@ class UserManagementController extends Controller
 
     private function updateRules(Request $request, User $user): array
     {
+        $targetRole = $this->roleNameFromId((int) $request->input('role_id'));
+        $requiresStrongPasswordForPromotion = PasswordPolicy::isPrivilegedRole($targetRole)
+            && ! PasswordPolicy::isPrivilegedRole((string) $user->role?->name);
+
         $rules = [
             'name' => 'required|string|max:100',
             'username' => 'required|string|max:100|unique:users,username,'.$user->id,
             'email' => 'required|email|max:150|unique:users,email,'.$user->id,
             'role_id' => 'required|exists:roles,id',
-            'password' => 'nullable|min:6',
+            'password' => PasswordPolicy::rulesForRole(
+                $targetRole,
+                required: $requiresStrongPasswordForPromotion,
+                confirmed: false,
+            ),
         ];
 
         $this->addBranchRules($rules, $request);
@@ -378,7 +390,7 @@ class UserManagementController extends Controller
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan. Gunakan email lain atau cek arsip user.',
             'password.required' => 'Password wajib diisi.',
-            'password.min' => 'Password minimal 6 karakter.',
+            'password.min' => 'Password admin minimal 12 karakter; password kasir minimal 6 karakter.',
             'role_id.required' => 'Role wajib dipilih.',
             'role_id.exists' => 'Role yang dipilih tidak tersedia.',
             'branch_id.required' => 'Cabang wajib dipilih.',

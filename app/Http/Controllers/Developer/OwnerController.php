@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Developer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
+use App\Support\PasswordPolicy;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class OwnerController extends Controller
@@ -13,7 +14,7 @@ class OwnerController extends Controller
     public function index()
     {
         $ownerRole = Role::where('name', 'owner')->firstOrFail();
-        
+
         $owners = User::withTrashed()
             ->where('role_id', $ownerRole->id)
             ->latest()
@@ -33,7 +34,7 @@ class OwnerController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
+            'password' => PasswordPolicy::rulesForRole('owner', confirmed: false),
         ]);
 
         $ownerRole = Role::where('name', 'owner')->firstOrFail();
@@ -53,9 +54,10 @@ class OwnerController extends Controller
     {
         // Pastikan role user adalah owner
         $ownerRole = Role::where('name', 'owner')->firstOrFail();
-        
+
         if ($user->role_id === $ownerRole->id) {
             $user->delete();
+
             return redirect()->route('developer.owners.index')->with('success', 'Akun Owner berhasil dinonaktifkan.');
         }
 
@@ -69,6 +71,7 @@ class OwnerController extends Controller
 
         if ($user->role_id === $ownerRole->id) {
             $user->restore();
+
             return redirect()->route('developer.owners.index')->with('success', 'Akun Owner berhasil diaktifkan kembali.');
         }
 

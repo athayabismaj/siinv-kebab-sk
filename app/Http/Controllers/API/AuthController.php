@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OtpMail;
 use App\Models\ApiToken;
 use App\Models\PasswordOtp;
 use App\Models\User;
-use App\Mail\OtpMail;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -149,7 +150,7 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'password' => PasswordPolicy::rulesForUser($user),
         ]);
 
         if (! Hash::check($validated['current_password'], $user->password)) {
@@ -177,6 +178,7 @@ class AuthController extends Controller
             'message' => 'Password berhasil diubah.',
         ]);
     }
+
     public function logout(Request $request)
     {
         $bearerToken = $request->bearerToken();
@@ -363,7 +365,6 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'code' => 'required|digits:6',
-            'password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = User::query()
@@ -376,6 +377,10 @@ class AuthController extends Controller
                 'message' => 'Kode OTP tidak valid atau sudah tidak berlaku.',
             ], 422);
         }
+
+        $validated['password'] = $request->validate([
+            'password' => PasswordPolicy::rulesForUser($user),
+        ])['password'];
 
         $otpRecord = PasswordOtp::query()
             ->where('user_id', $user->id)
@@ -436,5 +441,3 @@ class AuthController extends Controller
         ]);
     }
 }
-
-

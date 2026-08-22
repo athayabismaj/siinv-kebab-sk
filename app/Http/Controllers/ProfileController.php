@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApiToken;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,7 +13,7 @@ class ProfileController extends Controller
     public function show()
     {
         return view('profile.show', [
-            'user' => Auth::user()
+            'user' => Auth::user(),
         ]);
     }
 
@@ -22,8 +23,8 @@ class ProfileController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:100',
-            'username' => 'required|string|unique:users,username,' . $user->id,
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'username' => 'required|string|unique:users,username,'.$user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
         ]);
 
         $user->update([
@@ -35,28 +36,30 @@ class ProfileController extends Controller
         return back()->with('success', 'Profile berhasil diperbarui.');
     }
 
-    public function showChangePassword() {
-    return view('profile.change_password');
+    public function showChangePassword()
+    {
+        return view('profile.change_password');
     }
 
-    public function changePassword(Request $request) {
+    public function changePassword(Request $request)
+    {
         $user = auth()->user();
 
         $request->validate([
             'current_password' => 'required',
-            'password' => 'required|min:6|confirmed',
+            'password' => PasswordPolicy::rulesForUser($user),
         ]);
 
         // Cek password lama
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return back()->withErrors([
-                'current_password' => 'Password saat ini tidak sesuai.'
+                'current_password' => 'Password saat ini tidak sesuai.',
             ]);
         }
 
         // Update password
         $user->update([
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($request->password),
         ]);
 
         ApiToken::where('user_id', $user->id)->delete();

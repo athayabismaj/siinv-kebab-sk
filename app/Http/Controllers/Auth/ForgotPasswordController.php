@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\ApiToken;
-use App\Models\User;
-use App\Models\PasswordOtp;
 use App\Mail\OtpMail;
+use App\Models\ApiToken;
+use App\Models\PasswordOtp;
+use App\Models\User;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -21,7 +22,7 @@ class ForgotPasswordController extends Controller
 
     public function showVerifyForm()
     {
-        if (!session('otp_email')) {
+        if (! session('otp_email')) {
             return redirect()->route('password.request');
         }
 
@@ -30,7 +31,7 @@ class ForgotPasswordController extends Controller
 
     public function showResetForm()
     {
-        if (!session('password_reset_user_id')) {
+        if (! session('password_reset_user_id')) {
             return redirect()->route('password.request');
         }
 
@@ -52,7 +53,7 @@ class ForgotPasswordController extends Controller
         $user = User::where('email', $submittedEmail)->first();
         $expireTime = now()->addMinutes(5);
 
-        if (!$user) {
+        if (! $user) {
             session([
                 'otp_email' => $submittedEmail,
                 'otp_expires_at' => $expireTime->timestamp,
@@ -96,7 +97,7 @@ class ForgotPasswordController extends Controller
         // SIMPAN SESSION UNTUK VERIFIKASI
         session([
             'otp_email' => $user->email,
-            'otp_expires_at' => $expireTime->timestamp
+            'otp_expires_at' => $expireTime->timestamp,
         ]);
 
         // KIRIM EMAIL OTP
@@ -126,13 +127,13 @@ class ForgotPasswordController extends Controller
 
         $email = session('otp_email');
 
-        if (!$email) {
+        if (! $email) {
             return redirect()->route('password.request');
         }
 
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return back()->withErrors(['otp' => 'Kode OTP tidak valid atau sudah tidak berlaku.']);
         }
 
@@ -141,7 +142,7 @@ class ForgotPasswordController extends Controller
             ->latest()
             ->first();
 
-        if (!$otpRecord) {
+        if (! $otpRecord) {
             return back()->withErrors(['otp' => 'Kode OTP tidak valid atau sudah tidak berlaku.']);
         }
 
@@ -155,7 +156,7 @@ class ForgotPasswordController extends Controller
             return back()->withErrors(['otp' => 'Kode OTP tidak valid atau sudah tidak berlaku.']);
         }
 
-        if (!Hash::check($request->otp, $otpRecord->otp_hash)) {
+        if (! Hash::check($request->otp, $otpRecord->otp_hash)) {
             $otpRecord->increment('attempts');
             if ($otpRecord->attempts >= 5) {
                 $otpRecord->update(['used' => true]);
@@ -180,20 +181,19 @@ class ForgotPasswordController extends Controller
     */
     public function resetPassword(Request $request)
     {
-        $request->validate([
-            'password' => 'required|min:6|confirmed',
-        ]);
-
         $userId = session('password_reset_user_id');
 
-        if (!$userId) {
+        if (! $userId) {
             return redirect()->route('password.request');
         }
 
         $user = User::findOrFail($userId);
+        $validated = $request->validate([
+            'password' => PasswordPolicy::rulesForUser($user),
+        ]);
 
         $user->update([
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($validated['password']),
         ]);
 
         // Hapus semua OTP milik user
